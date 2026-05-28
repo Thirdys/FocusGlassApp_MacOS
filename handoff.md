@@ -77,6 +77,7 @@ Completed:
   - `.github/ISSUE_TEMPLATE/*`
 - README is now the public GitHub-facing project page.
 - GitHub Actions workflow was prepared conceptually but not committed, because the current GitHub token cannot push workflow files without `workflow` scope.
+- Created and pushed annotated tag `v0.0.1` with message `релиз: v0.0.1`.
 
 Skills research:
 
@@ -87,13 +88,12 @@ Skills research:
 
 ## Next Steps
 
-1. Commit and push the GitHub workflow/README update.
-2. Enable branch protection or rulesets for `main` in GitHub UI if the account plan/repo settings allow it.
-3. Add GitHub Actions CI only after using a token with `workflow` scope.
-4. Confirm whether generated `build/` products should stay ignored-only or be distributed through GitHub Releases.
-5. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
-6. Inspect useful skills from `openai/skills` before installing anything.
-7. Keep `handoff.md` updated after each substantial audit or implementation step.
+1. Enable branch protection or rulesets for `main` in GitHub UI if the account plan/repo settings allow it.
+2. Add GitHub Actions CI only after using a token with `workflow` scope.
+3. Confirm whether generated `build/` products should stay ignored-only or be distributed through GitHub Releases.
+4. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
+5. Inspect useful skills from `openai/skills` before installing anything.
+6. Keep `handoff.md` updated after each substantial audit or implementation step.
 
 ## Open Questions
 
