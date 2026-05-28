@@ -61,6 +61,12 @@ Completed:
   - `build/FocusGlassSips.iconset`
   - `build/TestIcon.iconset`
 - Confirmed design concept PNGs are referenced by documentation and should be kept unless the design source moves elsewhere.
+- Validation after archive move:
+  - Xcode `BuildProject` passed.
+  - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test` passed with 37/37 tests.
+- Created local commit `318122a Add FocusGlass app source baseline`.
+- Pushed `main` to GitHub remote `Release` at `https://github.com/Thirdys/FocusGlassApp_MacOS.git`.
+- Local upstream tracking could not be written because `.git/config` was not writable in the current environment, but the remote branch was verified with `git ls-remote`.
 
 Skills research:
 
@@ -71,12 +77,11 @@ Skills research:
 
 ## Next Steps
 
-1. Run build/tests after the archive move.
-2. Add/commit `.gitignore`, because generated folders are already ignored but the ignore file itself was untracked.
-3. Confirm whether generated `build/` products should stay in repo for local manual distribution or be kept ignored-only.
-4. Create a clean initial Git commit once build/tests pass.
-5. Create/push GitHub repository if GitHub CLI is installed and authenticated, or pause for user login/repo details.
-6. Keep `handoff.md` updated after each substantial audit or implementation step.
+1. Commit and push this handoff update.
+2. Confirm whether generated `build/` products should stay in repo for local manual distribution or be kept ignored-only.
+3. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
+4. Inspect useful skills from `openai/skills` before installing anything.
+5. Keep `handoff.md` updated after each substantial audit or implementation step.
 
 ## Open Questions
 
