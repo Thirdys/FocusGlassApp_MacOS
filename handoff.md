@@ -38,6 +38,8 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - Keep changes tightly scoped to the requested task.
 - Update documentation when behavior, architecture, QA, packaging, permissions, visual language, or design rules change.
 - Never revert user changes or generated outputs without explicit approval.
+- GitHub process lives in `docs/process/github-workflow.md`; follow it for branches, Russian commit messages, tags, releases, PRs, and issue handling.
+- Public roadmap lives in `docs/process/roadmap.md`.
 
 ## Current Audit Status
 
@@ -67,6 +69,14 @@ Completed:
 - Created local commit `318122a Add FocusGlass app source baseline`.
 - Pushed `main` to GitHub remote `Release` at `https://github.com/Thirdys/FocusGlassApp_MacOS.git`.
 - Local upstream tracking could not be written because `.git/config` was not writable in the current environment, but the remote branch was verified with `git ls-remote`.
+- Added GitHub/project process files:
+  - `CHANGELOG.md`
+  - `docs/process/github-workflow.md`
+  - `docs/process/roadmap.md`
+  - `.github/pull_request_template.md`
+  - `.github/ISSUE_TEMPLATE/*`
+- README is now the public GitHub-facing project page.
+- GitHub Actions workflow was prepared conceptually but not committed, because the current GitHub token cannot push workflow files without `workflow` scope.
 
 Skills research:
 
@@ -77,11 +87,13 @@ Skills research:
 
 ## Next Steps
 
-1. Commit and push this handoff update.
-2. Confirm whether generated `build/` products should stay in repo for local manual distribution or be kept ignored-only.
-3. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
-4. Inspect useful skills from `openai/skills` before installing anything.
-5. Keep `handoff.md` updated after each substantial audit or implementation step.
+1. Commit and push the GitHub workflow/README update.
+2. Enable branch protection or rulesets for `main` in GitHub UI if the account plan/repo settings allow it.
+3. Add GitHub Actions CI only after using a token with `workflow` scope.
+4. Confirm whether generated `build/` products should stay ignored-only or be distributed through GitHub Releases.
+5. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
+6. Inspect useful skills from `openai/skills` before installing anything.
+7. Keep `handoff.md` updated after each substantial audit or implementation step.
 
 ## Open Questions
 

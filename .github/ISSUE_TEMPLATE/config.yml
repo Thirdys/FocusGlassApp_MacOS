@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Контекст проекта
+    url: https://github.com/Thirdys/FocusGlassApp_MacOS/blob/main/docs/product-context.md
+    about: Перед большой идеей проверь продуктовые границы FocusGlass.
