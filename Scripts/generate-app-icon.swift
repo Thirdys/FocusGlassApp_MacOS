@@ -27,7 +27,6 @@ let backgroundBottom = NSColor(hex: "#030305")
 let surface = NSColor(hex: "#151217")
 let elevated = NSColor(hex: "#21191f")
 let accent = NSColor(hex: "#ff4d57")
-let secondary = NSColor(hex: "#7c86ff")
 let text = NSColor(hex: "#f6f8ff")
 let highlight = NSColor.white
 
@@ -61,68 +60,78 @@ func drawIconData(size: CGFloat) -> Data? {
     let tile = NSBezierPath(roundedRect: tileRect, xRadius: tileRadius, yRadius: tileRadius)
     NSGradient(colors: [backgroundTop, backgroundMid, backgroundBottom])?.draw(in: tile, angle: -42)
 
-    let innerTile = tileRect.insetBy(dx: size * 0.045, dy: size * 0.045)
-    let glassPanel = NSBezierPath(roundedRect: innerTile, xRadius: size * 0.185, yRadius: size * 0.185)
+    let glassFace = NSBezierPath(ovalIn: rect.insetBy(dx: size * 0.196, dy: size * 0.196))
     NSGradient(colors: [
-        highlight.withAlphaComponent(0.18),
-        elevated.withAlphaComponent(0.62),
-        surface.withAlphaComponent(0.74)
-    ])?.draw(in: glassPanel, angle: -38)
+        highlight.withAlphaComponent(0.26),
+        elevated.withAlphaComponent(0.70),
+        surface.withAlphaComponent(0.88)
+    ])?.draw(in: glassFace, angle: -42)
 
-    let dialRect = rect.insetBy(dx: size * 0.245, dy: size * 0.245)
-    let dial = NSBezierPath(ovalIn: dialRect)
-    NSGradient(colors: [
-        highlight.withAlphaComponent(0.34),
-        surface.withAlphaComponent(0.56),
-        backgroundBottom.withAlphaComponent(0.28)
-    ])?.draw(in: dial, angle: -45)
-
-    let dialStroke = NSBezierPath(ovalIn: dialRect.insetBy(dx: size * 0.01, dy: size * 0.01))
-    highlight.withAlphaComponent(0.30).setStroke()
-    dialStroke.lineWidth = max(1.2, size * 0.016)
-    dialStroke.stroke()
+    let faceStroke = NSBezierPath(ovalIn: rect.insetBy(dx: size * 0.206, dy: size * 0.206))
+    highlight.withAlphaComponent(0.32).setStroke()
+    faceStroke.lineWidth = max(1.4, size * 0.017)
+    faceStroke.stroke()
 
     let center = NSPoint(x: size * 0.5, y: size * 0.5)
     let progress = NSBezierPath()
-    progress.appendArc(withCenter: center, radius: size * 0.272, startAngle: 126, endAngle: -42, clockwise: true)
+    progress.appendArc(withCenter: center, radius: size * 0.343, startAngle: 135, endAngle: -48, clockwise: true)
     accent.setStroke()
     progress.lineCapStyle = .round
-    progress.lineWidth = max(4, size * 0.060)
+    progress.lineWidth = max(4, size * 0.072)
     progress.stroke()
-
-    let restArc = NSBezierPath()
-    restArc.appendArc(withCenter: center, radius: size * 0.272, startAngle: -52, endAngle: 112, clockwise: true)
-    secondary.withAlphaComponent(0.34).setStroke()
-    restArc.lineCapStyle = .round
-    restArc.lineWidth = max(2, size * 0.032)
-    restArc.stroke()
 
     let hands = NSBezierPath()
     hands.move(to: center)
-    hands.line(to: NSPoint(x: size * 0.5, y: size * 0.64))
+    hands.line(to: NSPoint(x: size * 0.5, y: size * 0.684))
     hands.move(to: center)
-    hands.line(to: NSPoint(x: size * 0.61, y: size * 0.455))
+    hands.line(to: NSPoint(x: size * 0.648, y: size * 0.425))
     text.withAlphaComponent(0.94).setStroke()
     hands.lineCapStyle = .round
-    hands.lineWidth = max(2, size * 0.028)
+    hands.lineWidth = max(2.2, size * 0.034)
     hands.stroke()
 
     let centerDot = NSBezierPath(ovalIn: NSRect(x: size * 0.466, y: size * 0.466, width: size * 0.068, height: size * 0.068))
     text.withAlphaComponent(0.98).setFill()
     centerDot.fill()
 
-    let focusDot = NSBezierPath(ovalIn: NSRect(x: size * 0.704, y: size * 0.704, width: size * 0.060, height: size * 0.060))
+    let focusDot = NSBezierPath(ovalIn: NSRect(x: size * 0.708, y: size * 0.708, width: size * 0.082, height: size * 0.082))
     accent.withAlphaComponent(0.92).setFill()
     focusDot.fill()
 
-    let shine = NSBezierPath(roundedRect: NSRect(x: size * 0.285, y: size * 0.735, width: size * 0.30, height: size * 0.036), xRadius: size * 0.018, yRadius: size * 0.018)
-    highlight.withAlphaComponent(0.34).setFill()
-    shine.fill()
+    let shine = NSBezierPath()
+    shine.move(to: NSPoint(x: size * 0.305, y: size * 0.690))
+    shine.curve(
+        to: NSPoint(x: size * 0.565, y: size * 0.755),
+        controlPoint1: NSPoint(x: size * 0.365, y: size * 0.765),
+        controlPoint2: NSPoint(x: size * 0.482, y: size * 0.790)
+    )
+    shine.lineCapStyle = .round
+    shine.lineWidth = max(2, size * 0.030)
+    highlight.withAlphaComponent(0.30).setStroke()
+    shine.stroke()
+
+    let lensGlint = NSBezierPath(ovalIn: NSRect(x: size * 0.278, y: size * 0.644, width: size * 0.052, height: size * 0.052))
+    highlight.withAlphaComponent(0.18).setFill()
+    lensGlint.fill()
+
+    let focusDotHalo = NSBezierPath(ovalIn: NSRect(x: size * 0.691, y: size * 0.691, width: size * 0.116, height: size * 0.116))
+    accent.withAlphaComponent(0.18).setStroke()
+    focusDotHalo.lineWidth = max(1, size * 0.012)
+    focusDotHalo.stroke()
+
+    let edgeGlow = NSBezierPath(roundedRect: tileRect.insetBy(dx: size * 0.014, dy: size * 0.014), xRadius: tileRadius, yRadius: tileRadius)
+    accent.withAlphaComponent(0.10).setFill()
+    edgeGlow.fill()
 
     let edge = NSBezierPath(roundedRect: tileRect, xRadius: tileRadius, yRadius: tileRadius)
     highlight.withAlphaComponent(0.24).setStroke()
     edge.lineWidth = max(1, size * 0.012)
     edge.stroke()
+
+    let accentEdge = NSBezierPath(roundedRect: tileRect.insetBy(dx: size * 0.012, dy: size * 0.012), xRadius: tileRadius, yRadius: tileRadius)
+    accent.withAlphaComponent(0.18).setStroke()
+    accentEdge.lineWidth = max(1, size * 0.010)
+    accentEdge.stroke()
 
     NSGraphicsContext.restoreGraphicsState()
     return bitmap.representation(using: .png, properties: [:])
