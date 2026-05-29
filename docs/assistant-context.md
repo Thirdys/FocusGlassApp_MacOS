@@ -34,6 +34,17 @@ update the relevant document in the same change:
 If code and docs disagree, treat the code as the source for the fix and update
 the docs before finishing the task.
 
+## Git workflow
+
+Use the solo workflow from `docs/process/github-workflow.md`:
+
+- `main` is stable and receives checked PRs.
+- `feature/next` is the default working branch for new features and roadmap work.
+- Do not create many long-lived feature branches in advance.
+- Commit messages and PR titles/descriptions are written in Russian.
+- Every commit made by the assistant must include `Ассистент: Codex` in the
+  commit body, and assistant-created PR descriptions must include the same line.
+
 ## Current product shape
 
 FocusGlass is a native macOS SwiftUI focus timer with:

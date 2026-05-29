@@ -46,7 +46,9 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - UI rule: every piece of working information should have one primary home. Do not duplicate the same content across main surfaces and side/context panels unless the repeated appearance has a different role such as navigation, status, or editing.
 - Update documentation when behavior, architecture, QA, packaging, permissions, visual language, or design rules change.
 - Never revert user changes or generated outputs without explicit approval.
-- GitHub process lives in `docs/process/github-workflow.md`; follow it for branches, Russian commit messages, tags, releases, PRs, and issue handling.
+- GitHub process lives in `docs/process/github-workflow.md`; follow it for branches, Russian commit messages, Russian PRs, tags, releases, and issue handling.
+- Branching is intentionally simple for solo work: use `feature/next` as the default branch for new features and roadmap work; create short separate branches only for isolated fixes/docs/chore/release tasks.
+- Every assistant-made commit and assistant-created PR must include the signature line `Ассистент: Codex`.
 - Public roadmap lives in `docs/process/roadmap.md`.
 
 ## Current Audit Status
