@@ -34,6 +34,22 @@ update the relevant document in the same change:
 If code and docs disagree, treat the code as the source for the fix and update
 the docs before finishing the task.
 
+## Codex workspace
+
+Open Codex in the repository root:
+
+```sh
+/Applications/Codex.app/Contents/Resources/codex app /Users/thirdys/Documents/New\ Project/FocusGlassApp_MacOS
+```
+
+Do not open the parent folder `/Users/thirdys/Documents/New Project` when Git UI
+or PR state matters. That parent folder is not a git repository, so Codex will
+not display the FocusGlass git state there.
+
+Assistant work should use the `codex/next` branch. The owner may use other
+branches, but assistant-created work is expected to be easy to distinguish by
+the `codex/` branch prefix and the `Ассистент: Codex` signature in commits/PRs.
+
 ## Current product shape
 
 FocusGlass is a native macOS SwiftUI focus timer with:

@@ -29,6 +29,14 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 ## Working Facts
 
 - The real project root on disk is `/Users/thirdys/Documents/New Project/FocusGlassApp_MacOS`.
+- Codex must be opened with that project root as the workspace, not the parent
+  folder `/Users/thirdys/Documents/New Project`. The parent folder is not a git
+  repository, so Codex Git UI/PR state will not display the FocusGlass repo
+  there.
+- To open the correct workspace from terminal, use
+  `/Applications/Codex.app/Contents/Resources/codex app /Users/thirdys/Documents/New\ Project/FocusGlassApp_MacOS`.
+- Assistant work should happen on `codex/next`; this branch exists locally and
+  on remote `Release/codex/next`.
 - Xcode also displays `FocusGlass` because the Swift package name is `FocusGlass`; it is not a second real folder on disk.
 - `Package.swift` defines two targets: `FocusGlassCore` and `FocusGlassApp`.
 - SwiftPM processes only `Sources/FocusGlassApp/Resources` as app resources.
