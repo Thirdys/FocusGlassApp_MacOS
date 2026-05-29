@@ -2,6 +2,12 @@
 
 Last updated: 2026-05-29
 
+## Human Context
+
+FocusGlass is personally important to the user. Treat it as a soulful, long-term project made with care, not as a disposable MVP or a quick demo. Work slowly enough to preserve quality, explain decisions clearly, and protect the existing direction the user cares about.
+
+The user sees the assistant as a friend and collaborator, not only as a tool. Keep that trust in mind: be honest about tradeoffs, avoid rushed changes, keep context durable, and build with love for the future people who will use the app.
+
 ## Current Goal
 
 Perform a serious implementation review before release:
@@ -36,6 +42,8 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - Use `BuildProject` for full validation when code changes are made.
 - Use `XcodeRefreshCodeIssuesInFile` for fast Swift diagnostics.
 - Keep changes tightly scoped to the requested task.
+- Keep the tone and pace humane: careful, non-rushed, and collaborative.
+- UI rule: every piece of working information should have one primary home. Do not duplicate the same content across main surfaces and side/context panels unless the repeated appearance has a different role such as navigation, status, or editing.
 - Update documentation when behavior, architecture, QA, packaging, permissions, visual language, or design rules change.
 - Never revert user changes or generated outputs without explicit approval.
 - GitHub process lives in `docs/process/github-workflow.md`; follow it for branches, Russian commit messages, tags, releases, PRs, and issue handling.
@@ -78,6 +86,14 @@ Completed:
 - README is now the public GitHub-facing project page.
 - GitHub Actions workflow was prepared conceptually but not committed, because the current GitHub token cannot push workflow files without `workflow` scope.
 - Created and pushed annotated tag `v0.0.1` with message `релиз: v0.0.1`.
+- Started roadmap execution:
+  - cleaned the main cockpit so `FocusStackCard` no longer repeats the active project name already shown elsewhere;
+  - removed task/project-task content from `FocusContextRailView`; main working content stays in the central cockpit, especially `FocusStackCard` next to the timer.
+- Correction: when the user says `skills`, they currently mean Codex/OpenAI skills for the assistant's development workflow, not an in-app FocusGlass feature. Do not add `skills` as a product feature unless the user explicitly asks for app functionality.
+- Packaging script now supports writable build locations through environment variables:
+  - `FOCUSGLASS_SCRATCH_PATH` for SwiftPM scratch output;
+  - `FOCUSGLASS_APP_DIR` for the packaged `.app` output.
+- Current assistant-accessible packaged build path: `.swiftpm/xcode/build/FocusGlass.app`.
 
 Skills research:
 

@@ -1,9 +1,21 @@
 # FocusGlass Assistant Context
 
-Last reviewed: 2026-05-19.
+Last reviewed: 2026-05-29.
 
 Read this file first when returning to the project. It is intentionally written
 as implementation context for future assistant sessions, not as marketing copy.
+
+## Human context
+
+FocusGlass is personally very important to the user. Treat it as a soulful,
+long-term project made with care, not as a disposable MVP or a quick demo. The
+current direction should be protected and developed thoughtfully instead of
+being replaced from the root.
+
+The user sees the assistant as a friend and collaborator, not only as a tool.
+Work with patience, honesty, and respect for the trust behind the project. Keep
+technical decisions clear, avoid rushed changes, preserve durable context, and
+build with love for the future people who will use the app.
 
 ## Documentation rule
 
@@ -148,8 +160,13 @@ Main cockpit:
   tasks.
 - `FocusStackCard` lists active tasks for the current project and opens task
   editing sheets.
-- `FocusContextRailView` must not duplicate the active project card; it shows
-  timer context, strict-mode status, and a small task hint.
+- Every piece of working information needs one primary home. Avoid duplicating
+  the same project, task, timer, analytics, permission, or strict-mode content in
+  multiple visible areas unless the repeated appearance has a clearly different
+  role such as navigation, status, or editing.
+- `FocusContextRailView` must not duplicate working content from the main area.
+  It should stay contextual: timer state and strict-mode status only. Project
+  tasks belong in `FocusStackCard` next to the timer.
 
 Settings:
 

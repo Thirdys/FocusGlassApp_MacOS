@@ -40,7 +40,8 @@ source of truth.
 
 - Main cockpit: quick preset chips and intention at the top; active project
   selector on the left of the timer; project task stack on the right; analytics
-  below. The right context rail must not repeat the active project card.
+  below. The right context rail must not repeat the active project card or the
+  project task stack.
 - Menu bar: compact glass HUD with preset/time header, progress rail, intention
   row, one primary timer action, strict-mode switch/status, and a bottom toolbar
   for fullscreen, reset, skip, and opening the main app.
@@ -66,9 +67,13 @@ source of truth.
 - The working screen uses quick mode chips only. Deep preset editing lives in
   Settings. Reset and skip controls must use distinct icons: reset is
   `arrow.counterclockwise`, skip is `forward.end.fill`.
+- Each piece of working information must have one primary home. Do not duplicate
+  the same project, task, timer, analytics, permission, or strict-mode content in
+  multiple visible areas unless the second appearance has a clearly different
+  purpose such as navigation, status, or editing.
 - The active project selector belongs on the left side of the main timer. The
   active project's tasks belong on the right side. Do not duplicate the active
-  project summary in the right context rail.
+  project summary or project tasks in the right context rail.
 - Project and task editing happens in sheets, not inline inside dense cards.
   Task estimate controls use minute presets plus a compact stepper.
 - Empty states must be paired with explicit primary actions in the surrounding
