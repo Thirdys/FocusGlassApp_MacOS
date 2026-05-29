@@ -2,26 +2,44 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="$ROOT_DIR/.build/debug"
-APP_DIR="$ROOT_DIR/build/FocusGlass.app"
+CONFIGURATION="${FOCUSGLASS_CONFIGURATION:-debug}"
+SCRATCH_PATH="${FOCUSGLASS_SCRATCH_PATH:-}"
+APP_DIR="${FOCUSGLASS_APP_DIR:-$ROOT_DIR/build/FocusGlass.app}"
+PACKAGE_WORK_DIR="${FOCUSGLASS_PACKAGE_WORK_DIR:-$(dirname "$APP_DIR")}"
 CONTENTS_DIR="$APP_DIR/Contents"
 MACOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
-ICONSET_DIR="$ROOT_DIR/build/AppIcon.iconset"
+ICONSET_DIR="$PACKAGE_WORK_DIR/AppIcon.iconset"
+GENERATED_ICON="$PACKAGE_WORK_DIR/AppIcon.icns"
 SOURCE_ICON="$ROOT_DIR/Sources/FocusGlassApp/Resources/AppIcon.icns"
 
-swift build --disable-sandbox --package-path "$ROOT_DIR"
+BUILD_ARGS=(
+  build
+  --disable-sandbox
+  --package-path "$ROOT_DIR"
+  -c "$CONFIGURATION"
+)
+
+if [[ -n "$SCRATCH_PATH" ]]; then
+  BUILD_ARGS+=(--scratch-path "$SCRATCH_PATH")
+  BUILD_DIR="$SCRATCH_PATH/$CONFIGURATION"
+else
+  BUILD_DIR="$ROOT_DIR/.build/$CONFIGURATION"
+fi
+
+swift "${BUILD_ARGS[@]}"
 
 rm -rf "$APP_DIR"
-mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
+mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$PACKAGE_WORK_DIR"
 cp "$BUILD_DIR/FocusGlass" "$MACOS_DIR/FocusGlass"
 if [[ -d "$BUILD_DIR/FocusGlass_FocusGlassApp.bundle" ]]; then
   cp -R "$BUILD_DIR/FocusGlass_FocusGlassApp.bundle" "$RESOURCES_DIR/"
 fi
 
 swift "$ROOT_DIR/Scripts/generate-app-icon.swift" "$ICONSET_DIR"
-if ! iconutil -c icns "$ICONSET_DIR" -o "$SOURCE_ICON" 2>/dev/null; then
-  python3 - "$ICONSET_DIR/icon_512x512@2x.png" "$SOURCE_ICON" <<'PY'
+if ! iconutil -c icns "$ICONSET_DIR" -o "$GENERATED_ICON" 2>/dev/null; then
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$ICONSET_DIR/icon_512x512@2x.png" "$GENERATED_ICON" <<'PY'
 import sys
 from PIL import Image
 
@@ -32,8 +50,14 @@ image.save(
     sizes=[(16, 16), (32, 32), (64, 64), (128, 128), (256, 256), (512, 512), (1024, 1024)]
 )
 PY
+  fi
 fi
-cp "$SOURCE_ICON" "$RESOURCES_DIR/AppIcon.icns"
+
+if [[ -f "$GENERATED_ICON" ]]; then
+  cp "$GENERATED_ICON" "$RESOURCES_DIR/AppIcon.icns"
+else
+  cp "$SOURCE_ICON" "$RESOURCES_DIR/AppIcon.icns"
+fi
 
 cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>

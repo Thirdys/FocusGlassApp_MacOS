@@ -866,11 +866,6 @@ private struct FocusStackCard: View {
                 Text(model.activeProjectID == nil ? model.t("tasks.focusStack") : model.t("tasks.projectTasks"))
                     .font(.system(size: 14, weight: .bold))
                 Spacer()
-                if !model.activeProjectName.isEmpty {
-                    Text(model.activeProjectName)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(model.theme.primary)
-                }
             }
 
             if model.activeTasks.isEmpty {
@@ -1044,28 +1039,6 @@ private struct FocusContextRailView: View {
                         Spacer()
                         Text("\(model.distractionRules.filter(\.isEnabled).count)")
                             .font(.system(size: 18, weight: .bold, design: .rounded))
-                    }
-                }
-            }
-
-            LiquidGlassPanel(radius: 18, padding: 16) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Label(model.t("tasks.projectTasks"), systemImage: "checklist.unchecked")
-                        .font(.system(size: 13, weight: .bold))
-
-                    if let task = model.activeTasks.first {
-                        Text(task.title)
-                            .font(.system(size: 13, weight: .semibold))
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.82)
-                        Text("\(Int(task.estimate / 60)) \(model.t("tasks.minutes"))")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundStyle(model.theme.mutedText)
-                    } else {
-                        Text(model.t("tasks.empty.detail"))
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundStyle(model.theme.mutedText)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }
