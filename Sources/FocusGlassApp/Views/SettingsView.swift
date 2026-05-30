@@ -382,6 +382,7 @@ private struct PresetSettingsSection: View {
                             editingPresetID = preset.id
                             model.selectPreset(preset)
                         }
+                        .help(model.timerModeDescription(preset.mode))
                     }
                 }
 
@@ -428,6 +429,30 @@ private struct PresetEditor: View {
                     .help(model.t("presets.mode"))
                 }
                 .frame(minWidth: 230)
+            }
+
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: preset.mode.symbolName)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(model.theme.primary)
+                    .frame(width: 28, height: 28)
+                    .background(model.theme.primary.opacity(0.14), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(model.timerModeTitle(preset.mode))
+                        .font(.system(size: 12, weight: .bold))
+                    Text(model.timerModeDescription(preset.mode))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(model.theme.mutedText)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.58), lineWidth: 1)
             }
 
             VStack(alignment: .leading, spacing: 10) {

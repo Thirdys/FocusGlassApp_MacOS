@@ -188,6 +188,8 @@ Settings:
 
 - `SettingsContentView` uses custom tab control `GlassSegmentedControl`.
 - General uses `GlassSelect` for language and appearance mode.
+- Timers show localized mode descriptions for Pomodoro, Countdown, Stopwatch,
+  Flow, Timebox, and Intervals in the preset editor and chip tooltips.
 - Timers use `GlassSelect` for preset mode and phase, `GlassStepper` for
   segment minutes, and a per-preset reset.
 - Strict Mode uses app and site rule editors with `GlassSelect` for actions.

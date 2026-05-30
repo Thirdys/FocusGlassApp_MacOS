@@ -18,6 +18,12 @@
 
 "timer.start" = "Start";
 "timer.pause" = "Pause";
+"timer.mode.pomodoro.detail" = "Alternates focus and a short break to keep a steady working rhythm.";
+"timer.mode.countdown.detail" = "One bounded block: choose a duration, start, and carry the task to the finish.";
+"timer.mode.stopwatch.detail" = "Open-ended time tracking for work where the real duration matters more than a deadline.";
+"timer.mode.flow.detail" = "A longer gentle cycle with warm-up, deep focus, and a calm cooldown.";
+"timer.mode.timebox.detail" = "Sets a hard boundary for a task so work does not expand past the chosen block.";
+"timer.mode.intervals.detail" = "Several focus blocks and pauses in sequence for a repeatable work series.";
 
 "tasks.focusStack" = "Focus stack";
 "tasks.projectTasks" = "Project tasks";

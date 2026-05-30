@@ -102,6 +102,10 @@ Completed:
   - `FOCUSGLASS_SCRATCH_PATH` for SwiftPM scratch output;
   - `FOCUSGLASS_APP_DIR` for the packaged `.app` output.
 - Current assistant-accessible packaged build path: `.swiftpm/xcode/build/FocusGlass.app`.
+- Continued roadmap execution:
+  - Settings now shows localized descriptions for Pomodoro, Countdown,
+    Stopwatch, Flow, Timebox, and Intervals in the preset editor and mode chip
+    tooltips.
 
 Skills research:
 
