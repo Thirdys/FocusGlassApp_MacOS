@@ -304,6 +304,18 @@ Completed:
     `FocusGlass-dev-c9a78ff.zip`, not the local absolute path.
   - source branch `codex/next` remains free of build artifacts; `build/` and
     `graphify-out/` stay ignored.
+- Tester artifact branch instruction update:
+  - translated `tester/dev-c9a78ff` README and `build-info.txt` to Russian.
+  - pushed tester branch update `9a743c1 доки: перевести инструкцию тестера`
+    to `Release/tester/dev-c9a78ff`.
+  - rechecked `shasum -a 256 -c FocusGlass-dev-c9a78ff.zip.sha256` in the
+    artifact branch; result: `FocusGlass-dev-c9a78ff.zip: OK`.
+  - GitHub banner `tester/dev-c9a78ff had recent pushes` is expected after
+    pushing a branch. It is GitHub's prompt to compare/open a PR, not a required
+    request for this tester branch. Do not open/merge a PR from tester artifact
+    branches into source branches.
+  - Git remote PR refs were checked; no PR ref pointed to the tester artifact
+    branch commit at the time of inspection.
 - Validation for release artifact work:
   - `bash -n Scripts/package-app.sh` passed;
   - `bash -n Scripts/package-release.sh` passed;
@@ -327,7 +339,8 @@ Skills research:
 ## Next Steps
 
 1. Current tester branch is `tester/dev-c9a78ff`. It contains the test zip,
-   portable `.sha256`, README, and build-info for tester download.
+   portable `.sha256`, Russian README, and Russian build-info for tester
+   download.
 2. For future tester builds, rerun `./Scripts/package-release.sh` on the exact
    source commit, then create/push a new isolated `tester/<artifact-version>`
    branch only if the owner asks.
