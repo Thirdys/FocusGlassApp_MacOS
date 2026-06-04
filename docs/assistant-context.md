@@ -341,9 +341,13 @@ use the `--disable-sandbox` variants above for verification.
 and checksums out of git. For tester handoff, the owner builds locally with
 `Scripts/package-release.sh`, which packages `FocusGlass.app` into
 `build/releases/<version>/FocusGlass-<version>.zip` and writes a SHA-256 file
-next to it. Do not turn this into mandatory release automation. If the owner
-wants GitHub Release, treat it as a manual distribution page for the already
-built zip/checksum tied to a tag and commit.
+next to it. The tester-facing version is explicit: update the root `VERSION`
+file, then use a matching public tag such as `v0.0.2` on the exact build commit.
+On an exact tag, packaging scripts prefer the tag; otherwise they use `VERSION`.
+Tester artifact branches should use the same visible number, for example
+`tester/0.0.2`. Do not turn this into mandatory release automation. If the
+owner wants GitHub Release, treat it as a manual distribution page for the
+already built zip/checksum tied to a tag and commit.
 
 The current test suite covers timer transitions, analytics, permission status
 helpers, rule decoding/matching, migration from legacy project names, split

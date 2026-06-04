@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+VERSION_FILE="$ROOT_DIR/VERSION"
 CONFIGURATION="${FOCUSGLASS_CONFIGURATION:-debug}"
 SCRATCH_PATH="${FOCUSGLASS_SCRATCH_PATH:-}"
 APP_DIR="${FOCUSGLASS_APP_DIR:-$ROOT_DIR/build/FocusGlass.app}"
@@ -15,6 +16,51 @@ SOURCE_ICON="$ROOT_DIR/Sources/FocusGlassApp/Resources/AppIcon.icns"
 CLANG_MODULE_CACHE_PATH="${CLANG_MODULE_CACHE_PATH:-$PACKAGE_WORK_DIR/clang-module-cache}"
 
 export CLANG_MODULE_CACHE_PATH
+
+read_version_file() {
+  [[ -f "$VERSION_FILE" ]] || return 1
+  awk '
+    {
+      sub(/\r$/, "")
+      sub(/^[[:space:]]+/, "")
+      sub(/[[:space:]]+$/, "")
+      if ($0 != "" && $0 !~ /^#/) {
+        print
+        exit
+      }
+    }
+  ' "$VERSION_FILE"
+}
+
+if [[ -n "${FOCUSGLASS_APP_VERSION:-}" ]]; then
+  APP_VERSION="$FOCUSGLASS_APP_VERSION"
+elif git -C "$ROOT_DIR" describe --tags --exact-match >/dev/null 2>&1; then
+  APP_VERSION="$(git -C "$ROOT_DIR" describe --tags --exact-match)"
+else
+  APP_VERSION="$(read_version_file || true)"
+fi
+
+APP_VERSION="${APP_VERSION#v}"
+APP_VERSION="${APP_VERSION%%[-+]*}"
+APP_VERSION="${APP_VERSION:-0.0.0}"
+
+if [[ ! "$APP_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Invalid app version '$APP_VERSION'. Use semantic version format like 0.0.2." >&2
+  exit 1
+fi
+
+if [[ -n "${FOCUSGLASS_BUILD_NUMBER:-}" ]]; then
+  BUILD_NUMBER="$FOCUSGLASS_BUILD_NUMBER"
+elif git -C "$ROOT_DIR" rev-list --count HEAD >/dev/null 2>&1; then
+  BUILD_NUMBER="$(git -C "$ROOT_DIR" rev-list --count HEAD)"
+else
+  BUILD_NUMBER="1"
+fi
+
+if [[ ! "$BUILD_NUMBER" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+  echo "Invalid build number '$BUILD_NUMBER'. Use digits, optionally with one or two dots." >&2
+  exit 1
+fi
 
 mkdir -p "$PACKAGE_WORK_DIR" "$CLANG_MODULE_CACHE_PATH"
 
@@ -64,7 +110,7 @@ else
   cp "$SOURCE_ICON" "$RESOURCES_DIR/AppIcon.icns"
 fi
 
-cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
+cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -83,9 +129,9 @@ cat > "$CONTENTS_DIR/Info.plist" <<'PLIST'
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
+  <string>$APP_VERSION</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>$BUILD_NUMBER</string>
   <key>LSMinimumSystemVersion</key>
   <string>14.0</string>
   <key>NSHumanReadableCopyright</key>

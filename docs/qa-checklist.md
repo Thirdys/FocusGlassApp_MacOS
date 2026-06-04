@@ -5,6 +5,9 @@
 - Run `swift build`.
 - Run `swift test`.
 - Run `./Scripts/package-app.sh`.
+- Before tester handoff, check that `VERSION`, public tag, zip name, and tester
+  branch name describe the same visible version, for example `0.0.2` and
+  `v0.0.2`.
 - For release handoff, run `./Scripts/package-release.sh` and verify the zip
   plus `.sha256` appear under `build/releases/<version>/`.
 - After code changes, check whether `docs/assistant-context.md`,
