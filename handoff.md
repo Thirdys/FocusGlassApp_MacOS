@@ -10,12 +10,13 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Current Goal
 
-Perform a serious implementation review before release:
+Keep the near-term tester release flow simple, explicit, and durable:
 
-- identify duplicate, generated, obsolete, or unused files;
-- do not delete anything during the first pass;
-- move confirmed removable files only after review into a separate quarantine/archive folder;
-- keep the app release-minded, not as an abandoned MVP;
+- owner builds locally with `./Scripts/package-release.sh`;
+- tester-visible versions use semantic numbers such as `0.0.2` or `0.1.1`;
+- public git tags such as `v0.0.2` mark exact build commits;
+- isolated `tester/<version>` branches may carry built artifacts when the owner
+  asks for branch-based tester delivery;
 - preserve context so work can continue after token limits, network issues, or device changes.
 
 ## Product Direction
@@ -326,11 +327,62 @@ Completed:
     branches into source branches.
   - Git remote PR refs were checked; no PR ref pointed to the tester artifact
     branch commit at the time of inspection.
+- Explicit tester versioning:
+  - added root `VERSION` with visible version `0.0.2`;
+  - updated `Scripts/package-release.sh` to resolve version from
+    `FOCUSGLASS_RELEASE_VERSION`, then an exact public tag like `v0.0.2`, then
+    `VERSION`, with `dev-<commit>` only as fallback;
+  - updated `Scripts/package-app.sh` so `CFBundleShortVersionString` uses the
+    same visible semantic version and `CFBundleVersion` uses a numeric git build
+    count unless overridden;
+  - checksum files are now portable: `FocusGlass-0.0.2.zip.sha256` contains
+    `FocusGlass-0.0.2.zip`, not an absolute local path;
+  - source commit for versioning change:
+    `2385cc2159d0fdabc102d8f13fda1fcc8336fe81`
+    (`2385cc2 сборка: ввести явную версию тестовых сборок`);
+  - public tag `v0.0.2` was created and pushed to `Release`; exact-tag
+    packaging check confirmed `git describe --tags --exact-match HEAD` returned
+    `v0.0.2` before the later handoff checkpoint commit.
+- Tester artifact branch `tester/0.0.2`:
+  - built from source commit `2385cc2159d0fdabc102d8f13fda1fcc8336fe81` tagged
+    `v0.0.2`;
+  - `./Scripts/package-release.sh` created
+    `build/releases/0.0.2/FocusGlass.app`,
+    `build/releases/0.0.2/FocusGlass-0.0.2.zip`, and
+    `build/releases/0.0.2/FocusGlass-0.0.2.zip.sha256`;
+  - checksum verified: `FocusGlass-0.0.2.zip: OK`;
+  - `Info.plist` check: `CFBundleShortVersionString` is `0.0.2`,
+    `CFBundleVersion` is `22`;
+  - artifact branch commit:
+    `94efae480b9540bea6e12d43ab49ddcaeb8188b6`
+    (`94efae4 релиз: добавить тестовую сборку 0.0.2`);
+  - remote verification:
+    `94efae480b9540bea6e12d43ab49ddcaeb8188b6 refs/heads/tester/0.0.2`;
+  - branch contains only `FocusGlass-0.0.2.zip`,
+    `FocusGlass-0.0.2.zip.sha256`, Russian `README.md`, and Russian
+    `build-info.txt`;
+  - GitHub again displayed the standard "Create a pull request" prompt after
+    pushing the tester branch. Do not open/merge PRs from tester artifact
+    branches into source branches.
+- Graphify memory for explicit tester versioning:
+  - saved with question
+    `How should FocusGlass tester versions be named and packaged?`;
+  - memory file:
+    `graphify-out/memory/query_20260604_105206_how_should_focusglass_tester_versions_be_named_and.md`;
+  - `graphify update .` rebuilt the code graph after script changes;
+  - `graphify query "FocusGlass tester VERSION public tag tester/0.0.2 FocusGlass-0.0.2.zip" --budget 3000 --dfs`
+    currently surfaces the updated README/build docs; direct memory search
+    confirms the saved answer includes `VERSION`, public tag `v0.0.2`,
+    `tester/0.0.2`, and `FocusGlass-0.0.2.zip`.
 - Validation for release artifact work:
   - `bash -n Scripts/package-app.sh` passed;
   - `bash -n Scripts/package-release.sh` passed;
   - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test` passed with 37/37 tests;
   - `FOCUSGLASS_RELEASE_VERSION=dev-sandbox-check FOCUSGLASS_RELEASE_DIR=/private/tmp/focusglass-release-sandbox-check ./Scripts/package-release.sh` created `FocusGlass.app`, `FocusGlass-dev-sandbox-check.zip`, and `FocusGlass-dev-sandbox-check.zip.sha256`.
+  - `./Scripts/package-release.sh` on exact tag `v0.0.2` created the
+    `0.0.2` release folder and zip;
+  - `shasum -a 256 -c FocusGlass-0.0.2.zip.sha256` passed;
+  - `git diff --check` passed before the first versioning commit.
 - Branch protection and CI are deferred. They can be useful later to protect
   `main` and automatically test PRs, but they are not near-term tasks while the
   project is still using a simple local build -> commit -> push flow.
@@ -348,16 +400,17 @@ Skills research:
 
 ## Next Steps
 
-1. Current tester branch is `tester/dev-c9a78ff`. It contains the test zip,
-   portable `.sha256`, Russian README, and Russian build-info for tester
-   download.
-2. For future tester builds, rerun `./Scripts/package-release.sh` on the exact
-   source commit, then create/push a new isolated `tester/<artifact-version>`
-   branch only if the owner asks.
-3. If the owner wants to try GitHub Release, use a Draft/Pre-release tied to an
-   explicit test tag like `v0.0.2-test.1`, attach the already-built zip and
-   `.sha256`, and write Russian release notes. Do not create tags/releases
-   automatically without a direct request.
+1. Current tester branch is `tester/0.0.2`. It contains
+   `FocusGlass-0.0.2.zip`, portable `.sha256`, Russian README, and Russian
+   build-info for tester download. Older `tester/dev-c9a78ff` is historical.
+2. For future tester builds, bump `VERSION` first, commit, tag the exact build
+   commit with the matching public tag such as `v0.0.3`, rerun
+   `./Scripts/package-release.sh`, then create/push a new isolated
+   `tester/<version>` branch only if the owner asks.
+3. If the owner wants to try GitHub Release, use a Draft/Pre-release tied to the
+   explicit public tag, attach the already-built zip and `.sha256`, and write
+   Russian release notes. Do not create GitHub Releases automatically without a
+   direct request.
 4. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
    not make them near-term work.
 5. Keep product roadmap work remembered but parked until the owner explicitly
