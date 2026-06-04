@@ -329,12 +329,19 @@ Use:
 swift build --disable-sandbox
 swift test --disable-sandbox
 ./Scripts/package-app.sh
+./Scripts/package-release.sh
 ```
 
 `swift run FocusGlass` is useful for quick UI checks but cannot fully test
 notification permissions because it is not a real app bundle. In this assistant
 sandbox, plain SwiftPM sandboxing can fail while compiling `Package.swift`, so
 use the `--disable-sandbox` variants above for verification.
+
+`build/` is ignored generated output. Keep local `.app` bundles, release zips,
+and checksums out of git. For manual tester handoff or GitHub Releases, use
+`Scripts/package-release.sh`, which packages `FocusGlass.app` into
+`build/releases/<version>/FocusGlass-<version>.zip` and writes a SHA-256 file
+next to it.
 
 The current test suite covers timer transitions, analytics, permission status
 helpers, rule decoding/matching, migration from legacy project names, split

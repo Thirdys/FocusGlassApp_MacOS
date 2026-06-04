@@ -109,6 +109,32 @@ git push Release v0.1.0
 
 Release notes пишутся на русском и берутся из `CHANGELOG.md`.
 
+## Релизные артефакты
+
+`build/` - локальный generated output. Он нужен для ручной QA и подготовки
+релизного архива, но не является источником правды и не коммитится в git.
+
+Для локального tester handoff или GitHub Release:
+
+```sh
+swift build --disable-sandbox
+swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test
+./Scripts/package-release.sh
+```
+
+`Scripts/package-release.sh` по умолчанию создаёт:
+
+```text
+build/releases/<version>/FocusGlass.app
+build/releases/<version>/FocusGlass-<version>.zip
+build/releases/<version>/FocusGlass-<version>.zip.sha256
+```
+
+Zip и checksum прикрепляются к GitHub Release как assets. Их не нужно
+переносить в tracked files. Пока проект не перешёл на подписанный/notarized
+канал распространения, такие архивы считаются локальными unsigned сборками для
+ручной проверки и аккуратной передачи тестеру.
+
 ## GitHub Labels
 
 Рекомендуемые метки:
@@ -157,6 +183,11 @@ swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test
 ```
 
 Для permission QA запускать `build/FocusGlass.app`, не `swift run`.
+
+GitHub Actions workflow добавляем только из среды, где push-токен имеет
+`workflow` scope. Иначе GitHub отклонит коммит с `.github/workflows/*`, а
+репозиторий останется в промежуточном состоянии. До этого CI считается
+процессным блокером, а не отсутствующей локальной проверкой.
 
 ## Правила для ассистента
 

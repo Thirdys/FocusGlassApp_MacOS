@@ -88,6 +88,14 @@ open build/FocusGlass.app
 
 `swift run` полезен для быстрых UI-проверок, но macOS не считает такой процесс полноценным приложением. Для permissions QA используй `build/FocusGlass.app`.
 
+Сборка zip-артефакта для GitHub Release или ручной передачи тестеру:
+
+```sh
+./Scripts/package-release.sh
+```
+
+Скрипт создаёт `FocusGlass.app`, `FocusGlass-<version>.zip` и `.sha256` под `build/releases/<version>/`. Папка `build/` остаётся локальным generated output и не коммитится; релизные сборки прикрепляются к GitHub Release как assets.
+
 ## Структура проекта
 
 ```text
