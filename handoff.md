@@ -52,6 +52,12 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
   and commit. It does not build FocusGlass. The owner can create a Draft/Pre-release,
   attach the already-built zip and `.sha256`, write Russian release notes, and
   share that page with a tester.
+- Separate tester artifact branches are allowed only by explicit owner request.
+  They are isolated distribution branches, not source branches. They may contain
+  the already-built zip, portable `.sha256`, README, and build-info; never merge
+  or PR them into `main` or `codex/next`.
+- Tester artifact branch naming: `tester/<artifact-version>`, for example
+  `tester/dev-c9a78ff`.
 - Safe first GitHub Release trial format: tag like `v0.0.2-test.1`, Draft or
   Pre-release enabled, Russian notes, attached `FocusGlass-<version>.zip` and
   matching `.sha256`.
@@ -282,6 +288,20 @@ Completed:
     direct memory search confirms: tester release flow is the only current
     priority, branch protection/CI are deferred long-term, and product roadmap
     work is parked until the owner asks to resume it.
+- Tester artifact branch upload:
+  - user clarified that the already-built test build should be uploaded to a
+    separate tester branch.
+  - created isolated artifact branch `tester/dev-c9a78ff` from a temporary repo,
+    not by switching the source workspace.
+  - pushed branch to `Release/tester/dev-c9a78ff`; remote verification:
+    `7ecdc423872e470a9884ce9fe5480ce66af950b7 refs/heads/tester/dev-c9a78ff`.
+  - artifact branch commit: `7ecdc42 релиз: добавить тестовую сборку dev-c9a78ff`.
+  - branch contains only `FocusGlass-dev-c9a78ff.zip`,
+    `FocusGlass-dev-c9a78ff.zip.sha256`, `README.md`, and `build-info.txt`.
+  - checksum file was normalized to the portable file name
+    `FocusGlass-dev-c9a78ff.zip`, not the local absolute path.
+  - source branch `codex/next` remains free of build artifacts; `build/` and
+    `graphify-out/` stay ignored.
 - Validation for release artifact work:
   - `bash -n Scripts/package-app.sh` passed;
   - `bash -n Scripts/package-release.sh` passed;
@@ -304,21 +324,22 @@ Skills research:
 
 ## Next Steps
 
-1. For the current tester handoff, the owner can use the locally generated
-   `build/releases/dev-c9a78ff/FocusGlass-dev-c9a78ff.zip` and matching
-   `.sha256`, or rerun `./Scripts/package-release.sh` on the exact commit they
-   want to hand to a tester.
-2. If the owner wants to try GitHub Release, use a Draft/Pre-release tied to an
+1. Current tester branch is `tester/dev-c9a78ff`. It contains the test zip,
+   portable `.sha256`, README, and build-info for tester download.
+2. For future tester builds, rerun `./Scripts/package-release.sh` on the exact
+   source commit, then create/push a new isolated `tester/<artifact-version>`
+   branch only if the owner asks.
+3. If the owner wants to try GitHub Release, use a Draft/Pre-release tied to an
    explicit test tag like `v0.0.2-test.1`, attach the already-built zip and
    `.sha256`, and write Russian release notes. Do not create tags/releases
    automatically without a direct request.
-3. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
+4. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
    not make them near-term work.
-4. Keep product roadmap work remembered but parked until the owner explicitly
+5. Keep product roadmap work remembered but parked until the owner explicitly
    asks to resume it.
-5. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
-6. Inspect useful skills from `openai/skills` before installing anything.
-7. Keep `handoff.md` updated after each substantial audit or implementation step.
+6. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
+7. Inspect useful skills from `openai/skills` before installing anything.
+8. Keep `handoff.md` updated after each substantial audit or implementation step.
 
 ## Open Questions
 
