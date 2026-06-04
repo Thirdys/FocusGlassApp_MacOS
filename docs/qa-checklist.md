@@ -10,6 +10,9 @@
   `v0.0.2`.
 - For release handoff, run `./Scripts/package-release.sh` and verify the zip
   plus `.sha256` appear under `build/releases/<version>/`.
+- In the main window, verify the bottom-right badge shows the app version and
+  build number. It should not appear in the menu bar panel or fullscreen focus
+  mode.
 - After code changes, check whether `docs/assistant-context.md`,
   `docs/architecture.md`, `docs/product-context.md`,
   `docs/design/design-source.md`, or `docs/qa-checklist.md` need updates.

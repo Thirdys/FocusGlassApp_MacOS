@@ -349,6 +349,12 @@ Tester artifact branches should use the same visible number, for example
 owner wants GitHub Release, treat it as a manual distribution page for the
 already built zip/checksum tied to a tag and commit.
 
+The main window shows a quiet bottom-right app version/build badge sourced from
+the packaged app `Info.plist`. Do not add this badge to `MenuBarPanel` or
+`FullscreenFocusView`. `Scripts/package-app.sh` clears extended attributes from
+the generated `.app` before ad-hoc signing so local resource forks do not break
+`codesign`.
+
 The current test suite covers timer transitions, analytics, permission status
 helpers, rule decoding/matching, migration from legacy project names, split
 state persistence, invalid JSON protection, preset editing/reset, task estimate

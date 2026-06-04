@@ -34,6 +34,8 @@ enum L10n {
 
     private static let ru: [String: String] = [
         "app.name": "FocusGlass",
+        "app.version": "Версия",
+        "app.build": "билд",
         "common.cancel": "Отмена",
         "common.delete": "Удалить",
         "common.save": "Сохранить",
@@ -357,6 +359,8 @@ enum L10n {
 
     private static let en: [String: String] = [
         "app.name": "FocusGlass",
+        "app.version": "Version",
+        "app.build": "build",
         "common.cancel": "Cancel",
         "common.delete": "Delete",
         "common.save": "Save",

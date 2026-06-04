@@ -374,6 +374,22 @@ Completed:
     currently surfaces the updated README/build docs; direct memory search
     confirms the saved answer includes `VERSION`, public tag `v0.0.2`,
     `tester/0.0.2`, and `FocusGlass-0.0.2.zip`.
+- Main-window version/build badge:
+  - user requested the app version and build number in the lower-right app UI,
+    only in the main window, not in menu bar or fullscreen focus mode;
+  - added `MainWindowBuildBadge` inside `ContentView`, which is used only by
+    `WindowGroup("FocusGlass", id: "main")`;
+  - did not modify `MenuBarPanel.swift` or `FullscreenFocusView.swift`, so the
+    badge is not present in those surfaces;
+  - badge text is localized through `app.version` and `app.build` in RU/EN
+    localization and reads from `Bundle.main` Info.plist keys
+    `CFBundleShortVersionString` and `CFBundleVersion`;
+  - local packaged app verification showed `Версия 0.0.2 / билд 23` in the
+    main window bottom-right corner;
+  - visual screenshot saved locally at `/private/tmp/focusglass-main.png`;
+  - `Scripts/package-app.sh` now clears extended attributes from the generated
+    `.app` before ad-hoc signing, after `codesign` initially failed on local
+    resource-fork/Finder metadata detritus in generated output.
 - Validation for release artifact work:
   - `bash -n Scripts/package-app.sh` passed;
   - `bash -n Scripts/package-release.sh` passed;
@@ -383,6 +399,18 @@ Completed:
     `0.0.2` release folder and zip;
   - `shasum -a 256 -c FocusGlass-0.0.2.zip.sha256` passed;
   - `git diff --check` passed before the first versioning commit.
+- Validation for main-window version/build badge:
+  - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+    passed with 37/37 tests;
+  - `./Scripts/package-app.sh` passed after the generated-app xattr cleanup fix;
+  - `codesign --verify --deep --strict build/FocusGlass.app` passed;
+  - `./Scripts/package-release.sh` passed;
+  - `shasum -a 256 -c build/releases/0.0.2/FocusGlass-0.0.2.zip.sha256`
+    passed;
+  - packaged `Info.plist` checks returned `CFBundleShortVersionString=0.0.2`
+    and `CFBundleVersion=23`;
+  - screenshot inspection confirmed the badge in the main window bottom-right
+    corner. Menu bar and fullscreen code paths were not touched.
 - Branch protection and CI are deferred. They can be useful later to protect
   `main` and automatically test PRs, but they are not near-term tasks while the
   project is still using a simple local build -> commit -> push flow.

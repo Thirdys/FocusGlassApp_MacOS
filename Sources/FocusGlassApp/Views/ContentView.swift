@@ -61,6 +61,13 @@ struct ContentView: View {
                     }
                 }
 
+                MainWindowBuildBadge()
+                    .padding(.trailing, 18)
+                    .padding(.bottom, 14)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                    .allowsHitTesting(false)
+                    .zIndex(1)
+
                 if showsLaunchSequence {
                     FocusGlassLaunchOverlay(theme: model.theme, reduceMotion: accessibilityReduceMotion)
                         .transition(.opacity)
@@ -136,6 +143,43 @@ struct ContentView: View {
             showsLaunchSequence = false
         }
     }
+}
+
+private struct MainWindowBuildBadge: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    private let buildInfo = AppBuildInfo.current
+
+    var body: some View {
+        Text(displayText)
+            .font(.system(size: 11, weight: .semibold, design: .rounded))
+            .lineLimit(1)
+            .minimumScaleFactor(0.82)
+            .foregroundStyle(model.theme.mutedText.opacity(0.78))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(model.theme.elevatedSurface.opacity(0.42), in: Capsule())
+            .overlay {
+                Capsule()
+                    .stroke(model.theme.highlight.opacity(0.12), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.10), radius: 12, x: 0, y: 8)
+            .accessibilityLabel(displayText)
+    }
+
+    private var displayText: String {
+        "\(model.t("app.version")) \(buildInfo.version) / \(model.t("app.build")) \(buildInfo.build)"
+    }
+}
+
+private struct AppBuildInfo {
+    let version: String
+    let build: String
+
+    static let current = AppBuildInfo(
+        version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev",
+        build: Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "local"
+    )
 }
 
 @MainActor

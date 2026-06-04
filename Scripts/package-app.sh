@@ -142,6 +142,10 @@ cat > "$CONTENTS_DIR/Info.plist" <<PLIST
 </plist>
 PLIST
 
+if command -v xattr >/dev/null 2>&1; then
+  xattr -cr "$APP_DIR" 2>/dev/null || true
+fi
+
 if command -v codesign >/dev/null 2>&1; then
   codesign --force --deep --sign - "$APP_DIR" >/dev/null
 fi
