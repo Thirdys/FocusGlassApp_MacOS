@@ -5,6 +5,8 @@
 - Run `swift build`.
 - Run `swift test`.
 - Run `./Scripts/package-app.sh`.
+- For release handoff, run `./Scripts/package-release.sh` and verify the zip
+  plus `.sha256` appear under `build/releases/<version>/`.
 - After code changes, check whether `docs/assistant-context.md`,
   `docs/architecture.md`, `docs/product-context.md`,
   `docs/design/design-source.md`, or `docs/qa-checklist.md` need updates.

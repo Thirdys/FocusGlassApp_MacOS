@@ -6,3 +6,10 @@ build/
 DerivedData/
 *.xcuserdata/
 *.xcuserstate
+
+# Local agent and knowledge graph tool state.
+.agents/
+.codex/
+.graphifyignore
+AGENTS.md
+graphify-out/

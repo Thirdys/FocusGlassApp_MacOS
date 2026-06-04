@@ -34,16 +34,21 @@ update the relevant document in the same change:
 If code and docs disagree, treat the code as the source for the fix and update
 the docs before finishing the task.
 
-## Git workflow
+## Codex workspace
 
-Use the solo workflow from `docs/process/github-workflow.md`:
+Open Codex in the repository root:
 
-- `main` is stable and receives checked PRs.
-- `feature/next` is the default working branch for new features and roadmap work.
-- Do not create many long-lived feature branches in advance.
-- Commit messages and PR titles/descriptions are written in Russian.
-- Every commit made by the assistant must include `Ассистент: Codex` in the
-  commit body, and assistant-created PR descriptions must include the same line.
+```sh
+/Applications/Codex.app/Contents/Resources/codex app /Users/thirdys/Documents/New\ Project/FocusGlassApp_MacOS
+```
+
+Do not open the parent folder `/Users/thirdys/Documents/New Project` when Git UI
+or PR state matters. That parent folder is not a git repository, so Codex will
+not display the FocusGlass git state there.
+
+Assistant work should use the `codex/next` branch. The owner may use other
+branches, but assistant-created work is expected to be easy to distinguish by
+the `codex/` branch prefix and the `Ассистент: Codex` signature in commits/PRs.
 
 ## Current product shape
 
@@ -183,6 +188,8 @@ Settings:
 
 - `SettingsContentView` uses custom tab control `GlassSegmentedControl`.
 - General uses `GlassSelect` for language and appearance mode.
+- Timers show localized mode descriptions for Pomodoro, Countdown, Stopwatch,
+  Flow, Timebox, and Intervals in the preset editor and chip tooltips.
 - Timers use `GlassSelect` for preset mode and phase, `GlassStepper` for
   segment minutes, and a per-preset reset.
 - Strict Mode uses app and site rule editors with `GlassSelect` for actions.
@@ -322,12 +329,21 @@ Use:
 swift build --disable-sandbox
 swift test --disable-sandbox
 ./Scripts/package-app.sh
+./Scripts/package-release.sh
 ```
 
 `swift run FocusGlass` is useful for quick UI checks but cannot fully test
 notification permissions because it is not a real app bundle. In this assistant
 sandbox, plain SwiftPM sandboxing can fail while compiling `Package.swift`, so
 use the `--disable-sandbox` variants above for verification.
+
+`build/` is ignored generated output. Keep local `.app` bundles, release zips,
+and checksums out of git. For tester handoff, the owner builds locally with
+`Scripts/package-release.sh`, which packages `FocusGlass.app` into
+`build/releases/<version>/FocusGlass-<version>.zip` and writes a SHA-256 file
+next to it. Do not turn this into mandatory release automation. If the owner
+wants GitHub Release, treat it as a manual distribution page for the already
+built zip/checksum tied to a tag and commit.
 
 The current test suite covers timer transitions, analytics, permission status
 helpers, rule decoding/matching, migration from legacy project names, split

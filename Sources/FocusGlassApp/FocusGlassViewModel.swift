@@ -354,6 +354,17 @@ final class FocusGlassViewModel: ObservableObject {
         }
     }
 
+    func timerModeDescription(_ mode: TimerMode) -> String {
+        switch mode {
+        case .pomodoro: t("timer.mode.pomodoro.detail")
+        case .countdown: t("timer.mode.countdown.detail")
+        case .stopwatch: t("timer.mode.stopwatch.detail")
+        case .flow: t("timer.mode.flow.detail")
+        case .timebox: t("timer.mode.timebox.detail")
+        case .intervals: t("timer.mode.intervals.detail")
+        }
+    }
+
     func projectName(for projectID: UUID?) -> String? {
         guard let projectID else { return nil }
         return projects.first { $0.id == projectID }?.name
