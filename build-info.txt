@@ -1,0 +1,18 @@
+Тестовая сборка FocusGlass
+
+Видимая версия: 0.0.2
+Git tag исходников: v0.0.2
+Source commit: 2385cc2159d0fdabc102d8f13fda1fcc8336fe81
+Source branch во время сборки: codex/next
+
+Артефакты:
+- FocusGlass-0.0.2.zip
+- FocusGlass-0.0.2.zip.sha256
+
+Checksum:
+8a06d00a860a656a0ee28ba95799c4f4e2dac60caa6c532e1e801cd15d0077f1  FocusGlass-0.0.2.zip
+
+Заметки:
+- Эта ветка нужна только для передачи сборки тестеру.
+- Не открывать и не merge-ить PR из этой ветки в main или codex/next.
+- Приложение unsigned и предназначено для ручного тестирования.
