@@ -44,8 +44,17 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - `build/` is ignored local generated output, not a source-of-truth release
   directory.
 - `Scripts/package-release.sh` creates `build/releases/<version>/FocusGlass.app`,
-  `FocusGlass-<version>.zip`, and `FocusGlass-<version>.zip.sha256` for manual
-  tester handoff or GitHub Release assets.
+  `FocusGlass-<version>.zip`, and `FocusGlass-<version>.zip.sha256`.
+- The owner builds release/tester artifacts locally with `./Scripts/package-release.sh`
+  and decides how to hand the build to a tester. Codex must not turn this into
+  mandatory release automation unless the owner explicitly asks.
+- GitHub Release, if used, is only a distribution page tied to an exact git tag
+  and commit. It does not build FocusGlass. The owner can create a Draft/Pre-release,
+  attach the already-built zip and `.sha256`, write Russian release notes, and
+  share that page with a tester.
+- Safe first GitHub Release trial format: tag like `v0.0.2-test.1`, Draft or
+  Pre-release enabled, Russian notes, attached `FocusGlass-<version>.zip` and
+  matching `.sha256`.
 - Do not commit local `.app`, zip, checksum, or intermediate `build/` products.
 - Do not modify or remove older `build/` products unless packaging/release flow
   is checked and the user approves cleanup.
@@ -66,6 +75,28 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - Never revert user changes or generated outputs without explicit approval.
 - GitHub process lives in `docs/process/github-workflow.md`; follow it for branches, Russian commit messages, tags, releases, PRs, and issue handling.
 - Public roadmap lives in `docs/process/roadmap.md`.
+
+## End-of-Task Checkpoint
+
+At the end of every implementation or documentation task, Codex must leave a
+durable checkpoint instead of relying on chat history:
+
+- Update `handoff.md` when the task changes release process, architecture, QA,
+  packaging, permissions, visual direction, roadmap state, blockers, or next
+  steps. For tiny no-op/read-only answers, explicitly say no handoff update was
+  needed.
+- Record what changed, what was validated, what remains blocked or deferred,
+  and the next concrete step.
+- Keep generated artifacts out of git: no `.app`, `.zip`, `.sha256`, `.build/`,
+  `build/`, `.swiftpm/`, Graphify outputs, or local IDE state.
+- Run the relevant checks for the task size; for code changes run the Swift
+  diagnostics/tests that match the blast radius and update Graphify when code
+  changed.
+- Before committing, run `git status --short --branch` and `git diff --check`.
+- Commit with a Russian message following `docs/process/github-workflow.md`.
+- Push the active Codex branch to `Release` when the remote is available.
+- In the final response, state the commit hash, push target, validation run, and
+  any remaining blocker plainly.
 
 ## Graphify Knowledge Graph
 
@@ -201,16 +232,21 @@ Completed:
     the package work dir, avoiding writes to `~/.cache` in restricted Codex
     environments;
   - documented that `build/` stays ignored generated output;
-  - release zip and `.sha256` should be attached to GitHub Releases or used for
-    manual tester handoff, not committed to git.
+  - clarified that the owner builds locally with `./Scripts/package-release.sh`;
+  - clarified that GitHub Release is optional distribution for already-built
+    zip/checksum artifacts, not an app build step or mandatory automation.
 - Validation for release artifact work:
   - `bash -n Scripts/package-app.sh` passed;
   - `bash -n Scripts/package-release.sh` passed;
   - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test` passed with 37/37 tests;
   - `FOCUSGLASS_RELEASE_VERSION=dev-sandbox-check FOCUSGLASS_RELEASE_DIR=/private/tmp/focusglass-release-sandbox-check ./Scripts/package-release.sh` created `FocusGlass.app`, `FocusGlass-dev-sandbox-check.zip`, and `FocusGlass-dev-sandbox-check.zip.sha256`.
-- CI remains blocked until work happens from an environment with GitHub
-  `workflow` scope. The current shell also does not have `gh` installed, so PR
-  and branch-protection setup cannot be automated here through GitHub CLI.
+- Branch protection and CI are deferred. They can be useful later to protect
+  `main` and automatically test PRs, but they are not near-term tasks while the
+  project is still using a simple local build -> commit -> push flow.
+- CI automation remains blocked until work happens from an environment with
+  GitHub `workflow` scope. The current shell also does not have `gh` installed,
+  so PR, release, and branch-protection setup cannot be automated here through
+  GitHub CLI.
 
 Skills research:
 
@@ -221,17 +257,22 @@ Skills research:
 
 ## Next Steps
 
-1. Enable branch protection or rulesets for `main` in GitHub UI if the account plan/repo settings allow it.
-2. Add GitHub Actions CI only after using a token with `workflow` scope.
-3. Run full local release validation with `./Scripts/package-release.sh`, then
-   attach the generated zip and `.sha256` to a GitHub Release when the user
-   approves a release candidate.
+1. Keep using the simple local release flow: owner runs `./Scripts/package-release.sh`
+   and hands the generated build to a tester directly unless they explicitly
+   ask to publish it through GitHub Release.
+2. If the owner wants to try GitHub Release, use a Draft/Pre-release tied to a
+   test tag like `v0.0.2-test.1`, attach the already-built zip and `.sha256`,
+   and write Russian release notes.
+3. Keep branch protection and GitHub Actions CI as later infrastructure, not
+   near-term work. Revisit when `main` needs stricter protection or PR checks.
 4. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
 5. Inspect useful skills from `openai/skills` before installing anything.
 6. Keep `handoff.md` updated after each substantial audit or implementation step.
 
 ## Open Questions
 
-- What is the near-term signing plan: keep unsigned local zip for first tester
-  handoff, ad-hoc sign it, or move directly toward notarized zip/dmg?
+- If GitHub Release is tried, should the first one be a private/internal draft
+  test only, or a visible pre-release for external testers?
+- Later signing plan: stay with local unsigned test builds for now, ad-hoc sign
+  before wider testing, or move toward notarized zip/dmg.
 - Which Codex skills from `openai/skills` should be installed after inspecting their contents?
