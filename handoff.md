@@ -260,6 +260,28 @@ Completed:
   - `git diff --check` passed;
   - Swift tests were not run because this was docs/process/memory only;
   - generated Graphify memory remains ignored and must not be committed.
+- Tester release dry-run:
+  - user clarified the near-term priority: do only the simple tester release
+    flow for now; move branch protection/CI to the long-term backlog; do not
+    start product roadmap work yet, but keep it remembered.
+  - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+    passed with 37/37 tests.
+  - `./Scripts/package-release.sh` created:
+    `build/releases/dev-c9a78ff/FocusGlass.app`,
+    `build/releases/dev-c9a78ff/FocusGlass-dev-c9a78ff.zip`, and
+    `build/releases/dev-c9a78ff/FocusGlass-dev-c9a78ff.zip.sha256`.
+  - `shasum -a 256 -c build/releases/dev-c9a78ff/FocusGlass-dev-c9a78ff.zip.sha256`
+    passed.
+  - No git tag or GitHub Release was created automatically. Use GitHub Release
+    only if the owner explicitly asks to publish a Draft/Pre-release for a
+    specific tag/commit.
+  - Generated release artifacts remain ignored under `build/` and must not be
+    committed.
+  - Graphify memory for current priorities saved at
+    `graphify-out/memory/query_20260604_101414_what_are_the_current_focusglass_priorities_after_t.md`;
+    direct memory search confirms: tester release flow is the only current
+    priority, branch protection/CI are deferred long-term, and product roadmap
+    work is parked until the owner asks to resume it.
 - Validation for release artifact work:
   - `bash -n Scripts/package-app.sh` passed;
   - `bash -n Scripts/package-release.sh` passed;
@@ -282,17 +304,21 @@ Skills research:
 
 ## Next Steps
 
-1. Keep using the simple local release flow: owner runs `./Scripts/package-release.sh`
-   and hands the generated build to a tester directly unless they explicitly
-   ask to publish it through GitHub Release.
-2. If the owner wants to try GitHub Release, use a Draft/Pre-release tied to a
-   test tag like `v0.0.2-test.1`, attach the already-built zip and `.sha256`,
-   and write Russian release notes.
-3. Keep branch protection and GitHub Actions CI as later infrastructure, not
-   near-term work. Revisit when `main` needs stricter protection or PR checks.
-4. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
-5. Inspect useful skills from `openai/skills` before installing anything.
-6. Keep `handoff.md` updated after each substantial audit or implementation step.
+1. For the current tester handoff, the owner can use the locally generated
+   `build/releases/dev-c9a78ff/FocusGlass-dev-c9a78ff.zip` and matching
+   `.sha256`, or rerun `./Scripts/package-release.sh` on the exact commit they
+   want to hand to a tester.
+2. If the owner wants to try GitHub Release, use a Draft/Pre-release tied to an
+   explicit test tag like `v0.0.2-test.1`, attach the already-built zip and
+   `.sha256`, and write Russian release notes. Do not create tags/releases
+   automatically without a direct request.
+3. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
+   not make them near-term work.
+4. Keep product roadmap work remembered but parked until the owner explicitly
+   asks to resume it.
+5. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
+6. Inspect useful skills from `openai/skills` before installing anything.
+7. Keep `handoff.md` updated after each substantial audit or implementation step.
 
 ## Open Questions
 
