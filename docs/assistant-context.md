@@ -338,10 +338,12 @@ sandbox, plain SwiftPM sandboxing can fail while compiling `Package.swift`, so
 use the `--disable-sandbox` variants above for verification.
 
 `build/` is ignored generated output. Keep local `.app` bundles, release zips,
-and checksums out of git. For manual tester handoff or GitHub Releases, use
+and checksums out of git. For tester handoff, the owner builds locally with
 `Scripts/package-release.sh`, which packages `FocusGlass.app` into
 `build/releases/<version>/FocusGlass-<version>.zip` and writes a SHA-256 file
-next to it.
+next to it. Do not turn this into mandatory release automation. If the owner
+wants GitHub Release, treat it as a manual distribution page for the already
+built zip/checksum tied to a tag and commit.
 
 The current test suite covers timer transitions, analytics, permission status
 helpers, rule decoding/matching, migration from legacy project names, split

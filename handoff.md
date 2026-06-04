@@ -55,6 +55,10 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - Safe first GitHub Release trial format: tag like `v0.0.2-test.1`, Draft or
   Pre-release enabled, Russian notes, attached `FocusGlass-<version>.zip` and
   matching `.sha256`.
+- Exact mental model to preserve: GitHub Release starts from a concrete git
+  commit, gets a tag such as `v0.0.2-test.1` or `v0.0.2`, hosts a Release tied
+  to that tag, and lets the tester download the already-built zip and `.sha256`.
+  It is not a build step.
 - Do not commit local `.app`, zip, checksum, or intermediate `build/` products.
 - Do not modify or remove older `build/` products unless packaging/release flow
   is checked and the user approves cleanup.
@@ -116,8 +120,8 @@ Current graph state:
   `ANTHROPIC_API_KEY`.
 - Focused corpus excludes `archive/`, `.agents/`, `.codex/`, `graphify-out/`,
   and generated build/IDE directories via `.graphifyignore`.
-- Current clean graph stats: 41 corpus files, 23 code files, 668 nodes, 1476
-  edges, 31 communities.
+- Current clean graph stats after the latest code-graph update: 867 nodes,
+  1942 links, 0 hyperedges, 50 communities.
 - Diagnostics: `graphify diagnose multigraph --json` reported 0 dangling
   endpoints, 0 duplicate edges, and 0 same-endpoint collapsed edges.
 - Benchmark: `graphify benchmark graphify-out/graph.json` reported about 4.0x
@@ -235,6 +239,27 @@ Completed:
   - clarified that the owner builds locally with `./Scripts/package-release.sh`;
   - clarified that GitHub Release is optional distribution for already-built
     zip/checksum artifacts, not an app build step or mandatory automation.
+- Simplified tester release flow:
+  - README, GitHub workflow docs, assistant context, and handoff should describe
+    GitHub Release as optional manual distribution, not required automation;
+  - first GitHub Release trial should be Draft/Pre-release with a test tag,
+    Russian notes, and attached zip/checksum;
+  - Codex must preserve this flow in handoff and Graphify memory so future
+    sessions do not reintroduce unnecessary release complexity.
+- Graphify memory for tester release flow:
+  - saved Q&A via `graphify save-result` with question
+    `How does FocusGlass tester GitHub Release flow work?`;
+  - memory file:
+    `graphify-out/memory/query_20260604_095907_how_does_focusglass_tester_github_release_flow_wor.md`;
+  - `graphify query "GitHub Release package-release Draft Pre-release sha256 tester" --budget 2600 --dfs`
+    surfaces `GitHub Workflow` and `Релизные артефакты`;
+  - direct memory search confirms the saved answer says the owner builds with
+    `./Scripts/package-release.sh`, GitHub Release is optional distribution and
+    not a build step, and branch protection/CI are deferred.
+- Validation for simplified release-flow docs:
+  - `git diff --check` passed;
+  - Swift tests were not run because this was docs/process/memory only;
+  - generated Graphify memory remains ignored and must not be committed.
 - Validation for release artifact work:
   - `bash -n Scripts/package-app.sh` passed;
   - `bash -n Scripts/package-release.sh` passed;

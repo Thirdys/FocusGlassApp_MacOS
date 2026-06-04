@@ -114,7 +114,7 @@ Release notes пишутся на русском и берутся из `CHANGEL
 `build/` - локальный generated output. Он нужен для ручной QA и подготовки
 релизного архива, но не является источником правды и не коммитится в git.
 
-Для локального tester handoff или GitHub Release:
+Для локального tester handoff:
 
 ```sh
 swift build --disable-sandbox
@@ -130,10 +130,21 @@ build/releases/<version>/FocusGlass-<version>.zip
 build/releases/<version>/FocusGlass-<version>.zip.sha256
 ```
 
-Zip и checksum прикрепляются к GitHub Release как assets. Их не нужно
-переносить в tracked files. Пока проект не перешёл на подписанный/notarized
-канал распространения, такие архивы считаются локальными unsigned сборками для
-ручной проверки и аккуратной передачи тестеру.
+Zip и checksum не переносятся в tracked files. Пока проект не перешёл на
+подписанный/notarized канал распространения, такие архивы считаются локальными
+unsigned сборками для ручной проверки и аккуратной передачи тестеру.
+
+GitHub Release можно использовать как ручную страницу раздачи уже собранного
+архива. Это не сборка приложения. Процесс:
+
+1. Выбрать конкретный git commit, который считается сборкой.
+2. Поставить tag, например `v0.0.2-test.1` для теста или `v0.0.2` для обычной версии.
+3. Создать Draft/Pre-release на GitHub, привязанный к этому tag.
+4. Прикрепить `FocusGlass-<version>.zip` и соответствующий `.sha256`.
+5. Написать release notes на русском и дать тестеру ссылку на Release.
+
+Для первого пробного handoff использовать Draft или Pre-release, чтобы не
+создавать давление "официального" релиза.
 
 ## GitHub Labels
 
@@ -157,7 +168,8 @@ Zip и checksum прикрепляются к GitHub Release как assets. Их
 
 ## Branch Protection
 
-Для `main` желательно включить в GitHub:
+Позже, когда появится стабильный PR/release процесс, для `main` можно включить
+в GitHub:
 
 - запрет force push;
 - запрет удаления ветки;
@@ -187,7 +199,8 @@ swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test
 GitHub Actions workflow добавляем только из среды, где push-токен имеет
 `workflow` scope. Иначе GitHub отклонит коммит с `.github/workflows/*`, а
 репозиторий останется в промежуточном состоянии. До этого CI считается
-процессным блокером, а не отсутствующей локальной проверкой.
+процессным блокером, а не отсутствующей локальной проверкой. В ближайшем
+простом tester handoff branch protection и CI не настраиваются.
 
 ## Правила для ассистента
 
