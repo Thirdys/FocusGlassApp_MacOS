@@ -1,21 +1,30 @@
-# FocusGlass tester build dev-c9a78ff
+# FocusGlass тестовая сборка dev-c9a78ff
 
-This branch contains a test build artifact only. It is not a source branch.
+Эта ветка содержит только тестовую сборку FocusGlass. Это не ветка с исходным
+кодом, её не нужно мержить в `main` или `codex/next`.
 
-## Files
+## Файлы
 
-- `FocusGlass-dev-c9a78ff.zip` - packaged FocusGlass `.app` for testing.
-- `FocusGlass-dev-c9a78ff.zip.sha256` - checksum for the zip.
+- `FocusGlass-dev-c9a78ff.zip` - архив с `FocusGlass.app` для тестирования.
+- `FocusGlass-dev-c9a78ff.zip.sha256` - контрольная сумма архива.
 
-## How to use
+## Как запустить
 
-1. Download `FocusGlass-dev-c9a78ff.zip`.
-2. Optionally verify it:
+1. Скачать `FocusGlass-dev-c9a78ff.zip`.
+2. По желанию проверить архив:
 
    ```sh
    shasum -a 256 -c FocusGlass-dev-c9a78ff.zip.sha256
    ```
 
-3. Unzip the archive and run `FocusGlass.app`.
+   Если всё хорошо, команда напишет `FocusGlass-dev-c9a78ff.zip: OK`.
 
-This build was produced locally with `./Scripts/package-release.sh`.
+3. Распаковать архив.
+4. Запустить `FocusGlass.app`.
+
+Сборка создана локально через `./Scripts/package-release.sh`.
+
+## Если macOS предупреждает о приложении
+
+Это тестовая unsigned-сборка. macOS может показать предупреждение при первом
+запуске. Это ожидаемо для текущего тестового handoff.

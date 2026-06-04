@@ -1,15 +1,16 @@
-FocusGlass tester build
+FocusGlass тестовая сборка
 
-Artifact version: dev-c9a78ff
-Source branch at build time: codex/next
-Source commit at build time: c9a78ff
-Artifact branch: tester/dev-c9a78ff
+Версия артефакта: dev-c9a78ff
+Source-ветка на момент сборки: codex/next
+Source-коммит на момент сборки: c9a78ff
+Artifact-ветка: tester/dev-c9a78ff
 
-Validation:
-- swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test passed with 37/37 tests.
-- ./Scripts/package-release.sh created FocusGlass-dev-c9a78ff.zip and FocusGlass-dev-c9a78ff.zip.sha256.
-- shasum -a 256 -c build/releases/dev-c9a78ff/FocusGlass-dev-c9a78ff.zip.sha256 passed.
+Проверка:
+- swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test прошёл: 37/37.
+- ./Scripts/package-release.sh создал FocusGlass-dev-c9a78ff.zip и FocusGlass-dev-c9a78ff.zip.sha256.
+- shasum -a 256 -c FocusGlass-dev-c9a78ff.zip.sha256 прошёл.
 
-Notes:
-- GitHub Release is optional distribution only. This branch exists for direct tester access to the already-built zip/checksum.
-- Do not use this branch as a source branch.
+Важно:
+- GitHub Release остаётся необязательным способом раздачи.
+- Эта ветка нужна для прямого доступа тестера к уже собранному zip/checksum.
+- Не использовать эту ветку как source-ветку и не мержить её в main/codex/next.
