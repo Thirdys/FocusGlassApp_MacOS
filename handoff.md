@@ -19,6 +19,34 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the QA First pre-tester pass through the new workflow:
+  - Used Graphify for orientation before broad QA/status work.
+  - Used Build macOS Apps `build-run-debug` through the real packaged
+    `build/FocusGlass.app` and `./script/build_and_run.sh --verify`.
+  - Used Build macOS Apps `swiftpm-macos` and `test-triage` for SwiftPM
+    build/test validation.
+  - Used Product Design `index`, `user-context`, `get-context`, and `audit`
+    for a local UX/accessibility audit of the live `.app`. Product Design
+    user-context preflight still reports no saved Product Design context.
+  - Saved Product Design audit screenshots and notes at
+    `/private/tmp/focusglass-product-design-audit-20260619-170421`.
+  - Saved QA runtime proof screenshots and diagnostics at
+    `/private/tmp/focusglass-qa-proof-20260619-170421`.
+  - Accepted screenshots:
+    `01-cockpit.png`, `02-settings.png`, `03-strict-mode.png`,
+    `04-fullscreen-focus.png`, and `05-outcome-gap.png`.
+  - Audit notes are in
+    `/private/tmp/focusglass-product-design-audit-20260619-170421/audit-notes.md`.
+  - No clear pre-tester blocker was found in launch, Settings, Strict Mode
+    overview, fullscreen focus, temp-data isolation, or analytics/empty-state
+    paths.
+  - Strict warn/hide/pause against real blocked apps/sites was not fully
+    exercised because the temporary QA profile had no strict rules and system
+    permissions were not granted. Treat this as the next optional runtime proof
+    before actual tester delivery, not as a blocker from this pass.
+  - Post-session outcome remains a future Product Design-led product chunk.
+    The audit captured the current Analytics empty state as outcome-gap
+    evidence; it did not implement or fake an outcome screen.
 - Implemented the new workflow/dev-loop pass:
   - Added `script/build_and_run.sh` as the active local macOS dev-loop
     entrypoint. It stops an existing FocusGlass process, delegates packaging to
@@ -76,23 +104,32 @@ Validated:
 - Used/validated with: Graphify, Build macOS Apps `build-run-debug`,
   Build macOS Apps `swiftpm-macos`, Build macOS Apps `test-triage`, Product
   Design `index`, Product Design `get-context`, Product Design `user-context`
-  preflight, and SwiftPM checks.
+  preflight, Product Design `audit`, Computer Use for live macOS UI control,
+  and SwiftPM checks.
 - `bash -n script/build_and_run.sh` passed.
 - `swift build` passed.
-- `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test --filter presetEditChangesOnlySelectedPreset`
-  passed after one prior full-suite flaky failure in that old test.
 - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
   passed: 50/50 tests.
 - `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`
   passed and relaunched `build/FocusGlass.app` when run with GUI escalation.
   The sandboxed attempt hit LaunchServices `kLSNoExecutableErr`, so future
   live `.app` verification may need Build macOS Apps-style GUI permission.
+- `codesign --verify --deep --strict build/FocusGlass.app` passed.
+- Temporary QA data was confirmed under `/private/tmp/focusglass-qa-data`:
+  `workspace.json`, `settings.json`, and `Logs/diagnostics.jsonl`.
+- `build/FocusGlass.app/Contents/Info.plist` still reports version
+  `0.0.2` / build `26`; no release/version bump was made.
+- Product Design audit folder contains ordered screenshots plus notes:
+  `/private/tmp/focusglass-product-design-audit-20260619-170421`.
+- QA proof folder contains ordered screenshots plus copied diagnostics:
+  `/private/tmp/focusglass-qa-proof-20260619-170421`.
 - `git diff --check` passed.
 - `graphify update .` passed and rebuilt the code graph: 979 nodes, 2131
-  edges, 62 communities.
-- Next skill/workflow: Build macOS Apps for tester QA/delivery validation;
-  Product Design `get-context`/audit before implementing the post-session
-  outcome screen.
+  edges, 63 communities.
+- Next skill/workflow: if the owner explicitly asks for tester delivery, use
+  Build macOS Apps packaging/release validation and the owner-controlled
+  release flow. Otherwise, the next product chunk is Product Design-led
+  post-session outcome, then Build macOS Apps live validation.
 
 Previous tester-fix validation still relevant:
 
@@ -115,24 +152,21 @@ Not started yet:
   build-info, public tag, and tester README have not been created. Do this only
   when the owner asks for the actual tester handoff/release step.
 - A deeper manual QA pass for strict warn/hide against real blocked apps/sites
-  can still be done before tester delivery, but the current tester-fix UI pass
-  is no longer blocked on screenshots.
-- Product Design `audit` has not been run yet. Use `design-qa` only when there
-  is a concrete source visual or design target to compare against the running
-  implementation.
+  can still be done before tester delivery, but the QA First pass is no longer
+  blocked on screenshots or Settings/fullscreen verification.
 - Full post-session outcome screen is still future work; this pass only stores
   the task/session foundation.
 
 Next likely choices:
 
-- First: if tester delivery is next, do a Build macOS Apps packaged-app QA pass
-  against `docs/qa-checklist.md` with
-  `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data`, `./script/build_and_run.sh --verify`,
-  Settings, fullscreen, strict mode, screenshots/logs/runtime proof as needed.
-- Then, when the owner confirms release handoff, bump/confirm `VERSION`
+- First: if tester delivery is next, ask for explicit owner confirmation, then
+  bump/confirm `VERSION`
   to `0.0.3` by default, commit, tag `v0.0.3`, run
   `./Scripts/package-release.sh`, verify `.sha256`, and prepare the isolated
   `tester/0.0.3` branch with only tester artifacts.
+- Optional before that release step: use Build macOS Apps for one deeper
+  strict-mode runtime proof with a real configured blocked app/site and running
+  timer.
 - After tester handoff/dev-loop, the next product feature should be the
   post-session outcome screen. Start with Product Design context from
   `docs/design/design-source.md` and the current `.app`, then validate through
@@ -140,9 +174,9 @@ Next likely choices:
 
 Active partial work:
 
-- No code partial remains in the tester-fix or workflow/dev-loop pass after
-  this checkpoint. Release/tag/tester branch work is intentionally deferred
-  until the owner explicitly asks for tester delivery.
+- No code partial remains in the tester-fix, workflow/dev-loop, or QA First
+  pass after this checkpoint. Release/tag/tester branch work is intentionally
+  deferred until the owner explicitly asks for tester delivery.
 
 Resume instructions if a future plan/thread continues from here:
 
@@ -156,12 +190,8 @@ Resume instructions if a future plan/thread continues from here:
      UX work; saved Product Design context is currently missing, so use
      `docs/design/design-source.md` plus the current `.app`.
 - If this checkpoint is seen before the commit lands, the intended source
-  changes are:
-  `script/build_and_run.sh`,
-  `Sources/FocusGlassApp/Services/FocusGlassDiagnosticsLogger.swift`,
-  `Sources/FocusGlassApp/Services/FocusGlassStore.swift`,
-  `Tests/FocusGlassAppTests/FocusGlassPersistenceTests.swift`,
-  `docs/assistant-context.md`, `docs/qa-checklist.md`, and `handoff.md`.
+  change for the QA First pass is `handoff.md` only. Local audit/proof
+  artifacts live in `/private/tmp` and are not source files.
   Do not stage `.codex/`, `graphify-out/`, `build/`, `.build/`, or `.swiftpm/`.
 - Required final checks for this workflow pass:
   `bash -n script/build_and_run.sh`,
@@ -172,7 +202,7 @@ Resume instructions if a future plan/thread continues from here:
   blocks GUI launch,
   `git diff --check`, and `graphify update .`.
 - Intended commit message if not already committed:
-  `инфраструктура: добавить workflow через навыки` with commit body
+  `qa: зафиксировать pre-tester audit` with commit body
   `Ассистент: Codex`.
 - Do not create `VERSION` bump, tag `v0.0.3`, release zip, tester branch, or
   GitHub Release until the owner explicitly asks for tester delivery.
@@ -246,10 +276,11 @@ using the full current operating plan first, then the roadmap block.
 1. Use Graphify before broad project/status/codebase questions and after code
    changes: start with `graphify query "<question>"` when the graph exists, and
    finish code changes with `graphify update .`.
-2. Before tester delivery, run a Build macOS Apps packaged-app QA pass through
-   the real `.app`: `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
-   then check the main window, Settings, fullscreen, strict mode, logs,
-   screenshots, and runtime proof as needed.
+2. Baseline pre-tester QA is complete through the real `.app`: Build macOS
+   Apps verified launch, Settings, Strict Mode overview, fullscreen focus,
+   temp-data isolation, diagnostics, and Product Design audit proof. Optional
+   extra proof before tester delivery is a strict warn/hide/pause scenario with
+   a real configured blocked app/site and running timer.
 3. When the owner asks for tester delivery, prepare the release handoff by
    confirming/bumping `VERSION` to `0.0.3` by default, committing, tagging
    `v0.0.3`, running `./Scripts/package-release.sh`, verifying `.sha256`, and
