@@ -18,6 +18,9 @@
   `docs/design/design-source.md`, or `docs/qa-checklist.md` need updates.
 - Launch `build/FocusGlass.app` for permission QA, because raw `swift run`
   cannot fully exercise app-bundle notification prompts.
+- For destructive packaged-app QA, point the app at a temporary data folder with
+  `FOCUSGLASS_DATA_DIR` first, then unset it after the run, so real
+  `~/Library/Application Support/FocusGlass` data is not touched.
 - Verify the Dock/Finder icon reads as a glass focus timer, not a prohibition or
   generic settings control.
 - Verify the first main-window launch shows a short theme-aware FocusGlass reveal
@@ -59,6 +62,11 @@
 - Add a wildcard site rule such as `*.reddit.com`.
 - Change actions and enabled state for both app and site rules.
 - Delete app and site rules.
+- Verify strict rules do not fire during break segments by default.
+- Enable `Строгий режим во время перерывов` and verify the same rule can fire
+  during a break segment.
+- Set a rule action to `Поставить на паузу`, trigger it while the timer is
+  running, and verify the timer becomes paused and no longer ticks down.
 - In normal mode while the timer is running, switch to a warn-rule app and
   verify FocusGlass returns to the main timer without hiding the app and shows a
   toast warning.
@@ -82,9 +90,23 @@
 - Rename a project and verify existing tasks still appear under that project.
 - Delete a project and verify its tasks/sessions become unassigned.
 - Add a task from the focus screen.
+- Add a task while `Без проекта` is selected and verify it appears under
+  `Без проекта` without creating a new project.
+- Create more than three unfinished tasks in one project and verify the active
+  task list scrolls instead of truncating.
+- Select an active task for the next timer session, start the timer, switch the
+  selection, complete the timer, and verify time was applied to the task
+  selected at start.
 - Edit task title, project, estimate, and done/undone state in the sheet.
+- Switch a task between `С временем` and `Обычная`; timed tasks should show
+  estimate/progress, checklist tasks should not receive session progress.
 - Verify estimate presets 5, 15, 25, 45, 60 and custom stepper minutes persist
   after relaunch.
+- Verify time steppers snap correctly: `1 -> 5 -> 10`, `6 -> 10`, `5 -> 1`,
+  and `0 -> 5` where zero is allowed.
+- Enter minutes manually from the keyboard in task estimate and timer segment
+  duration fields. In Settings -> Timers, verify a Flow segment such as
+  `Разогрев` accepts an exact typed value, not only plus/minus steps.
 - Relaunch `build/FocusGlass.app` after creating projects/tasks and verify they
   remain in `workspace.json`.
 
@@ -121,6 +143,8 @@
   action use glass dropdowns.
 - Verify segment duration and task estimate use glass steppers instead of stock
   steppers.
+- Verify project/task edit buttons respond when clicking the full 44x44 hover
+  area around the pencil icon.
 - Verify Settings text fields use glass styling instead of rounded-border
   stock controls.
 - Verify long RU/EN values such as "Как в macOS", "Универсальный доступ", and
@@ -138,6 +162,10 @@
   persists after the debounce, without visible UI stalls during dragging.
 - Check Appearance for the theme side-effect status/performance message.
 - Confirm advanced Theme Studio is collapsed by default.
+- Expand advanced Theme Studio and verify background top/mid/bottom, surface,
+  elevated surface, text, and muted text changes are visible in the live preview.
+- Duplicate or import a custom theme and verify `Удалить тему` appears only for
+  that custom theme. Verify built-in themes show `Сбросить`, not delete.
 
 ## Fullscreen focus
 
@@ -147,6 +175,8 @@
 - While idle, paused, or completed, controls are visible.
 - While running, controls hide without hover and appear in the top hover zone.
 - Reset while running is available only through hover controls.
+- Skip segment is available in fullscreen hover controls with the same disabled
+  behavior as the main screen.
 - Escape or close control exits focus mode.
 
 ## Analytics

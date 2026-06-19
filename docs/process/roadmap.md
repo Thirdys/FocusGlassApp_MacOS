@@ -13,7 +13,9 @@ FocusGlass развивается без смены идеи проекта. Э�
 ### 1. Таймеры как полноценная система
 
 - Найти и связать с поведением все поля, которые уже есть в UI/моделях, но используются слабо.
-- Довести `FocusTask.estimate` до реального влияния на planned time, прогресс задачи и итог сессии.
+- Частично готово: `FocusTask.estimate` влияет на прогресс timed-задачи после
+  завершённой сессии; выбранная на старте задача получает honest focus time.
+  Осталось связать planned time и итог сессии с полноценным outcome flow.
 - Добавить пользовательские таймеры в рамках существующих режимов.
 - Готово: добавить описания базовых режимов в пользовательском UI:
   - Pomodoro;
@@ -38,13 +40,15 @@ FocusGlass развивается без смены идеи проекта. Э�
 - Полностью проверить действия `warn`, `hide`, `pauseSession`, `quitAfterOptIn`.
 - Убедиться, что `warn` не скрывает приложение, но возвращает пользователя к FocusGlass.
 - Убедиться, что `hide` скрывает приложение и показывает понятное сообщение.
-- Реально связать `pauseSession` с таймером.
+- Готово: реально связать `pauseSession` с таймером.
+- Готово: добавить настройку strict-mode enforcement во время перерывов.
 - Добавить историю отвлечений.
 
 ### 4. UI interactive layer
 
 - Единый hover/pressed/selected/focus state.
-- Полный hit area для sidebar, project cards, mode chips, settings tabs и strict rows.
+- Частично готово: увеличен hit area для project/task edit-кнопок. Осталось
+  пройти sidebar, project cards, mode chips, settings tabs и strict rows.
 - Единый визуальный checkbox/toggle.
 - Проверка light/dark и пользовательских тем.
 
@@ -59,8 +63,10 @@ FocusGlass развивается без смены идеи проекта. Э�
 
 - Наборы strict-rule presets.
 - Улучшенный menu bar HUD.
-- Улучшенный fullscreen task flow.
-- Проверка читаемости Theme Studio.
+- Улучшенный fullscreen task flow. Частично начато: добавлен skip segment и
+  выбор активной задачи в fullscreen.
+- Проверка читаемости Theme Studio. Частично начато: advanced color tokens
+  получили живой preview.
 - Подготовка подписанного/notarized релиза.
 
 ## Пока вне зоны

@@ -509,6 +509,7 @@ private struct PresetSegmentEditor: View {
                 TextField(model.t("presets.segmentName"), text: titleBinding)
                     .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
                     .help(model.t("presets.segmentName"))
+                    .layoutPriority(1)
 
                 GlassSelect(
                     selection: phaseBinding,
@@ -519,11 +520,6 @@ private struct PresetSegmentEditor: View {
                 )
                 .help(model.t("presets.phase"))
 
-                GlassStepper(value: minutesBinding, range: 0...240, step: 5) { value in
-                    "\(value) \(model.t("tasks.minutes"))"
-                }
-                .help(model.t("tasks.estimate"))
-
                 Button {
                     model.deletePresetSegment(presetID, index: index)
                 } label: {
@@ -532,6 +528,22 @@ private struct PresetSegmentEditor: View {
                 }
                 .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
                 .disabled(!canDelete)
+            }
+
+            HStack(spacing: 10) {
+                Label(model.t("tasks.minutes"), systemImage: "timer")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(model.theme.mutedText)
+                    .frame(minWidth: 76, alignment: .leading)
+
+                GlassStepper(value: minutesBinding, range: 0...240, step: 5) { value in
+                    "\(value) \(model.t("tasks.minutes"))"
+                }
+                .help(model.t("tasks.estimate"))
+
+                GlassMinuteInputField(value: minutesBinding, range: 0...240)
+
+                Spacer(minLength: 0)
             }
 
             Toggle(model.t("presets.autoStartNext"), isOn: autoStartBinding)
@@ -606,6 +618,26 @@ private struct StrictModeSettingsSection: View {
                         .labelsHidden()
                         .help(model.t("help.strictMode"))
                 }
+
+                HStack(spacing: 10) {
+                    Image(systemName: "cup.and.saucer")
+                        .frame(width: 24)
+                        .foregroundStyle(model.theme.primary)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(model.t("strict.enforceDuringBreaks"))
+                            .font(.system(size: 13, weight: .bold))
+                        Text(model.t("strict.enforceDuringBreaks.detail"))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(model.theme.mutedText)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $model.strictModeEnforcesDuringBreaks)
+                        .toggleStyle(GlassCheckboxToggleStyle(theme: model.theme))
+                        .labelsHidden()
+                        .help(model.t("help.strictBreaks"))
+                }
+                .padding(12)
+                .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 StrictRulesEditor()
             }
@@ -996,13 +1028,25 @@ struct ThemeStudioView: View {
                     .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
                     .help(model.t("help.themeDuplicate"))
 
-                    Button {
-                        model.resetActiveTheme()
-                    } label: {
-                        Label(model.t("theme.reset"), systemImage: "arrow.counterclockwise")
+                    if model.selectedThemeProfile.isBuiltIn {
+                        Button {
+                            model.resetActiveTheme()
+                        } label: {
+                            Label(model.t("theme.reset"), systemImage: "arrow.counterclockwise")
+                        }
+                        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
+                        .help(model.t("help.themeReset"))
                     }
-                    .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
-                    .help(model.t("help.themeReset"))
+
+                    if !model.selectedThemeProfile.isBuiltIn {
+                        Button {
+                            model.deleteActiveCustomTheme()
+                        } label: {
+                            Label(model.t("theme.delete"), systemImage: "trash")
+                        }
+                        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .danger))
+                        .help(model.t("help.themeDelete"))
+                    }
 
                     Button {
                         model.exportActiveThemeJSON()
@@ -1200,6 +1244,54 @@ private struct ThemePreviewCard: View {
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: CGFloat(model.theme.cornerRadius), style: .continuous))
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(model.t("theme.previewTokens"))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(model.theme.mutedText)
+
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color(hex: model.selectedThemeProfile.backgroundTopHex),
+                                Color(hex: model.selectedThemeProfile.backgroundMidHex),
+                                Color(hex: model.selectedThemeProfile.backgroundBottomHex)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 74)
+                    .overlay(alignment: .topLeading) {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text(model.t("theme.previewBackground"))
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(Color(hex: model.selectedThemeProfile.textHex))
+                            Text(model.t("theme.previewMutedText"))
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Color(hex: model.selectedThemeProfile.mutedTextHex))
+                        }
+                        .padding(10)
+                    }
+                    .overlay(alignment: .bottomTrailing) {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(model.t("theme.surface"))
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Color(hex: model.selectedThemeProfile.textHex))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(Color(hex: model.selectedThemeProfile.surfaceHex).opacity(max(0.18, model.selectedThemeProfile.surfaceAlpha)), in: Capsule())
+                            Text(model.t("theme.elevatedSurface"))
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(Color(hex: model.selectedThemeProfile.textHex))
+                                .padding(.horizontal, 9)
+                                .padding(.vertical, 5)
+                                .background(Color(hex: model.selectedThemeProfile.elevatedSurfaceHex).opacity(max(0.22, model.selectedThemeProfile.surfaceAlpha)), in: Capsule())
+                        }
+                        .padding(9)
+                    }
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(model.t("theme.appliesTo"))

@@ -17,11 +17,19 @@ struct FocusProject: Identifiable, Codable, Equatable {
     var accentName: String
 }
 
+enum FocusTaskTimingMode: String, Codable, Equatable, CaseIterable, Identifiable {
+    case timed
+    case checklist
+
+    var id: String { rawValue }
+}
+
 struct FocusTask: Identifiable, Codable, Equatable {
     var id = UUID()
     var title: String
     var projectID: UUID?
     var projectName: String
+    var timingMode: FocusTaskTimingMode
     var estimate: TimeInterval
     var completed: TimeInterval
     var isDone: Bool
@@ -31,6 +39,7 @@ struct FocusTask: Identifiable, Codable, Equatable {
         title: String,
         projectID: UUID? = nil,
         projectName: String = "",
+        timingMode: FocusTaskTimingMode = .timed,
         estimate: TimeInterval,
         completed: TimeInterval,
         isDone: Bool
@@ -39,9 +48,33 @@ struct FocusTask: Identifiable, Codable, Equatable {
         self.title = title
         self.projectID = projectID
         self.projectName = projectName
+        self.timingMode = timingMode
         self.estimate = estimate
         self.completed = completed
         self.isDone = isDone
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case projectID
+        case projectName
+        case timingMode
+        case estimate
+        case completed
+        case isDone
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        title = try container.decode(String.self, forKey: .title)
+        projectID = try container.decodeIfPresent(UUID.self, forKey: .projectID)
+        projectName = try container.decodeIfPresent(String.self, forKey: .projectName) ?? ""
+        timingMode = try container.decodeIfPresent(FocusTaskTimingMode.self, forKey: .timingMode) ?? .timed
+        estimate = try container.decode(TimeInterval.self, forKey: .estimate)
+        completed = try container.decode(TimeInterval.self, forKey: .completed)
+        isDone = try container.decode(Bool.self, forKey: .isDone)
     }
 }
 
@@ -82,10 +115,12 @@ final class FocusGlassViewModel: ObservableObject {
         }
     }
     @Published var strictModeEnabled = false { didSet { persist() } }
+    @Published var strictModeEnforcesDuringBreaks = false { didSet { persist() } }
     @Published var hasSeenPermissionsOnboarding = false { didSet { persist() } }
     @Published var intention = "" { didSet { persist() } }
     @Published var activeProject = "" { didSet { persist() } }
-    @Published var activeProjectID: UUID? = nil { didSet { syncActiveProjectName(); persist() } }
+    @Published var activeProjectID: UUID? = nil { didSet { syncActiveProjectName(); syncActiveTaskSelection(); persist() } }
+    @Published var activeTaskID: UUID? = nil { didSet { persist() } }
     @Published var selectedSidebarItem = SidebarItem.focusToday
     @Published var focusGuard = FocusGuardService()
     @Published var lastThemeMessage: String?
@@ -100,7 +135,7 @@ final class FocusGlassViewModel: ObservableObject {
     @Published private(set) var isFocusModeActive = false
     @Published private(set) var engineSnapshot: TimerEngineSnapshot
     @Published var projects: [FocusProject] = [] { didSet { persist() } }
-    @Published var tasks: [FocusTask] = [] { didSet { persist() } }
+    @Published var tasks: [FocusTask] = [] { didSet { syncActiveTaskSelection(); persist() } }
     @Published var distractionRules: [DistractionRuleSpec] = [] { didSet { persist() } }
     @Published var recentSessions: [FocusSessionRecord] = [] { didSet { persist() } }
 
@@ -109,6 +144,7 @@ final class FocusGlassViewModel: ObservableObject {
     private let store: FocusGlassStore
     private var isHydrating = true
     private var currentDistractionCount = 0
+    private var sessionTaskID: UUID?
     private var focusGuardObservation: AnyCancellable?
     private var appearanceObservation: NSObjectProtocol?
     private var themeSideEffectTask: Task<Void, Never>?
@@ -140,9 +176,11 @@ final class FocusGlassViewModel: ObservableObject {
             language = cleanState.language
             appearanceMode = cleanState.appearanceMode
             strictModeEnabled = cleanState.strictModeEnabled
+            strictModeEnforcesDuringBreaks = cleanState.strictModeEnforcesDuringBreaks
             hasSeenPermissionsOnboarding = cleanState.hasSeenPermissionsOnboarding
             intention = cleanState.intention
             activeProjectID = cleanState.activeProjectID
+            activeTaskID = cleanState.activeTaskID
             activeProject = cleanState.activeProject
             projects = cleanState.projects
             tasks = cleanState.tasks
@@ -159,6 +197,7 @@ final class FocusGlassViewModel: ObservableObject {
         focusGuard.setLanguage(language)
         engine.configure(selectedPreset)
         syncActiveProjectName()
+        syncActiveTaskSelection()
         installAppearanceObserver()
         updateSystemAppearance()
         updateRuntimeIcons()
@@ -269,11 +308,17 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     var activeTasks: [FocusTask] {
-        Array(
-            tasks
-                .filter { !$0.isDone && $0.projectID == activeProjectID }
-                .prefix(3)
-        )
+        tasks.filter { !$0.isDone && $0.projectID == activeProjectID }
+    }
+
+    var selectedActiveTask: FocusTask? {
+        activeTaskID.flatMap { taskID in
+            activeTasks.first { $0.id == taskID }
+        }
+    }
+
+    var selectedTaskTitle: String {
+        selectedActiveTask?.title ?? t("tasks.noActiveTask")
     }
 
     var needsPermissionAttention: Bool {
@@ -295,6 +340,12 @@ final class FocusGlassViewModel: ObservableObject {
         }
         let maxValue = max(totals.max() ?? 0, 1)
         return totals.map { min(1, max(0, $0 / maxValue)) }
+    }
+
+    var strictModeCanEvaluateCurrentPhase: Bool {
+        strictModeEnabled
+            && engineSnapshot.status == .running
+            && (strictModeEnforcesDuringBreaks || engineSnapshot.activeSegment.phase == .focus)
     }
 
     func t(_ key: String) -> String {
@@ -390,6 +441,13 @@ final class FocusGlassViewModel: ObservableObject {
         t("timer.phase.\(phase.rawValue)")
     }
 
+    func taskTimingModeTitle(_ mode: FocusTaskTimingMode) -> String {
+        switch mode {
+        case .timed: t("tasks.timed")
+        case .checklist: t("tasks.checklist")
+        }
+    }
+
     func statusTitle(_ status: TimerStatus) -> String {
         t("timer.status.\(status.rawValue)")
     }
@@ -440,12 +498,18 @@ final class FocusGlassViewModel: ObservableObject {
         selectedSidebarItem = .projects
     }
 
+    func selectUnassignedProject() {
+        activeProjectID = nil
+        selectedSidebarItem = .projects
+    }
+
+    func selectTaskForSession(_ task: FocusTask) {
+        guard !task.isDone, task.projectID == activeProjectID else { return }
+        activeTaskID = task.id
+    }
+
     @discardableResult
     func addQuickTask() -> FocusTask {
-        if activeProject.isEmpty {
-            addProject()
-        }
-
         let title = t("tasks.new")
         let task = FocusTask(
             title: title,
@@ -456,6 +520,7 @@ final class FocusGlassViewModel: ObservableObject {
             isDone: false
         )
         tasks.insert(task, at: 0)
+        activeTaskID = task.id
         return task
     }
 
@@ -506,13 +571,27 @@ final class FocusGlassViewModel: ObservableObject {
             cleanTask.title = t("tasks.new")
         }
         cleanTask.estimate = max(60, task.estimate)
-        cleanTask.completed = min(max(0, task.completed), cleanTask.estimate)
+        cleanTask.completed = cleanTask.timingMode == .timed
+            ? min(max(0, task.completed), cleanTask.estimate)
+            : 0
         cleanTask.projectName = projectName(for: cleanTask.projectID) ?? ""
         tasks[index] = cleanTask
+        if cleanTask.projectID != activeProjectID {
+            activeProjectID = cleanTask.projectID
+        }
+        activeTaskID = cleanTask.isDone ? nil : cleanTask.id
+        syncActiveTaskSelection()
     }
 
     func deleteTask(_ task: FocusTask) {
         tasks.removeAll { $0.id == task.id }
+        if activeTaskID == task.id {
+            activeTaskID = nil
+        }
+        if sessionTaskID == task.id {
+            sessionTaskID = nil
+        }
+        syncActiveTaskSelection()
     }
 
     func updateTaskEstimate(_ task: FocusTask, estimate: TimeInterval) {
@@ -580,6 +659,8 @@ final class FocusGlassViewModel: ObservableObject {
         switch engineSnapshot.status {
         case .idle, .completed:
             currentDistractionCount = 0
+            syncActiveTaskSelection()
+            sessionTaskID = selectedActiveTask?.id
             engine.start()
             focusGuard.runShortcut(named: "FocusGlass Start")
             scheduleTick()
@@ -597,6 +678,7 @@ final class FocusGlassViewModel: ObservableObject {
 
     func resetTimer() {
         engine.reset()
+        sessionTaskID = nil
         stopTick()
         syncSnapshot()
     }
@@ -611,6 +693,12 @@ final class FocusGlassViewModel: ObservableObject {
     func toggleTask(_ task: FocusTask) {
         guard let index = tasks.firstIndex(of: task) else { return }
         tasks[index].isDone.toggle()
+        if tasks[index].isDone, activeTaskID == task.id {
+            activeTaskID = nil
+            syncActiveTaskSelection()
+        } else if !tasks[index].isDone {
+            activeTaskID = task.id
+        }
     }
 
     func toggleRule(_ rule: DistractionRuleSpec) {
@@ -739,20 +827,25 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     func resetActiveTheme() {
-        if selectedThemeProfile.isBuiltIn {
-            guard let builtIn = ThemeProfile.builtIn.first(where: { $0.id == selectedThemeID }),
-                  let index = themeProfiles.firstIndex(where: { $0.id == selectedThemeID }) else { return }
-            performThemeMutation(reason: "themeProfiles") {
-                themeProfiles[index] = builtIn
-            }
-        } else {
-            let currentID = selectedThemeID
-            performThemeMutation(reason: "themeProfiles") {
-                selectedThemeID = ThemeProfile.graphiteAuroraID
-                themeProfiles.removeAll { $0.id == currentID }
-            }
+        guard selectedThemeProfile.isBuiltIn,
+              let builtIn = ThemeProfile.builtIn.first(where: { $0.id == selectedThemeID }),
+              let index = themeProfiles.firstIndex(where: { $0.id == selectedThemeID }) else {
+            return
+        }
+        performThemeMutation(reason: "themeProfiles") {
+            themeProfiles[index] = builtIn
         }
         lastThemeMessage = t("theme.resetDone")
+    }
+
+    func deleteActiveCustomTheme() {
+        guard !selectedThemeProfile.isBuiltIn else { return }
+        let currentID = selectedThemeID
+        performThemeMutation(reason: "themeProfiles") {
+            selectedThemeID = ThemeProfile.graphiteAuroraID
+            themeProfiles.removeAll { $0.id == currentID }
+        }
+        lastThemeMessage = t("theme.deleted")
     }
 
     func updateActiveTheme(_ mutate: (inout ThemeProfile) -> Void) {
@@ -867,6 +960,33 @@ final class FocusGlassViewModel: ObservableObject {
         flushThemeSideEffects(reason: "applicationWillTerminate", uiUpdateDuration: 0)
     }
 
+    func startTimerForTesting() {
+        currentDistractionCount = 0
+        syncActiveTaskSelection()
+        sessionTaskID = selectedActiveTask?.id
+        engine.start()
+        syncSnapshot()
+    }
+
+    func advanceTimerForTesting(by seconds: TimeInterval) {
+        let event = engine.tick(by: seconds)
+        handle(event)
+        syncSnapshot()
+    }
+
+    func applyDistractionResponseForTesting(action: DistractionAction) {
+        applyHandledDistractionResponse(
+            DistractionRuleSpec(
+                label: "Test",
+                targetKind: .app,
+                matchValue: "test.bundle",
+                bundleIdentifier: "test.bundle",
+                action: action,
+                isEnabled: true
+            )
+        )
+    }
+
     private func scheduleTick() {
         guard timer == nil else { return }
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
@@ -889,13 +1009,27 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     private func evaluateStrictModeIfNeeded() {
-        guard strictModeEnabled,
-              engineSnapshot.status == .running,
+        guard strictModeCanEvaluateCurrentPhase,
               let rule = focusGuard.activeDistractionRule(from: distractionRules) else { return }
         if focusGuard.handleDistraction(rule: rule) {
-            currentDistractionCount += 1
-            focusAfterDistraction()
+            applyHandledDistractionResponse(rule)
         }
+    }
+
+    private func applyHandledDistractionResponse(_ rule: DistractionRuleSpec) {
+        if rule.action == .pauseSession {
+            pauseTimerAfterDistraction()
+        }
+        currentDistractionCount += 1
+        focusAfterDistraction()
+    }
+
+    private func pauseTimerAfterDistraction() {
+        guard engineSnapshot.status == .running else { return }
+        engine.pause()
+        focusGuard.runShortcut(named: "FocusGlass Pause")
+        stopTick()
+        syncSnapshot()
     }
 
     private func focusAfterDistraction() {
@@ -926,23 +1060,28 @@ final class FocusGlassViewModel: ObservableObject {
         case .presetCompleted:
             stopTick()
             focusGuard.runShortcut(named: "FocusGlass End")
+            let finalSnapshot = engine.snapshot
             focusGuard.sendSessionNotification(
                 title: t("timer.sessionCompleted"),
-                body: "\(t("focus.honestTime")): \(engineSnapshot.honestFocusTime.focusClock)"
+                body: "\(t("focus.honestTime")): \(finalSnapshot.honestFocusTime.focusClock)"
             )
             recentSessions.insert(
                 FocusSessionRecord(
                     projectID: activeProjectID,
                     projectName: activeProjectName,
+                    taskID: sessionTaskID,
+                    taskTitle: sessionTaskID.flatMap(taskTitle(for:)),
                     mode: selectedPreset.mode,
-                    startedAt: .now.addingTimeInterval(-engineSnapshot.elapsed),
+                    startedAt: .now.addingTimeInterval(-finalSnapshot.elapsed),
                     endedAt: .now,
                     plannedSeconds: max(1, selectedPreset.totalDuration),
-                    honestFocusSeconds: engineSnapshot.honestFocusTime,
+                    honestFocusSeconds: finalSnapshot.honestFocusTime,
                     distractionCount: currentDistractionCount
                 ),
                 at: 0
             )
+            applySessionTimeToCapturedTask(finalSnapshot.honestFocusTime)
+            sessionTaskID = nil
         }
     }
 
@@ -968,6 +1107,7 @@ final class FocusGlassViewModel: ObservableObject {
                 schemaVersion: 4,
                 intention: intention,
                 activeProjectID: activeProjectID,
+                activeTaskID: activeTaskID,
                 activeProject: activeProject,
                 projects: projects,
                 tasks: tasks,
@@ -983,6 +1123,7 @@ final class FocusGlassViewModel: ObservableObject {
                 language: language,
                 appearanceMode: appearanceMode,
                 strictModeEnabled: strictModeEnabled,
+                strictModeEnforcesDuringBreaks: strictModeEnforcesDuringBreaks,
                 hasSeenPermissionsOnboarding: hasSeenPermissionsOnboarding
             )
         )
@@ -1162,6 +1303,27 @@ final class FocusGlassViewModel: ObservableObject {
         activeProject = activeProjectName
     }
 
+    private func taskTitle(for taskID: UUID) -> String? {
+        tasks.first { $0.id == taskID }?.title
+    }
+
+    private func syncActiveTaskSelection() {
+        guard !isHydrating else { return }
+        if let activeTaskID,
+           activeTasks.contains(where: { $0.id == activeTaskID }) {
+            return
+        }
+        activeTaskID = nil
+    }
+
+    private func applySessionTimeToCapturedTask(_ honestFocusTime: TimeInterval) {
+        guard honestFocusTime > 0,
+              let sessionTaskID,
+              let index = tasks.firstIndex(where: { $0.id == sessionTaskID }),
+              tasks[index].timingMode == .timed else { return }
+        tasks[index].completed = min(tasks[index].estimate, max(0, tasks[index].completed + honestFocusTime))
+    }
+
     private func sanitizePreset(at index: Int) {
         guard timerPresets.indices.contains(index) else { return }
         if timerPresets[index].name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
@@ -1249,10 +1411,13 @@ final class FocusGlassViewModel: ObservableObject {
             ?? (projectNames.contains(persisted.activeProject) ? projectsByName[persisted.activeProject] : nil)
             ?? projects.first?.id
         let activeProject = activeProjectID.flatMap { id in projects.first { $0.id == id }?.name } ?? ""
+        let activeTaskID = persisted.activeTaskID.flatMap { id in
+            tasks.contains { $0.id == id && !$0.isDone && $0.projectID == activeProjectID } ? id : nil
+        }
         let intention = starterIntentions.contains(persisted.intention) ? "" : persisted.intention
 
         return FocusGlassPersistedState(
-            schemaVersion: 3,
+            schemaVersion: 4,
             selectedThemeID: persisted.selectedThemeID,
             themeProfiles: persisted.themeProfiles,
             selectedPresetID: persisted.selectedPresetID,
@@ -1260,9 +1425,11 @@ final class FocusGlassViewModel: ObservableObject {
             language: persisted.language,
             appearanceMode: persisted.appearanceMode,
             strictModeEnabled: persisted.strictModeEnabled,
+            strictModeEnforcesDuringBreaks: persisted.strictModeEnforcesDuringBreaks,
             hasSeenPermissionsOnboarding: persisted.hasSeenPermissionsOnboarding,
             intention: intention,
             activeProjectID: activeProjectID,
+            activeTaskID: activeTaskID,
             activeProject: activeProject,
             projects: projects,
             tasks: tasks,

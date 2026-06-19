@@ -30,6 +30,15 @@
 
 "tasks.focusStack" = "Focus stack";
 "tasks.projectTasks" = "Project tasks";
+"tasks.minutes" = "min";
+"tasks.type" = "Task type";
+"tasks.timed" = "Timed";
+"tasks.checklist" = "Checklist";
+"tasks.checklist.detail" = "Checklist tasks do not receive session time and are completed manually.";
+"tasks.activeForSession" = "Active session task";
+"tasks.selectForSession" = "Select for session";
+"tasks.noActiveTask" = "No task selected";
+"projects.unassigned.detail" = "Tasks without a project live here. Use them as a quick personal list.";
 
 "analytics.honestFocus" = "Honest focus";
 "analytics.honestFocusDetail" = "Only active focus time";
@@ -138,6 +147,8 @@
 
 "strict.rules" = "Distraction rules";
 "strict.fullscreenOnly" = "While the timer runs, rules return you to FocusGlass. Fullscreen keeps the warning next to the timer.";
+"strict.enforceDuringBreaks" = "Strict mode during breaks";
+"strict.enforceDuringBreaks.detail" = "Breaks are free by default. Turn this on if rules should run outside the focus phase.";
 "strict.apps" = "Apps";
 "strict.sites" = "Sites";
 "strict.apps.empty.title" = "No apps selected";
@@ -159,14 +170,22 @@
 "theme.advancedColors" = "Advanced colors and glass";
 "theme.highlightColor" = "Highlight color";
 "theme.saving" = "Saving theme...";
+"theme.delete" = "Delete theme";
+"theme.previewTokens" = "What changes";
+"theme.previewBackground" = "Background top / mid / bottom";
+"theme.previewMutedText" = "Muted text and secondary labels";
+"theme.deleted" = "Custom theme deleted";
 "presets.resetHint" = "Reset affects only the selected mode and leaves other presets unchanged.";
 "help.language" = "Changes the app UI, notifications, and FocusGlass guidance language.";
 "help.appearance" = "System follows macOS; light and dark pin the app appearance.";
 "help.fullscreen" = "Opens fullscreen focus mode with the timer and strict mode.";
 "help.strictMode" = "Strict mode watches rules while the timer runs and returns you to FocusGlass after a distraction.";
+"help.strictBreaks" = "When enabled, strict mode also checks rules during breaks.";
 "help.timerReset" = "Resets the current session to the beginning of the selected mode.";
 "help.timerSkip" = "Moves to the next segment when the current mode has more than one segment.";
 "help.presetReset" = "Restores only the selected mode to its built-in defaults.";
+"help.manualMinutes" = "Enter an exact number of minutes from the keyboard.";
+"help.taskTimingMode" = "Timed tasks receive session progress; checklist tasks are completed manually.";
 "help.notifications" = "Requests system notifications for phase reminders and completed sessions.";
 "help.accessibility" = "Requests Accessibility so strict mode can identify active apps.";
 "help.automation" = "Requests Automation to inspect browser tabs and run Shortcuts.";
@@ -175,7 +194,8 @@
 "help.strictApps" = "Adds an app to the strict mode distraction list.";
 "help.strictSites" = "Adds a site or domain pattern to the strict mode distraction list.";
 "help.themeDuplicate" = "Creates an editable copy of a built-in theme.";
-"help.themeReset" = "Resets a built-in theme or removes a custom copy.";
+"help.themeReset" = "Resets a built-in theme to its original values.";
+"help.themeDelete" = "Deletes only the selected custom theme. Built-in themes cannot be deleted.";
 "help.themeExport" = "Copies the current theme to the clipboard as JSON.";
 "help.themeImport" = "Imports a theme from clipboard JSON.";
 "help.themePerformance" = "Theme switch profile: UI updates first, saving and icon persistence run later.";

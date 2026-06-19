@@ -235,6 +235,29 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
+    func presetSegmentCanStoreExactManualMinutes() {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+
+        model.updatePresetSegment(TimerPreset.deepWorkID, index: 0) { segment in
+            segment.duration = 17 * 60
+        }
+
+        let deepWork = model.presets.first { $0.id == TimerPreset.deepWorkID }
+        #expect(deepWork?.segments.first?.duration == 17 * 60)
+    }
+
+    @Test
+    func glassStepperSnapsToFiveMinuteGrid() {
+        #expect(GlassStepperMath.increment(value: 1, range: 1...240, step: 5) == 5)
+        #expect(GlassStepperMath.increment(value: 5, range: 1...240, step: 5) == 10)
+        #expect(GlassStepperMath.increment(value: 6, range: 1...240, step: 5) == 10)
+        #expect(GlassStepperMath.decrement(value: 5, range: 1...240, step: 5) == 1)
+        #expect(GlassStepperMath.increment(value: 0, range: 0...240, step: 5) == 5)
+        #expect(GlassStepperMath.decrement(value: 0, range: 0...240, step: 5) == 0)
+    }
+
+    @Test
+    @MainActor
     func taskEstimateUpdatePersistsMinutesAndClampsProgress() {
         let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
         var task = model.addQuickTask()
@@ -246,6 +269,199 @@ struct FocusGlassPersistenceTests {
         let updatedTask = model.tasks.first { $0.id == task.id }
         #expect(updatedTask?.estimate == 10 * 60)
         #expect(updatedTask?.completed == 10 * 60)
+    }
+
+    @Test
+    @MainActor
+    func legacyTaskWithoutTimingModeDecodesAsTimed() throws {
+        let task = FocusTask(
+            title: "Legacy task",
+            projectID: nil,
+            projectName: "",
+            estimate: 25 * 60,
+            completed: 5 * 60,
+            isDone: false
+        )
+        let data = try JSONEncoder().encode(task)
+        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object.removeValue(forKey: "timingMode")
+        let legacyData = try JSONSerialization.data(withJSONObject: object)
+
+        let decoded = try JSONDecoder().decode(FocusTask.self, from: legacyData)
+
+        #expect(decoded.timingMode == .timed)
+        #expect(decoded.estimate == 25 * 60)
+        #expect(decoded.completed == 5 * 60)
+    }
+
+    @Test
+    @MainActor
+    func checklistTaskPersistsWithoutDroppingEstimateFields() throws {
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        let firstLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        var task = firstLaunch.addQuickTask()
+        task.timingMode = .checklist
+        task.estimate = 30 * 60
+        task.completed = 10 * 60
+        firstLaunch.updateTask(task)
+
+        let secondLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let restored = try #require(secondLaunch.tasks.first)
+
+        #expect(restored.timingMode == .checklist)
+        #expect(restored.estimate == 30 * 60)
+        #expect(restored.completed == 0)
+    }
+
+    @Test
+    @MainActor
+    func addQuickTaskWithoutProjectCreatesUnassignedTask() {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+
+        let task = model.addQuickTask()
+
+        #expect(model.projects.isEmpty)
+        #expect(task.projectID == nil)
+        #expect(model.activeProjectID == nil)
+        #expect(model.activeTasks.map(\.id) == [task.id])
+        #expect(model.activeTaskID == task.id)
+    }
+
+    @Test
+    @MainActor
+    func activeTasksAreNotLimitedToThree() {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        model.tasks = (1...5).map { index in
+            FocusTask(
+                title: "Task \(index)",
+                projectID: nil,
+                projectName: "",
+                estimate: 25 * 60,
+                completed: 0,
+                isDone: false
+            )
+        }
+
+        #expect(model.activeTasks.map(\.title) == ["Task 1", "Task 2", "Task 3", "Task 4", "Task 5"])
+    }
+
+    @Test
+    @MainActor
+    func activeTaskIDPersistsAndClearsWhenScopeChanges() {
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        let firstLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let project = firstLaunch.addProject()
+        let task = firstLaunch.addQuickTask()
+
+        let secondLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+
+        #expect(secondLaunch.activeProjectID == project.id)
+        #expect(secondLaunch.activeTaskID == task.id)
+
+        secondLaunch.activeProjectID = nil
+        #expect(secondLaunch.activeTaskID == nil)
+
+        secondLaunch.selectProject(project)
+        secondLaunch.selectTaskForSession(task)
+        secondLaunch.deleteTask(task)
+
+        #expect(secondLaunch.activeTaskID == nil)
+    }
+
+    @Test
+    @MainActor
+    func completedSessionAppliesHonestFocusTimeToCapturedTimedTask() throws {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        let project = model.addProject()
+        var capturedTask = model.addQuickTask()
+        capturedTask.title = "Captured"
+        model.updateTask(capturedTask)
+        var laterTask = model.addQuickTask()
+        laterTask.title = "Later"
+        model.updateTask(laterTask)
+        model.selectTaskForSession(capturedTask)
+        model.selectPreset(
+            TimerPreset(
+                name: "Two seconds",
+                mode: .countdown,
+                segments: [TimerSegment(title: "Focus", duration: 2, phase: .focus)]
+            )
+        )
+
+        model.startTimerForTesting()
+        model.selectTaskForSession(laterTask)
+        model.advanceTimerForTesting(by: 2)
+
+        let captured = try #require(model.tasks.first { $0.id == capturedTask.id })
+        let later = try #require(model.tasks.first { $0.id == laterTask.id })
+        let record = try #require(model.recentSessions.first)
+
+        #expect(model.activeProjectID == project.id)
+        #expect(captured.completed == 2)
+        #expect(later.completed == 0)
+        #expect(record.taskID == capturedTask.id)
+        #expect(record.taskTitle == "Captured")
+    }
+
+    @Test
+    @MainActor
+    func checklistTaskDoesNotReceiveSessionTimeProgress() throws {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        var task = model.addQuickTask()
+        task.timingMode = .checklist
+        model.updateTask(task)
+        model.selectPreset(
+            TimerPreset(
+                name: "Two seconds",
+                mode: .countdown,
+                segments: [TimerSegment(title: "Focus", duration: 2, phase: .focus)]
+            )
+        )
+
+        model.startTimerForTesting()
+        model.advanceTimerForTesting(by: 2)
+
+        let restored = try #require(model.tasks.first { $0.id == task.id })
+        #expect(restored.completed == 0)
+        #expect(model.recentSessions.first?.taskID == task.id)
+    }
+
+    @Test
+    @MainActor
+    func strictModeBreakEvaluationFollowsBreakSetting() {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        model.strictModeEnabled = true
+        model.strictModeEnforcesDuringBreaks = false
+        model.selectPreset(
+            TimerPreset(
+                name: "Focus and break",
+                mode: .pomodoro,
+                segments: [
+                    TimerSegment(title: "Focus", duration: 1, phase: .focus),
+                    TimerSegment(title: "Break", duration: 60, phase: .shortBreak)
+                ]
+            )
+        )
+
+        model.startTimerForTesting()
+        model.advanceTimerForTesting(by: 1)
+
+        #expect(model.engineSnapshot.activeSegment.phase == .shortBreak)
+        #expect(model.strictModeCanEvaluateCurrentPhase == false)
+
+        model.strictModeEnforcesDuringBreaks = true
+        #expect(model.strictModeCanEvaluateCurrentPhase == true)
+    }
+
+    @Test
+    @MainActor
+    func pauseSessionDistractionActionPausesRunningTimer() {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        model.startTimerForTesting()
+
+        model.applyDistractionResponseForTesting(action: .pauseSession)
+
+        #expect(model.engineSnapshot.status == .paused)
     }
 
     @Test

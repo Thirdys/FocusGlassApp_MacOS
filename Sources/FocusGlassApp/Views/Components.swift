@@ -796,7 +796,7 @@ struct GlassStepper: View {
     var body: some View {
         HStack(spacing: 8) {
             Button {
-                value = max(range.lowerBound, value - step)
+                value = decrementedValue
             } label: {
                 Image(systemName: "minus")
                     .frame(width: 24, height: 24)
@@ -831,7 +831,7 @@ struct GlassStepper: View {
                 }
 
             Button {
-                value = min(range.upperBound, value + step)
+                value = incrementedValue
             } label: {
                 Image(systemName: "plus")
                     .frame(width: 24, height: 24)
@@ -840,6 +840,109 @@ struct GlassStepper: View {
             .disabled(value >= range.upperBound)
             .help("+\(step)")
         }
+    }
+
+    private var incrementedValue: Int {
+        GlassStepperMath.increment(value: value, range: range, step: step)
+    }
+
+    private var decrementedValue: Int {
+        GlassStepperMath.decrement(value: value, range: range, step: step)
+    }
+}
+
+enum GlassStepperMath {
+    static func increment(value: Int, range: ClosedRange<Int>, step: Int) -> Int {
+        guard step > 1 else { return min(range.upperBound, value + step) }
+        let next = ((value / step) + 1) * step
+        return min(range.upperBound, max(range.lowerBound, next))
+    }
+
+    static func decrement(value: Int, range: ClosedRange<Int>, step: Int) -> Int {
+        guard step > 1 else { return max(range.lowerBound, value - step) }
+        let previous = ((value - 1) / step) * step
+        return max(range.lowerBound, min(range.upperBound, previous))
+    }
+}
+
+struct GlassMinuteInputField: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    @State private var draftText = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            TextField(model.t("tasks.minutes"), text: $draftText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(model.theme.text)
+                .multilineTextAlignment(.center)
+                .focused($isFocused)
+                .frame(width: 72)
+                .onSubmit {
+                    commitDraft(draftText)
+                    syncDraft()
+                }
+                .onChange(of: draftText) { _, newValue in
+                    commitDraft(newValue)
+                }
+                .onChange(of: value) { _, newValue in
+                    guard !isFocused else { return }
+                    draftText = "\(newValue)"
+                }
+                .onChange(of: isFocused) { _, focused in
+                    if focused {
+                        draftText = "\(value)"
+                    } else {
+                        commitDraft(draftText)
+                        syncDraft()
+                    }
+                }
+                .onAppear {
+                    syncDraft()
+                }
+            Text(model.t("tasks.minutes"))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(model.theme.mutedText)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            LinearGradient(
+                colors: [
+                    model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18),
+                    model.theme.surface.opacity(model.theme.surfaceAlpha * 0.90),
+                    Color.black.opacity(model.theme.shadowDepth * 0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+        )
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.86), lineWidth: 1)
+        }
+        .help(model.t("help.manualMinutes"))
+        .accessibilityLabel(model.t("help.manualMinutes"))
+    }
+
+    private func syncDraft() {
+        draftText = "\(value)"
+    }
+
+    private func commitDraft(_ text: String) {
+        let filtered = text.filter(\.isNumber)
+        if filtered != text {
+            draftText = filtered
+            return
+        }
+        guard let parsed = Int(filtered) else { return }
+        value = min(range.upperBound, max(range.lowerBound, parsed))
     }
 }
 

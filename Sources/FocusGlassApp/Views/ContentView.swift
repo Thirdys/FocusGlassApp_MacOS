@@ -811,7 +811,8 @@ private struct ActiveProjectCard: View {
                             } label: {
                                 Label(model.t("projects.edit"), systemImage: "pencil")
                                     .labelStyle(.iconOnly)
-                                    .frame(width: 28, height: 28)
+                                    .frame(width: 44, height: 44)
+                                    .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             .foregroundStyle(model.theme.mutedText)
@@ -820,10 +821,16 @@ private struct ActiveProjectCard: View {
                         }
                     }
                 } else {
-                    Text(model.t("projects.empty.detail"))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(model.theme.mutedText)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(model.t("projects.unassigned.detail"))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(model.theme.mutedText)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Label("\(model.activeTasks.count) \(model.t("projects.tasks"))", systemImage: "tray")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(model.theme.mutedText)
+                    }
                 }
 
                 Button {
@@ -919,45 +926,17 @@ private struct FocusStackCard: View {
                     detail: model.t("tasks.empty.detail")
                 )
             } else {
-                ForEach(model.activeTasks) { task in
-                    HStack(spacing: 10) {
-                        Button {
-                            model.toggleTask(task)
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                                    .foregroundStyle(task.isDone ? model.theme.primary : model.theme.mutedText)
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text(task.title)
-                                            .font(.system(size: 13, weight: .bold))
-                                            .lineLimit(1)
-                                        Spacer()
-                                        Text(task.estimate.focusClock)
-                                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                                            .foregroundStyle(model.theme.mutedText)
-                                    }
-                                    ProgressView(value: task.completed, total: max(1, task.estimate))
-                                        .tint(model.theme.primary)
-                                }
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(model.activeTasks) { task in
+                            FocusTaskRow(task: task) {
+                                editingTask = task
                             }
-                            .padding(13)
-                            .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                         }
-                        .buttonStyle(.plain)
-                        .glassHover(theme: model.theme, radius: 13)
-
-                        Button {
-                            editingTask = task
-                        } label: {
-                            Image(systemName: "pencil")
-                                .frame(width: 30, height: 30)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(model.theme.mutedText)
-                        .glassHover(theme: model.theme, radius: 10)
                     }
+                    .padding(.trailing, 2)
                 }
+                .frame(maxHeight: 360)
             }
 
             Button {
@@ -977,6 +956,96 @@ private struct FocusStackCard: View {
                 editingTask = nil
             }
             .environmentObject(model)
+        }
+    }
+}
+
+private struct FocusTaskRow: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    let task: FocusTask
+    let onEdit: () -> Void
+
+    private var isSelected: Bool {
+        model.activeTaskID == task.id
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Button {
+                model.toggleTask(task)
+            } label: {
+                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 16, weight: .bold))
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+                    .foregroundStyle(task.isDone ? model.theme.primary : model.theme.mutedText)
+            }
+            .buttonStyle(.plain)
+            .help(model.t("tasks.done"))
+
+            Button {
+                model.selectTaskForSession(task)
+            } label: {
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 8) {
+                        Text(task.title)
+                            .font(.system(size: 13, weight: .bold))
+                            .lineLimit(1)
+                        if isSelected {
+                            Label(model.t("tasks.activeForSession"), systemImage: "target")
+                                .labelStyle(.titleAndIcon)
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(model.theme.primary)
+                        }
+                        Spacer()
+                        taskMeta
+                    }
+                    if task.timingMode == .timed {
+                        ProgressView(value: task.completed, total: max(1, task.estimate))
+                            .tint(model.theme.primary)
+                    }
+                }
+                .padding(13)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
+                .background(
+                    (isSelected ? model.theme.primary.opacity(0.12) : .white.opacity(0.055)),
+                    in: RoundedRectangle(cornerRadius: 13, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 13, style: .continuous)
+                        .stroke(isSelected ? model.theme.primary.opacity(0.42) : .clear, lineWidth: 1)
+                }
+            }
+            .buttonStyle(.plain)
+            .glassHover(theme: model.theme, radius: 13, isActive: isSelected)
+            .help(model.t("tasks.selectForSession"))
+
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil")
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(model.theme.mutedText)
+            .glassHover(theme: model.theme, radius: 10)
+            .help(model.t("tasks.edit"))
+        }
+    }
+
+    @ViewBuilder
+    private var taskMeta: some View {
+        if task.timingMode == .timed {
+            Text("\(task.completed.focusClock) / \(task.estimate.focusClock)")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(model.theme.mutedText)
+        } else {
+            Text(model.t("tasks.checklist"))
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(model.theme.mutedText)
         }
     }
 }
@@ -1192,10 +1261,30 @@ private struct TaskEditorSheet: View {
                 )
                 .help(model.t("focus.activeProject"))
 
-                Text(model.t("tasks.estimate"))
+                Text(model.t("tasks.type"))
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(model.theme.mutedText)
-                TimeEstimatePicker(seconds: $draft.estimate)
+                GlassSelect(
+                    selection: $draft.timingMode,
+                    options: FocusTaskTimingMode.allCases,
+                    title: model.taskTimingModeTitle,
+                    symbol: { $0 == .timed ? "timer" : "checklist.checked" },
+                    minWidth: 260
+                )
+                .help(model.t("help.taskTimingMode"))
+
+                if draft.timingMode == .timed {
+                    Text(model.t("tasks.estimate"))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(model.theme.mutedText)
+                    TimeEstimatePicker(seconds: $draft.estimate)
+                } else {
+                    Label(model.t("tasks.checklist.detail"), systemImage: "checklist")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(model.theme.mutedText)
+                        .padding(11)
+                        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                }
 
                 Toggle(model.t("tasks.done"), isOn: $draft.isDone)
                     .toggleStyle(.switch)
@@ -1261,6 +1350,8 @@ private struct TimeEstimatePicker: View {
                 "\(value) \(model.t("tasks.minutes"))"
             }
             .help(model.t("tasks.estimate"))
+
+            GlassMinuteInputField(value: minuteBinding, range: 1...240)
         }
     }
 

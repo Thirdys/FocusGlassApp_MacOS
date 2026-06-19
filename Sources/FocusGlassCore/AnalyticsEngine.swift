@@ -4,6 +4,8 @@ public struct FocusSessionRecord: Identifiable, Codable, Equatable, Sendable {
     public let id: UUID
     public var projectID: UUID?
     public var projectName: String
+    public var taskID: UUID?
+    public var taskTitle: String?
     public var mode: TimerMode
     public var startedAt: Date
     public var endedAt: Date
@@ -15,6 +17,8 @@ public struct FocusSessionRecord: Identifiable, Codable, Equatable, Sendable {
         id: UUID = UUID(),
         projectID: UUID? = nil,
         projectName: String,
+        taskID: UUID? = nil,
+        taskTitle: String? = nil,
         mode: TimerMode,
         startedAt: Date,
         endedAt: Date,
@@ -25,6 +29,8 @@ public struct FocusSessionRecord: Identifiable, Codable, Equatable, Sendable {
         self.id = id
         self.projectID = projectID
         self.projectName = projectName
+        self.taskID = taskID
+        self.taskTitle = taskTitle
         self.mode = mode
         self.startedAt = startedAt
         self.endedAt = endedAt
