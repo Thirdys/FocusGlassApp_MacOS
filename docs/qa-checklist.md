@@ -5,6 +5,11 @@
 - Run `swift build`.
 - Run `swift test`.
 - Run `./Scripts/package-app.sh`.
+- For active dev-loop verification, prefer
+  `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`;
+  the script reuses `./Scripts/package-app.sh`, relaunches the real
+  `build/FocusGlass.app`, forwards `FOCUSGLASS_DATA_DIR` as a launch argument,
+  and can also stream `--logs` or `--telemetry`.
 - Before tester handoff, check that `VERSION`, public tag, zip name, and tester
   branch name describe the same visible version, for example `0.0.2` and
   `v0.0.2`.
@@ -20,7 +25,8 @@
   cannot fully exercise app-bundle notification prompts.
 - For destructive packaged-app QA, point the app at a temporary data folder with
   `FOCUSGLASS_DATA_DIR` first, then unset it after the run, so real
-  `~/Library/Application Support/FocusGlass` data is not touched.
+  `~/Library/Application Support/FocusGlass` data and diagnostics are not
+  touched.
 - Verify the Dock/Finder icon reads as a glass focus timer, not a prohibition or
   generic settings control.
 - Verify the first main-window launch shows a short theme-aware FocusGlass reveal
@@ -50,7 +56,9 @@
   visible success/failure feedback after checks and runs.
 - Permission failures write JSONL diagnostics under
   `~/Library/Application Support/FocusGlass/Logs/diagnostics.jsonl` with
-  created/expiry timestamps, subsystem code, details, and resolution hint.
+  created/expiry timestamps, subsystem code, details, and resolution hint. When
+  `FOCUSGLASS_DATA_DIR` is set, diagnostics move to
+  `$FOCUSGLASS_DATA_DIR/Logs/diagnostics.jsonl`.
 - Data card shows the data folder, `workspace.json`, `settings.json`, and last
   save status.
 

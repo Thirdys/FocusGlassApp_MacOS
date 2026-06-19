@@ -262,9 +262,15 @@ struct FocusGlassStoragePaths: Equatable {
     var workspaceURL: URL
     var settingsURL: URL
 
-    init(fileManager: FileManager = .default) {
-        if let overridePath = ProcessInfo.processInfo.environment["FOCUSGLASS_DATA_DIR"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-           !overridePath.isEmpty {
+    init(
+        fileManager: FileManager = .default,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        arguments: [String] = ProcessInfo.processInfo.arguments
+    ) {
+        if let overridePath = Self.dataDirectoryOverride(
+            environment: environment,
+            arguments: arguments
+        ) {
             self.init(dataDirectory: URL(fileURLWithPath: overridePath, isDirectory: true))
             return
         }
@@ -283,6 +289,37 @@ struct FocusGlassStoragePaths: Equatable {
         self.legacyStateURL = legacyStateURL ?? dataDirectory.appendingPathComponent("state.json")
         self.workspaceURL = dataDirectory.appendingPathComponent("workspace.json")
         self.settingsURL = dataDirectory.appendingPathComponent("settings.json")
+    }
+
+    private static func dataDirectoryOverride(
+        environment: [String: String],
+        arguments: [String]
+    ) -> String? {
+        if let environmentPath = normalizedOverridePath(environment["FOCUSGLASS_DATA_DIR"]) {
+            return environmentPath
+        }
+
+        let argumentPrefixes = ["focusglass-data-dir=", "--focusglass-data-dir="]
+        for index in arguments.indices {
+            let argument = arguments[index]
+            if argument == "focusglass-data-dir" || argument == "--focusglass-data-dir" {
+                let valueIndex = arguments.index(after: index)
+                guard arguments.indices.contains(valueIndex) else { return nil }
+                return normalizedOverridePath(arguments[valueIndex])
+            }
+
+            for argumentPrefix in argumentPrefixes where argument.hasPrefix(argumentPrefix) {
+                return normalizedOverridePath(String(argument.dropFirst(argumentPrefix.count)))
+            }
+        }
+
+        return nil
+    }
+
+    private static func normalizedOverridePath(_ value: String?) -> String? {
+        guard let path = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !path.isEmpty else { return nil }
+        return path
     }
 }
 

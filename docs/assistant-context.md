@@ -1,6 +1,6 @@
 # FocusGlass Assistant Context
 
-Last reviewed: 2026-05-29.
+Last reviewed: 2026-06-19.
 
 Read this file first when returning to the project. It is intentionally written
 as implementation context for future assistant sessions, not as marketing copy.
@@ -49,6 +49,49 @@ not display the FocusGlass git state there.
 Assistant work should use the `codex/next` branch. The owner may use other
 branches, but assistant-created work is expected to be easy to distinguish by
 the `codex/` branch prefix and the `Ассистент: Codex` signature in commits/PRs.
+
+## Skill workflow and run loop
+
+Treat `handoff.md` as the source of workflow truth. After every substantial
+implementation, QA, design, or release step, update it with what was done, what
+was checked, what was intentionally not done, the next step, and the skill or
+tool that should lead that next step.
+
+Use this order by default:
+
+- Graphify for broad project navigation, status, and codebase questions. Start
+  with `graphify query "<question>"` when `graphify-out/graph.json` exists, and
+  run `graphify update .` after code changes.
+- Build macOS Apps for live validation in the real packaged `.app`: windows,
+  Settings, fullscreen, strict mode, logs, screenshots, and runtime proof.
+- Product Design for UX questions: unclear flows, Settings, strict-mode user
+  paths, onboarding, permissions, readability, and the post-session outcome
+  screen.
+- SwiftPM and test-triage for builds, tests, failing assertions, and separating
+  test setup from product regressions.
+
+The active local dev-loop entrypoint is `./script/build_and_run.sh`. It remains
+a thin wrapper over `./Scripts/package-app.sh`, stops an existing FocusGlass
+process, launches `build/FocusGlass.app`, and supports `--verify`, `--logs`,
+`--telemetry`, and `--debug`. For isolated packaged-app QA, launch with
+`FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data`; workspace/settings and
+diagnostics then stay under that temporary directory. The script forwards the
+path as a launch argument and does not mutate the generated app bundle; release
+packaging remains owned by `Scripts/package-app.sh`.
+
+Product Design saved context is not set up yet. Until the owner saves Product
+Design context, use `docs/design/design-source.md`, the current packaged `.app`,
+and local concept screenshots as the visual/product sources. For the
+post-session outcome screen, Product Design context is already known at a brief
+level: planned vs honest, distraction summary, task result, and actions for
+complete, continue, and start next.
+
+`.codex/environments/environment.toml` is an ignored local Codex Run button
+config pointing at `./script/build_and_run.sh`. Do not track `.codex/` unless
+the owner makes a separate decision.
+
+Release delivery remains explicit. Do not create public tags, release zips,
+tester branches, or GitHub Releases unless the owner asks for tester delivery.
 
 ## Current product shape
 

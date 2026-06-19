@@ -525,6 +525,39 @@ struct FocusGlassPersistenceTests {
     }
 
     @Test
+    func storagePathsUseCommandLineDataDirectoryOverride() {
+        let overridePath = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .path
+
+        let paths = FocusGlassStoragePaths(
+            environment: [:],
+            arguments: ["FocusGlass", "focusglass-data-dir=\(overridePath)"]
+        )
+
+        #expect(paths.dataDirectory.path == overridePath)
+        #expect(paths.workspaceURL.path == "\(overridePath)/workspace.json")
+        #expect(paths.settingsURL.path == "\(overridePath)/settings.json")
+    }
+
+    @Test
+    func storagePathsEnvironmentOverrideWinsOverCommandLineOverride() {
+        let environmentPath = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .path
+        let argumentPath = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .path
+
+        let paths = FocusGlassStoragePaths(
+            environment: ["FOCUSGLASS_DATA_DIR": environmentPath],
+            arguments: ["FocusGlass", "--focusglass-data-dir=\(argumentPath)"]
+        )
+
+        #expect(paths.dataDirectory.path == environmentPath)
+    }
+
+    @Test
     @MainActor
     func projectsAndTasksSurviveRelaunchWithSplitStorage() {
         let store = FocusGlassStore(fileURL: temporaryStateURL())

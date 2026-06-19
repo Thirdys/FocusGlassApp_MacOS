@@ -19,6 +19,27 @@ rereading the whole handoff.
 
 Last done:
 
+- Implemented the new workflow/dev-loop pass:
+  - Added `script/build_and_run.sh` as the active local macOS dev-loop
+    entrypoint. It stops an existing FocusGlass process, delegates packaging to
+    `./Scripts/package-app.sh`, launches `build/FocusGlass.app`, and supports
+    `--verify`, `--logs`, `--telemetry`, and `--debug`.
+  - Added local ignored Codex Run config at
+    `.codex/environments/environment.toml`; it points the Run action at
+    `./script/build_and_run.sh`. `.codex/` remains ignored and must not be
+    tracked without an explicit owner decision.
+  - Diagnostics now follow `FOCUSGLASS_DATA_DIR`, so packaged-app QA with
+    `/private/tmp/focusglass-qa-data` does not write diagnostics into the real
+    `~/Library/Application Support/FocusGlass` folder.
+  - Updated `docs/assistant-context.md` and `docs/qa-checklist.md` so future
+    sessions use Graphify, Build macOS Apps, Product Design, SwiftPM, and
+    test-triage as the operating workflow rather than reverting to ad-hoc
+    shell-only work.
+  - Product Design `get-context` was used in playback mode for the next UX
+    chunk: post-session outcome screen, visual source
+    `docs/design/design-source.md` plus current `.app`, full interactivity
+    when implementation starts. Product Design user-context preflight found no
+    saved Product Design context yet.
 - Implemented the tester review pass:
   - Theme Studio advanced-token preview for background top/mid/bottom,
     surface/elevated surface, text, and muted text.
@@ -52,6 +73,29 @@ Last done:
 
 Validated:
 
+- Used/validated with: Graphify, Build macOS Apps `build-run-debug`,
+  Build macOS Apps `swiftpm-macos`, Build macOS Apps `test-triage`, Product
+  Design `index`, Product Design `get-context`, Product Design `user-context`
+  preflight, and SwiftPM checks.
+- `bash -n script/build_and_run.sh` passed.
+- `swift build` passed.
+- `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test --filter presetEditChangesOnlySelectedPreset`
+  passed after one prior full-suite flaky failure in that old test.
+- `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+  passed: 50/50 tests.
+- `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`
+  passed and relaunched `build/FocusGlass.app` when run with GUI escalation.
+  The sandboxed attempt hit LaunchServices `kLSNoExecutableErr`, so future
+  live `.app` verification may need Build macOS Apps-style GUI permission.
+- `git diff --check` passed.
+- `graphify update .` passed and rebuilt the code graph: 979 nodes, 2131
+  edges, 62 communities.
+- Next skill/workflow: Build macOS Apps for tester QA/delivery validation;
+  Product Design `get-context`/audit before implementing the post-session
+  outcome screen.
+
+Previous tester-fix validation still relevant:
+
 - `swift build` passed.
 - `git diff --check` passed.
 - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
@@ -67,8 +111,6 @@ Validated:
 
 Not started yet:
 
-- `script/build_and_run.sh` has not been implemented.
-- `.codex/environments/environment.toml` has not been created or tracked.
 - The isolated `tester/<version>` branch, release zip, checksum, final
   build-info, public tag, and tester README have not been created. Do this only
   when the owner asks for the actual tester handoff/release step.
@@ -83,19 +125,57 @@ Not started yet:
 
 Next likely choices:
 
-- First: do a manual packaged-app QA pass against `docs/qa-checklist.md` for
-  the tester fixes.
-- Then, when the owner confirms release handoff, bump/confirm `VERSION`, make
-  the final commit/tag, run `./Scripts/package-release.sh`, and prepare the
-  isolated `tester/<version>` branch with only tester artifacts.
-- After tester handoff is done, implement the thin `script/build_and_run.sh`
-  dev loop unless the owner redirects.
+- First: if tester delivery is next, do a Build macOS Apps packaged-app QA pass
+  against `docs/qa-checklist.md` with
+  `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data`, `./script/build_and_run.sh --verify`,
+  Settings, fullscreen, strict mode, screenshots/logs/runtime proof as needed.
+- Then, when the owner confirms release handoff, bump/confirm `VERSION`
+  to `0.0.3` by default, commit, tag `v0.0.3`, run
+  `./Scripts/package-release.sh`, verify `.sha256`, and prepare the isolated
+  `tester/0.0.3` branch with only tester artifacts.
+- After tester handoff/dev-loop, the next product feature should be the
+  post-session outcome screen. Start with Product Design context from
+  `docs/design/design-source.md` and the current `.app`, then validate through
+  Build macOS Apps in the live app.
 
 Active partial work:
 
-- No code partial remains in the tester-fix pass after this checkpoint. Existing
-  unrelated dirty content remains: `tester review/` is untracked and should not
-  be included in source commits unless the owner explicitly asks.
+- No code partial remains in the tester-fix or workflow/dev-loop pass after
+  this checkpoint. Release/tag/tester branch work is intentionally deferred
+  until the owner explicitly asks for tester delivery.
+
+Resume instructions if a future plan/thread continues from here:
+
+- Start by loading/using these skills in this order:
+  1. Graphify for orientation: `graphify query "<current question>"`.
+  2. Build macOS Apps `build-run-debug` for `script/build_and_run.sh`, live
+     `.app` launch, logs, telemetry, and runtime proof.
+  3. Build macOS Apps `swiftpm-macos` and `test-triage` for SwiftPM build/test
+     checks.
+  4. Product Design `index` + `get-context` before the post-session outcome
+     UX work; saved Product Design context is currently missing, so use
+     `docs/design/design-source.md` plus the current `.app`.
+- If this checkpoint is seen before the commit lands, the intended source
+  changes are:
+  `script/build_and_run.sh`,
+  `Sources/FocusGlassApp/Services/FocusGlassDiagnosticsLogger.swift`,
+  `Sources/FocusGlassApp/Services/FocusGlassStore.swift`,
+  `Tests/FocusGlassAppTests/FocusGlassPersistenceTests.swift`,
+  `docs/assistant-context.md`, `docs/qa-checklist.md`, and `handoff.md`.
+  Do not stage `.codex/`, `graphify-out/`, `build/`, `.build/`, or `.swiftpm/`.
+- Required final checks for this workflow pass:
+  `bash -n script/build_and_run.sh`,
+  `swift build`,
+  `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`,
+  `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`
+  through Build macOS Apps/live macOS permission when sandboxed LaunchServices
+  blocks GUI launch,
+  `git diff --check`, and `graphify update .`.
+- Intended commit message if not already committed:
+  `инфраструктура: добавить workflow через навыки` with commit body
+  `Ассистент: Codex`.
+- Do not create `VERSION` bump, tag `v0.0.3`, release zip, tester branch, or
+  GitHub Release until the owner explicitly asks for tester delivery.
 
 ## Roadmap Status Snapshot
 
@@ -163,29 +243,32 @@ item, also show "what is going on with the roadmap" from
 `Roadmap Status Snapshot`. If this plan later grows beyond seven items, keep
 using the full current operating plan first, then the roadmap block.
 
-1. When the owner asks for tester delivery, prepare the release handoff by
-   confirming/bumping `VERSION`, committing, tagging, running
-   `./Scripts/package-release.sh`, and creating the isolated
-   `tester/<version>` branch with tester artifacts only.
-2. Fix old clear defects without overcomplicating the workflow. Use the familiar
-   process first: read the code, make scoped edits, and run Swift tests or a
-   build only where the change needs it.
-3. Use Product Design when the problem is about UX: unclear screen, awkward
-   flow, weak readability, onboarding, permissions, Settings, or strict-mode
-   user path. Treat `audit` as the broad user-perspective review. Use
-   `design-qa` only when there is a concrete source visual or design target to
-   compare against the running implementation.
-4. Use Build macOS Apps for live verification in the real `.app`: windows,
-   menu bar, fullscreen, strict mode, logs, macOS behavior, screenshots, and
-   runtime evidence.
-5. After tester handoff is handled, add the development loop:
-   `script/build_and_run.sh` should reuse `./Scripts/package-app.sh` and launch
-   `build/FocusGlass.app`; then decide whether to expose it through a Codex Run
-   button or local Codex environment config.
-6. Do not change the release process without a separate decision:
+1. Use Graphify before broad project/status/codebase questions and after code
+   changes: start with `graphify query "<question>"` when the graph exists, and
+   finish code changes with `graphify update .`.
+2. Before tester delivery, run a Build macOS Apps packaged-app QA pass through
+   the real `.app`: `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
+   then check the main window, Settings, fullscreen, strict mode, logs,
+   screenshots, and runtime proof as needed.
+3. When the owner asks for tester delivery, prepare the release handoff by
+   confirming/bumping `VERSION` to `0.0.3` by default, committing, tagging
+   `v0.0.3`, running `./Scripts/package-release.sh`, verifying `.sha256`, and
+   creating the isolated `tester/0.0.3` branch with tester artifacts only.
+4. Use `script/build_and_run.sh` or the local Codex Run action for the active
+   dev loop. Keep it a wrapper over `./Scripts/package-app.sh`; do not duplicate
+   packaging logic or change release semantics.
+5. Use Product Design when the problem is about UX: unclear screen, awkward
+   flow, weak readability, onboarding, permissions, Settings, strict-mode user
+   path, or post-session outcome. Use Build macOS Apps after Product Design to
+   validate the live `.app`.
+6. After tester handoff/dev-loop, the next product chunk is the post-session
+   outcome screen: Product Design first for planned vs honest, distraction
+   summary, task result, and complete/continue/start-next actions; then Build
+   macOS Apps validation in the real app.
+7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
-   remain as they are.
-7. Do not break the identity. Icon, menu bar glyph, launch animation, and visual
+   remain explicit owner-controlled steps.
+8. Do not break the identity. Icon, menu bar glyph, launch animation, and visual
    style changes must improve the existing FocusGlass direction, not create an
    accidental rebrand.
 
@@ -272,6 +355,11 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - Use Graphify before broad codebase exploration or architecture answers when
   `graphify-out/graph.json` exists. Start with a scoped graph query, then read
   source files directly for exact code and line-level verification.
+- Handoff is the durable workflow source. After each substantial
+  implementation, QA, design, or release step, update `Latest Session
+  Checkpoint` with what changed, what was validated, what remains deferred, a
+  `Used/validated with:` line naming the actual skills/tools, and a
+  `Next skill/workflow:` line for the next agent.
 - Keep changes tightly scoped to the requested task.
 - Keep the tone and pace humane: careful, non-rushed, and collaborative.
 - UI rule: every piece of working information should have one primary home. Do not duplicate the same content across main surfaces and side/context panels unless the repeated appearance has a different role such as navigation, status, or editing.
@@ -323,9 +411,9 @@ for the existing release process:
 
 - `swiftpm-macos`: inspect `Package.swift`, run focused `swift build` and
   `swift test` commands, and understand target/product boundaries.
-- `build-run-debug`: create one project-local `script/build_and_run.sh` and,
-  if appropriate, `.codex/environments/environment.toml` so Codex can expose a
-  Run action for the app.
+- `build-run-debug`: use and maintain the project-local
+  `script/build_and_run.sh` and local ignored
+  `.codex/environments/environment.toml` Run action.
 - `appkit-interop`: handle `NSStatusItem`, `NSPopover`, `NSWindow`,
   activation, AppKit representables, and responder-chain/window behavior.
 - `swiftui-patterns` and `view-refactor`: keep macOS SwiftUI scenes, Settings,
@@ -342,10 +430,11 @@ for the existing release process:
 
 FocusGlass-specific use cases to remember:
 
-- Use `build-run-debug` almost immediately for the local development loop:
-  build the real `.app`, relaunch it, verify the process, inspect logs, and
-  capture screenshots while iterating with the owner. This should replace
-  one-off manual build/open command chains during active UI and runtime work.
+- Use `build-run-debug` through `./script/build_and_run.sh` for the local
+  development loop: build the real `.app`, relaunch it, verify the process,
+  inspect logs, and capture screenshots while iterating with the owner. This
+  should replace one-off manual build/open command chains during active UI and
+  runtime work.
 - Use `swiftpm-macos` whenever the task is about package shape, target/product
   boundaries, focused `swift build`, or `swift test` in this package-first repo.
 - Use `appkit-interop` for the menu bar extra, `NSStatusItem`, `NSPopover`,
@@ -386,21 +475,22 @@ FocusGlass-specific use cases to remember:
 
 Safe integration shape:
 
-1. Start with a plan only. Do not edit files until the owner says to implement.
+1. Start broad work with a plan and the relevant skill context. When the owner
+   says to implement, make the smallest scoped change and keep the handoff
+   current.
 2. Keep `Scripts/package-app.sh` as the source of truth for creating
    `build/FocusGlass.app`; keep `Scripts/package-release.sh` as the source of
    truth for tester/release zip artifacts.
-3. Add `script/build_and_run.sh` only as a thin Codex run-loop entrypoint:
+3. Keep `script/build_and_run.sh` only as a thin Codex run-loop entrypoint:
    stop any running `FocusGlass` process, call `./Scripts/package-app.sh`,
    launch `build/FocusGlass.app` with `/usr/bin/open -n`, and support
-   `--verify`, `--logs`, `--telemetry`, and possibly `--debug`.
+   `--verify`, `--logs`, `--telemetry`, and `--debug`.
 4. Do not duplicate the full packaging logic inside the new run script unless
    there is a clear reason. Reuse existing packaging so icons, resources,
    version/build metadata, xattr cleanup, and ad-hoc signing stay consistent.
-5. Decide explicitly whether `.codex/environments/environment.toml` remains a
-   local ignored Codex config or becomes tracked project workflow. `.codex/` is
-   currently ignored, so tracking it requires a deliberate `.gitignore`
-   exception and owner approval.
+5. `.codex/environments/environment.toml` currently remains a local ignored
+   Codex config. Tracking it as project workflow requires a deliberate
+   `.gitignore` exception and owner approval.
 6. The new Codex Run action must not become mandatory for ordinary SwiftPM
    builds, tester artifacts, or future contributors. It should improve the
    assistant/owner loop without changing release semantics.
@@ -427,10 +517,9 @@ Future-session mental model:
   The whole point is to reuse the existing app packaging path so dev builds and
   tester builds agree on bundle shape, Info.plist keys, resources, icon,
   versions, xattr cleanup, and ad-hoc signing.
-- `.codex/environments/environment.toml` is useful only to expose a Codex Run
+- `.codex/environments/environment.toml` exists only to expose a local Codex Run
   button. Because `.codex/` is ignored today, ask the owner before tracking it
-  or adding `.gitignore` exceptions. A local ignored environment file is fine if
-  the owner just wants the Run button on this machine.
+  or adding `.gitignore` exceptions.
 
 Important distinction:
 
@@ -500,6 +589,10 @@ durable checkpoint instead of relying on chat history:
   especially when stopping with a partial implementation, unresolved blocker, or
   deferred decision. It must say what is done, what was validated, what is not
   done, and what should happen next.
+- In `Latest Session Checkpoint`, include `Used/validated with:` for the
+  actual skills/tools used and `Next skill/workflow:` for the next step. Future
+  agents should follow those instructions before falling back to ad-hoc
+  shell-only work.
 - Update `Roadmap Status Snapshot` when a roadmap item changes state. This is
   the visible day-to-day memory for partially started roadmap work, while
   `docs/process/roadmap.md` remains the source-of-truth roadmap document.
@@ -534,8 +627,8 @@ Current graph state:
   `ANTHROPIC_API_KEY`.
 - Focused corpus excludes `archive/`, `.agents/`, `.codex/`, `graphify-out/`,
   and generated build/IDE directories via `.graphifyignore`.
-- Current clean graph stats after the latest code-graph update: 867 nodes,
-  1942 links, 0 hyperedges, 50 communities.
+- Current clean graph stats after the latest code-graph update: 979 nodes,
+  2131 links, 0 hyperedges, 62 communities.
 - Diagnostics: `graphify diagnose multigraph --json` reported 0 dangling
   endpoints, 0 duplicate edges, and 0 same-endpoint collapsed edges.
 - Benchmark: `graphify benchmark graphify-out/graph.json` reported about 4.0x
@@ -823,35 +916,29 @@ Skills research:
 
 ## Next Steps
 
-1. Review the owner's tester feedback first. When the owner provides concrete
-   notes, classify each one as a bug, UX issue, text/localization issue, visual
-   issue, macOS behavior issue, permissions/strict-mode issue, or
-   release/tester-process issue.
-2. Fix old clear defects without unnecessary process changes. Use the familiar
-   code workflow first: read the relevant code, make scoped edits, and run
-   Swift tests or a build only where the change needs it.
-3. Use Product Design only where the question is really about UX: unclear
-   screen, awkward flow, weak readability, onboarding/permissions, Settings, or
-   strict-mode user flow. Use `audit` as the user-perspective tool, not as
-   mandatory ceremony for every code fix. Use `design-qa` only when comparing a
-   concrete visual/design target with the running implementation.
-4. Use Build macOS Apps for live verification in the real `.app`: windows, menu
-   bar, fullscreen, strict mode, logs, macOS behavior, screenshots, and runtime
-   proof. Do not confuse this with iOS Simulator tooling.
-5. After tester feedback is handled, add the `Build macOS Apps` development
-   loop without changing release semantics. First implementation step: add a
-   thin `script/build_and_run.sh` that reuses `./Scripts/package-app.sh`,
-   launches `build/FocusGlass.app`, and supports `--verify`, `--logs`,
-   `--telemetry`, and possibly `--debug`; then decide whether to expose it
-   through Codex `.codex/environments/environment.toml` or another local Codex
-   Run button workflow.
-6. Do not change the release process without a separate decision. Current
-   tester branch is `tester/0.0.2`; future tester builds should still bump
-   `VERSION`, commit, tag the exact build commit with a public tag such as
-   `v0.0.3`, run `./Scripts/package-release.sh`, and create/push an isolated
-   `tester/<version>` branch only if the owner asks. GitHub Release, if tried,
-   must be a Draft/Pre-release tied to an explicit tag with the already-built
-   zip and `.sha256`; do not create GitHub Releases automatically.
+1. For broad status, planning, or codebase questions, start with Graphify:
+   `graphify query "<question>"`, then read exact source/docs as needed.
+2. Before tester delivery, run Build macOS Apps packaged-app QA:
+   `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
+   then check the main window, Settings, fullscreen, strict mode, logs,
+   screenshots, and runtime proof against `docs/qa-checklist.md`.
+3. If the owner confirms tester delivery, bump/confirm `VERSION` to `0.0.3` by
+   default, commit, tag `v0.0.3`, run `./Scripts/package-release.sh`, verify
+   `.sha256`, and create/push isolated `tester/0.0.3` with zip/checksum/README
+   and build-info only. Do not create release/tag/tester branch/GitHub Release
+   without that explicit command.
+4. Use `./script/build_and_run.sh` or the Codex Run action for active dev-loop
+   work. Improve the script only if verification exposes a real gap; keep
+   `Scripts/package-app.sh` as the source of truth.
+5. Next product feature after tester handoff/dev-loop: post-session outcome
+   screen. Start with Product Design context from
+   `docs/design/design-source.md`, the current `.app`, and local concept
+   screenshots if any; then implement planned vs honest, distraction summary,
+   task result, and complete/continue/start-next actions; validate with Build
+   macOS Apps in the live app.
+6. After that, roadmap order is strict distraction history, full UI pass over
+   sidebar/cards/settings/strict rows, and analytics for planned vs actual,
+   recent sessions, and mode effectiveness.
 7. Do not break the existing FocusGlass identity. App icon, Dock/Finder icon,
    menu bar glyph, launch animation, and visual style changes must improve the
    current FocusGlass Mac Glass OS / timer / focus direction, not create an
