@@ -19,6 +19,31 @@ rereading the whole handoff.
 
 Last done:
 
+- Created the owner-requested tester delivery snapshot for `0.0.3`:
+  - Updated `VERSION` from `0.0.2` to `0.0.3`.
+  - Committed release source snapshot:
+    `d71dc13 релиз: поднять версию до 0.0.3`.
+  - Created and pushed annotated tag `v0.0.3` on that release commit.
+  - Ran `./Scripts/package-release.sh`; it created
+    `build/releases/0.0.3/FocusGlass.app`,
+    `build/releases/0.0.3/FocusGlass-0.0.3.zip`, and
+    `build/releases/0.0.3/FocusGlass-0.0.3.zip.sha256`.
+  - Verified `FocusGlass-0.0.3.zip.sha256`: `FocusGlass-0.0.3.zip: OK`.
+  - Verified release app signing with
+    `codesign --verify --deep --strict build/releases/0.0.3/FocusGlass.app`.
+  - Confirmed release `Info.plist`: `CFBundleShortVersionString=0.0.3`,
+    `CFBundleVersion=28`, bundle id `local.focusglass.app`.
+  - Created and pushed isolated artifact branch `tester/0.0.3` at commit
+    `48e9957 tester: добавить сборку 0.0.3`.
+  - `tester/0.0.3` contains only `FocusGlass-0.0.3.zip`,
+    `FocusGlass-0.0.3.zip.sha256`, `README.md`, and `build-info.md`.
+  - No GitHub Release was created.
+- Started the next Product Design-led product chunk, but paused at checkpoint:
+  - Loaded Product Design `index`, `user-context`, and `get-context`.
+  - Product Design user-context preflight still reports no saved context.
+  - Read `docs/design/design-source.md`.
+  - Outcome screen implementation has not started yet. No source files for the
+    outcome feature were changed.
 - Completed the QA First pre-tester pass through the new workflow:
   - Used Graphify for orientation before broad QA/status work.
   - Used Build macOS Apps `build-run-debug` through the real packaged
@@ -110,6 +135,10 @@ Validated:
 - `swift build` passed.
 - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
   passed: 50/50 tests.
+- Release snapshot validation before `v0.0.3` also passed:
+  `swift build`, `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`,
+  `git diff --check`, `./Scripts/package-release.sh`, checksum verification,
+  and release app `codesign --verify --deep --strict`.
 - `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`
   passed and relaunched `build/FocusGlass.app` when run with GUI escalation.
   The sandboxed attempt hit LaunchServices `kLSNoExecutableErr`, so future
@@ -125,11 +154,9 @@ Validated:
   `/private/tmp/focusglass-qa-proof-20260619-170421`.
 - `git diff --check` passed.
 - `graphify update .` passed and rebuilt the code graph: 979 nodes, 2131
-  edges, 63 communities.
-- Next skill/workflow: if the owner explicitly asks for tester delivery, use
-  Build macOS Apps packaging/release validation and the owner-controlled
-  release flow. Otherwise, the next product chunk is Product Design-led
-  post-session outcome, then Build macOS Apps live validation.
+  edges, 62 communities.
+- Next skill/workflow: continue the Product Design-led post-session outcome
+  screen, then validate through Build macOS Apps in the live `.app`.
 
 Previous tester-fix validation still relevant:
 
@@ -148,35 +175,30 @@ Previous tester-fix validation still relevant:
 
 Not started yet:
 
-- The isolated `tester/<version>` branch, release zip, checksum, final
-  build-info, public tag, and tester README have not been created. Do this only
-  when the owner asks for the actual tester handoff/release step.
 - A deeper manual QA pass for strict warn/hide against real blocked apps/sites
   can still be done before tester delivery, but the QA First pass is no longer
   blocked on screenshots or Settings/fullscreen verification.
-- Full post-session outcome screen is still future work; this pass only stores
-  the task/session foundation.
+- Full post-session outcome screen is still future work; Product Design context
+  was loaded, but implementation has not started.
+- GitHub Release was not created for `v0.0.3`.
 
 Next likely choices:
 
-- First: if tester delivery is next, ask for explicit owner confirmation, then
-  bump/confirm `VERSION`
-  to `0.0.3` by default, commit, tag `v0.0.3`, run
-  `./Scripts/package-release.sh`, verify `.sha256`, and prepare the isolated
-  `tester/0.0.3` branch with only tester artifacts.
-- Optional before that release step: use Build macOS Apps for one deeper
-  strict-mode runtime proof with a real configured blocked app/site and running
-  timer.
-- After tester handoff/dev-loop, the next product feature should be the
-  post-session outcome screen. Start with Product Design context from
-  `docs/design/design-source.md` and the current `.app`, then validate through
-  Build macOS Apps in the live app.
+- Continue with the post-session outcome screen. Start by re-loading Product
+  Design `index`, `user-context`, and `get-context`; use
+  `docs/design/design-source.md`, the current `.app`, and the QA audit outcome
+  gap screenshot as visual/product context.
+- Implement planned vs honest, distraction summary, task result, and
+  complete/continue/start-next actions. Then validate with Build macOS Apps in
+  the live `.app`.
+- Optional later: create a GitHub Release for `v0.0.3` only if the owner asks.
 
 Active partial work:
 
-- No code partial remains in the tester-fix, workflow/dev-loop, or QA First
-  pass after this checkpoint. Release/tag/tester branch work is intentionally
-  deferred until the owner explicitly asks for tester delivery.
+- Release/tag/tester branch work for `0.0.3` is complete. No code partial
+  remains in tester-fix, workflow/dev-loop, QA First, or tester delivery.
+- Active partial work is Product Design context only for post-session outcome.
+  No outcome implementation files have been changed yet.
 
 Resume instructions if a future plan/thread continues from here:
 
@@ -190,8 +212,8 @@ Resume instructions if a future plan/thread continues from here:
      UX work; saved Product Design context is currently missing, so use
      `docs/design/design-source.md` plus the current `.app`.
 - If this checkpoint is seen before the commit lands, the intended source
-  change for the QA First pass is `handoff.md` only. Local audit/proof
-  artifacts live in `/private/tmp` and are not source files.
+  change for this checkpoint is `handoff.md` only. Local audit/proof artifacts
+  live in `/private/tmp` and release artifacts live under ignored `build/`.
   Do not stage `.codex/`, `graphify-out/`, `build/`, `.build/`, or `.swiftpm/`.
 - Required final checks for this workflow pass:
   `bash -n script/build_and_run.sh`,
@@ -202,10 +224,9 @@ Resume instructions if a future plan/thread continues from here:
   blocks GUI launch,
   `git diff --check`, and `graphify update .`.
 - Intended commit message if not already committed:
-  `qa: зафиксировать pre-tester audit` with commit body
+  `доки: обновить handoff после релиза 0.0.3` with commit body
   `Ассистент: Codex`.
-- Do not create `VERSION` bump, tag `v0.0.3`, release zip, tester branch, or
-  GitHub Release until the owner explicitly asks for tester delivery.
+- Do not create a GitHub Release until the owner explicitly asks for it.
 
 ## Roadmap Status Snapshot
 
@@ -279,12 +300,12 @@ using the full current operating plan first, then the roadmap block.
 2. Baseline pre-tester QA is complete through the real `.app`: Build macOS
    Apps verified launch, Settings, Strict Mode overview, fullscreen focus,
    temp-data isolation, diagnostics, and Product Design audit proof. Optional
-   extra proof before tester delivery is a strict warn/hide/pause scenario with
-   a real configured blocked app/site and running timer.
-3. When the owner asks for tester delivery, prepare the release handoff by
-   confirming/bumping `VERSION` to `0.0.3` by default, committing, tagging
-   `v0.0.3`, running `./Scripts/package-release.sh`, verifying `.sha256`, and
-   creating the isolated `tester/0.0.3` branch with tester artifacts only.
+   extra proof later is a strict warn/hide/pause scenario with a real
+   configured blocked app/site and running timer.
+3. Tester delivery `0.0.3` is complete: `VERSION=0.0.3`, tag `v0.0.3`,
+   release zip/checksum under `build/releases/0.0.3`, and isolated artifact
+   branch `tester/0.0.3` pushed. GitHub Release is still owner-controlled and
+   was not created.
 4. Use `script/build_and_run.sh` or the local Codex Run action for the active
    dev loop. Keep it a wrapper over `./Scripts/package-app.sh`; do not duplicate
    packaging logic or change release semantics.
@@ -292,10 +313,10 @@ using the full current operating plan first, then the roadmap block.
    flow, weak readability, onboarding, permissions, Settings, strict-mode user
    path, or post-session outcome. Use Build macOS Apps after Product Design to
    validate the live `.app`.
-6. After tester handoff/dev-loop, the next product chunk is the post-session
-   outcome screen: Product Design first for planned vs honest, distraction
-   summary, task result, and complete/continue/start-next actions; then Build
-   macOS Apps validation in the real app.
+6. The next product chunk is the post-session outcome screen: Product Design
+   first for planned vs honest, distraction summary, task result, and
+   complete/continue/start-next actions; then Build macOS Apps validation in
+   the real app.
 7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
    remain explicit owner-controlled steps.
