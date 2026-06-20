@@ -689,6 +689,11 @@ private struct FocusTodayView: View {
                     }
                 }
 
+                if let outcome = model.pendingSessionOutcome {
+                    SessionOutcomeCard(outcome: outcome)
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
                 focusLayout
             }
 
@@ -1047,6 +1052,205 @@ private struct FocusTaskRow: View {
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(model.theme.mutedText)
         }
+    }
+}
+
+private struct SessionOutcomeCard: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    let outcome: SessionOutcomePresentation
+
+    var body: some View {
+        LiquidGlassPanel(radius: 20, padding: 18, depth: .floating) {
+            VStack(alignment: .leading, spacing: 16) {
+                header
+                metrics
+                taskSummary
+                actions
+            }
+        }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundStyle(model.theme.primary)
+                .frame(width: 42, height: 42)
+                .background(model.theme.primary.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(model.t("session.outcome.title"))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
+                Text(model.t("session.outcome.subtitle"))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(model.theme.mutedText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            Button {
+                model.dismissSessionOutcome()
+            } label: {
+                Image(systemName: "xmark")
+                    .frame(width: 30, height: 30)
+            }
+            .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
+            .help(model.t("session.outcome.dismiss"))
+        }
+    }
+
+    private var metrics: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 14) {
+                metric(
+                    title: model.t("session.outcome.planned"),
+                    value: outcome.record.plannedSeconds.focusClock,
+                    symbolName: "calendar.badge.clock"
+                )
+                metric(
+                    title: model.t("session.outcome.honest"),
+                    value: outcome.record.honestFocusSeconds.focusClock,
+                    symbolName: "clock.badge.checkmark"
+                )
+                metric(
+                    title: model.t("session.outcome.distractions"),
+                    value: "\(outcome.record.distractionCount)",
+                    symbolName: "shield.lefthalf.filled"
+                )
+            }
+
+            VStack(spacing: 10) {
+                metric(
+                    title: model.t("session.outcome.planned"),
+                    value: outcome.record.plannedSeconds.focusClock,
+                    symbolName: "calendar.badge.clock"
+                )
+                metric(
+                    title: model.t("session.outcome.honest"),
+                    value: outcome.record.honestFocusSeconds.focusClock,
+                    symbolName: "clock.badge.checkmark"
+                )
+                metric(
+                    title: model.t("session.outcome.distractions"),
+                    value: "\(outcome.record.distractionCount)",
+                    symbolName: "shield.lefthalf.filled"
+                )
+            }
+        }
+    }
+
+    private func metric(title: String, value: String, symbolName: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: symbolName)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(model.theme.primary)
+                .frame(width: 26, height: 26)
+                .background(model.theme.primary.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(model.theme.mutedText)
+                    .textCase(.uppercase)
+                Text(value)
+                    .font(.system(size: 19, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var taskSummary: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack(spacing: 8) {
+                Image(systemName: outcome.task == nil ? "tray" : "target")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(model.theme.primary)
+                Text(taskTitle)
+                    .font(.system(size: 14, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+                Spacer()
+                Text(model.timerModeTitle(outcome.record.mode))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(model.theme.mutedText)
+            }
+
+            Text(taskDetail)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(model.theme.mutedText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let task = outcome.task, task.timingMode == .timed {
+                ProgressView(value: task.completed, total: max(1, task.estimate))
+                    .tint(model.theme.primary)
+            }
+        }
+        .padding(14)
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(model.theme.highlight.opacity(0.12), lineWidth: 1)
+        }
+    }
+
+    private var actions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                actionButtons
+            }
+            VStack(spacing: 10) {
+                actionButtons
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var actionButtons: some View {
+        Button {
+            model.completeOutcomeTask()
+        } label: {
+            Label(model.t("session.outcome.completeTask"), systemImage: "checkmark.circle.fill")
+        }
+        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .primary))
+        .disabled(outcome.record.taskID == nil)
+        .opacity(outcome.record.taskID == nil ? 0.48 : 1)
+
+        Button {
+            model.continueOutcomeTask()
+        } label: {
+            Label(model.t("session.outcome.continueTask"), systemImage: "arrow.uturn.forward")
+        }
+        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
+        .disabled(outcome.record.taskID == nil)
+        .opacity(outcome.record.taskID == nil ? 0.48 : 1)
+
+        Button {
+            model.startNextSessionFromOutcome()
+        } label: {
+            Label(model.t("session.outcome.startNext"), systemImage: "play.fill")
+        }
+        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
+    }
+
+    private var taskTitle: String {
+        outcome.record.taskTitle ?? outcome.task?.title ?? model.t("session.outcome.noTask")
+    }
+
+    private var taskDetail: String {
+        guard let task = outcome.task else {
+            return model.t("session.outcome.noTask.detail")
+        }
+
+        if task.timingMode == .checklist {
+            return model.t("session.outcome.checklist.detail")
+        }
+
+        return "\(model.t("session.outcome.taskProgress")) \(task.completed.focusClock) / \(task.estimate.focusClock)"
     }
 }
 

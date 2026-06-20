@@ -395,12 +395,41 @@ struct FocusGlassPersistenceTests {
         let captured = try #require(model.tasks.first { $0.id == capturedTask.id })
         let later = try #require(model.tasks.first { $0.id == laterTask.id })
         let record = try #require(model.recentSessions.first)
+        let outcome = try #require(model.pendingSessionOutcome)
 
         #expect(model.activeProjectID == project.id)
         #expect(captured.completed == 2)
         #expect(later.completed == 0)
         #expect(record.taskID == capturedTask.id)
         #expect(record.taskTitle == "Captured")
+        #expect(outcome.record.id == record.id)
+        #expect(outcome.task?.id == capturedTask.id)
+    }
+
+    @Test
+    @MainActor
+    func completingOutcomeMarksCapturedTaskDone() throws {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        let task = model.addQuickTask()
+        model.selectPreset(
+            TimerPreset(
+                name: "Two seconds",
+                mode: .countdown,
+                segments: [TimerSegment(title: "Focus", duration: 2, phase: .focus)]
+            )
+        )
+
+        model.startTimerForTesting()
+        model.advanceTimerForTesting(by: 2)
+
+        #expect(model.pendingSessionOutcome?.record.taskID == task.id)
+
+        model.completeOutcomeTask()
+
+        let completedTask = try #require(model.tasks.first { $0.id == task.id })
+        #expect(completedTask.isDone)
+        #expect(model.activeTaskID == nil)
+        #expect(model.pendingSessionOutcome == nil)
     }
 
     @Test
@@ -424,6 +453,54 @@ struct FocusGlassPersistenceTests {
         let restored = try #require(model.tasks.first { $0.id == task.id })
         #expect(restored.completed == 0)
         #expect(model.recentSessions.first?.taskID == task.id)
+    }
+
+    @Test
+    @MainActor
+    func continuingOutcomeKeepsChecklistTaskActiveWithoutProgress() throws {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        var task = model.addQuickTask()
+        task.timingMode = .checklist
+        model.updateTask(task)
+        model.selectPreset(
+            TimerPreset(
+                name: "Two seconds",
+                mode: .countdown,
+                segments: [TimerSegment(title: "Focus", duration: 2, phase: .focus)]
+            )
+        )
+
+        model.startTimerForTesting()
+        model.advanceTimerForTesting(by: 2)
+        model.continueOutcomeTask()
+
+        let restored = try #require(model.tasks.first { $0.id == task.id })
+        #expect(restored.completed == 0)
+        #expect(!restored.isDone)
+        #expect(model.activeTaskID == task.id)
+        #expect(model.pendingSessionOutcome == nil)
+    }
+
+    @Test
+    @MainActor
+    func startNextSessionFromOutcomeKeepsCapturedTaskAndRunsTimer() throws {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        let task = model.addQuickTask()
+        model.selectPreset(
+            TimerPreset(
+                name: "Two seconds",
+                mode: .countdown,
+                segments: [TimerSegment(title: "Focus", duration: 2, phase: .focus)]
+            )
+        )
+
+        model.startTimerForTesting()
+        model.advanceTimerForTesting(by: 2)
+        model.startNextSessionFromOutcome()
+
+        #expect(model.pendingSessionOutcome == nil)
+        #expect(model.activeTaskID == task.id)
+        #expect(model.engineSnapshot.status == .running)
     }
 
     @Test

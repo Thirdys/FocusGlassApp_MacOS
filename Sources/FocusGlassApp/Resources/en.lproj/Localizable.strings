@@ -18,6 +18,19 @@
 
 "session.intention" = "Intention";
 "session.intention.placeholder" = "What must be finished in this session?";
+"session.outcome.title" = "Session review";
+"session.outcome.subtitle" = "Compare the plan with honest focus and decide what happens to the task.";
+"session.outcome.planned" = "Planned";
+"session.outcome.honest" = "Honest";
+"session.outcome.distractions" = "Distractions";
+"session.outcome.noTask" = "No task attached";
+"session.outcome.noTask.detail" = "This session still counts toward analytics, but no task will be completed from here.";
+"session.outcome.checklist.detail" = "Checklist tasks do not receive time progress; complete it when the result is real.";
+"session.outcome.taskProgress" = "Task progress";
+"session.outcome.completeTask" = "Complete task";
+"session.outcome.continueTask" = "Continue";
+"session.outcome.startNext" = "Start next";
+"session.outcome.dismiss" = "Dismiss review";
 
 "timer.start" = "Start";
 "timer.pause" = "Pause";

@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-06-19
+Last updated: 2026-06-20
 
 ## Human Context
 
@@ -10,7 +10,7 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Latest Session Checkpoint
 
-Last checkpoint: 2026-06-19.
+Last checkpoint: 2026-06-20.
 
 Purpose: this section is the quick resume point for future sessions. Update it
 whenever work is completed, paused halfway, blocked, or intentionally deferred,
@@ -19,6 +19,27 @@ rereading the whole handoff.
 
 Last done:
 
+- Implemented the Product Design-led post-session outcome screen:
+  - Used Graphify first for the session/task persistence data flow:
+    `graphify query "FocusGlass post-session outcome screen session task persistence planned honest distraction data flow" --budget 2600`.
+  - Used Product Design `index`, `user-context`, and `get-context` in playback
+    mode. Saved Product Design context is still missing, so the visual/product
+    source was `docs/design/design-source.md` plus the current `.app`.
+  - Added runtime `SessionOutcomePresentation` state in
+    `FocusGlassViewModel`, created from the existing `FocusSessionRecord` on
+    `presetCompleted`. No persistence schema change was needed.
+  - Added outcome actions:
+    `completeOutcomeTask`, `continueOutcomeTask`, `startNextSessionFromOutcome`,
+    and `dismissSessionOutcome`.
+  - Added the Focus Today outcome card with planned vs honest time,
+    distraction count, task/no-task result, and actions for complete task,
+    continue, and start next session.
+  - Added RU/EN localization in both packaged resource strings and `L10n`
+    fallback dictionaries.
+  - Added focused tests for outcome creation, complete-task behavior,
+    checklist no-progress/continue behavior, and start-next behavior.
+  - Saved live macOS `.app` proof screenshot at
+    `/private/tmp/focusglass-post-session-outcome-qa-20260620-133504/01-outcome-screen.png`.
 - Created the owner-requested tester delivery snapshot for `0.0.3`:
   - Updated `VERSION` from `0.0.2` to `0.0.3`.
   - Committed release source snapshot:
@@ -69,9 +90,8 @@ Last done:
     exercised because the temporary QA profile had no strict rules and system
     permissions were not granted. Treat this as the next optional runtime proof
     before actual tester delivery, not as a blocker from this pass.
-  - Post-session outcome remains a future Product Design-led product chunk.
-    The audit captured the current Analytics empty state as outcome-gap
-    evidence; it did not implement or fake an outcome screen.
+  - This was the pre-implementation audit state. The outcome screen has now
+    been implemented in the latest checkpoint above.
 - Implemented the new workflow/dev-loop pass:
   - Added `script/build_and_run.sh` as the active local macOS dev-loop
     entrypoint. It stops an existing FocusGlass process, delegates packaging to
@@ -134,7 +154,13 @@ Validated:
 - `bash -n script/build_and_run.sh` passed.
 - `swift build` passed.
 - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
-  passed: 50/50 tests.
+  passed: 53/53 tests.
+- Focused outcome tests also passed:
+  `completedSessionAppliesHonestFocusTimeToCapturedTimedTask`,
+  `completingOutcomeMarksCapturedTaskDone`,
+  `checklistTaskDoesNotReceiveSessionTimeProgress`,
+  `continuingOutcomeKeepsChecklistTaskActiveWithoutProgress`, and
+  `startNextSessionFromOutcomeKeepsCapturedTaskAndRunsTimer`.
 - Release snapshot validation before `v0.0.3` also passed:
   `swift build`, `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`,
   `git diff --check`, `./Scripts/package-release.sh`, checksum verification,
@@ -144,19 +170,26 @@ Validated:
   The sandboxed attempt hit LaunchServices `kLSNoExecutableErr`, so future
   live `.app` verification may need Build macOS Apps-style GUI permission.
 - `codesign --verify --deep --strict build/FocusGlass.app` passed.
+- Live `.app` validation after the outcome implementation confirmed the main
+  cockpit and post-session outcome card render in `build/FocusGlass.app`.
+  The accepted proof screenshot is
+  `/private/tmp/focusglass-post-session-outcome-qa-20260620-133504/01-outcome-screen.png`.
 - Temporary QA data was confirmed under `/private/tmp/focusglass-qa-data`:
   `workspace.json`, `settings.json`, and `Logs/diagnostics.jsonl`.
-- `build/FocusGlass.app/Contents/Info.plist` still reports version
-  `0.0.2` / build `26`; no release/version bump was made.
+- `build/FocusGlass.app/Contents/Info.plist` reported version `0.0.3` /
+  build `29` during this live validation. No new release/version bump was made
+  in the outcome-screen checkpoint.
 - Product Design audit folder contains ordered screenshots plus notes:
   `/private/tmp/focusglass-product-design-audit-20260619-170421`.
 - QA proof folder contains ordered screenshots plus copied diagnostics:
   `/private/tmp/focusglass-qa-proof-20260619-170421`.
 - `git diff --check` passed.
-- `graphify update .` passed and rebuilt the code graph: 979 nodes, 2131
-  edges, 62 communities.
-- Next skill/workflow: continue the Product Design-led post-session outcome
-  screen, then validate through Build macOS Apps in the live `.app`.
+- `graphify update .` passed and rebuilt the code graph: 992 nodes, 2172
+  edges, 64 communities.
+- Next skill/workflow: use Build macOS Apps for any follow-up live `.app`
+  validation; use Product Design before changing outcome/strict/settings UX;
+  use Graphify before broad code navigation/status questions; use
+  SwiftPM/test-triage for build/test validation.
 
 Previous tester-fix validation still relevant:
 
@@ -178,27 +211,27 @@ Not started yet:
 - A deeper manual QA pass for strict warn/hide against real blocked apps/sites
   can still be done before tester delivery, but the QA First pass is no longer
   blocked on screenshots or Settings/fullscreen verification.
-- Full post-session outcome screen is still future work; Product Design context
-  was loaded, but implementation has not started.
+- Deeper Product Design refinements for task-attached outcome states can still
+  be done later, but the first live post-session outcome screen now exists.
 - GitHub Release was not created for `v0.0.3`.
 
 Next likely choices:
 
-- Continue with the post-session outcome screen. Start by re-loading Product
-  Design `index`, `user-context`, and `get-context`; use
-  `docs/design/design-source.md`, the current `.app`, and the QA audit outcome
-  gap screenshot as visual/product context.
-- Implement planned vs honest, distraction summary, task result, and
-  complete/continue/start-next actions. Then validate with Build macOS Apps in
-  the live `.app`.
+- Optionally run another Build macOS Apps proof pass with an attached timed task
+  and attached checklist task, so screenshots cover all outcome states.
+- Optionally run strict warn/hide/pause against real blocked apps/sites once
+  system permissions are granted.
+- Next roadmap product chunks: strict distraction history, full UI pass over
+  sidebar/cards/settings/strict rows, then analytics for planned vs actual,
+  recent sessions, and mode effectiveness.
 - Optional later: create a GitHub Release for `v0.0.3` only if the owner asks.
 
 Active partial work:
 
 - Release/tag/tester branch work for `0.0.3` is complete. No code partial
   remains in tester-fix, workflow/dev-loop, QA First, or tester delivery.
-- Active partial work is Product Design context only for post-session outcome.
-  No outcome implementation files have been changed yet.
+- Post-session outcome first implementation is complete. No active partial code
+  work is intentionally left open in this checkpoint.
 
 Resume instructions if a future plan/thread continues from here:
 
@@ -208,13 +241,15 @@ Resume instructions if a future plan/thread continues from here:
      `.app` launch, logs, telemetry, and runtime proof.
   3. Build macOS Apps `swiftpm-macos` and `test-triage` for SwiftPM build/test
      checks.
-  4. Product Design `index` + `get-context` before the post-session outcome
-     UX work; saved Product Design context is currently missing, so use
-     `docs/design/design-source.md` plus the current `.app`.
+  4. Product Design `index` + `get-context` before outcome, strict, Settings,
+     onboarding, or other UX-flow changes; saved Product Design context is
+     currently missing, so use `docs/design/design-source.md` plus the current
+     `.app`.
 - If this checkpoint is seen before the commit lands, the intended source
-  change for this checkpoint is `handoff.md` only. Local audit/proof artifacts
-  live in `/private/tmp` and release artifacts live under ignored `build/`.
-  Do not stage `.codex/`, `graphify-out/`, `build/`, `.build/`, or `.swiftpm/`.
+  changes are the outcome implementation, localization, focused tests, and this
+  handoff update. Local audit/proof artifacts live in `/private/tmp` and release
+  artifacts live under ignored `build/`. Do not stage `.codex/`, `graphify-out/`,
+  `build/`, `.build/`, or `.swiftpm/`.
 - Required final checks for this workflow pass:
   `bash -n script/build_and_run.sh`,
   `swift build`,
@@ -222,9 +257,10 @@ Resume instructions if a future plan/thread continues from here:
   `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`
   through Build macOS Apps/live macOS permission when sandboxed LaunchServices
   blocks GUI launch,
+  `codesign --verify --deep --strict build/FocusGlass.app`,
   `git diff --check`, and `graphify update .`.
 - Intended commit message if not already committed:
-  `доки: обновить handoff после релиза 0.0.3` with commit body
+  `feat: добавить итог сессии` with commit body
   `Ассистент: Codex`.
 - Do not create a GitHub Release until the owner explicitly asks for it.
 

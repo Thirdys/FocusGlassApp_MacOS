@@ -78,6 +78,13 @@ struct FocusTask: Identifiable, Codable, Equatable {
     }
 }
 
+struct SessionOutcomePresentation: Identifiable, Equatable {
+    var record: FocusSessionRecord
+    var task: FocusTask?
+
+    var id: UUID { record.id }
+}
+
 @MainActor
 final class FocusGlassViewModel: ObservableObject {
     static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("FocusGlass.main")
@@ -138,6 +145,7 @@ final class FocusGlassViewModel: ObservableObject {
     @Published var tasks: [FocusTask] = [] { didSet { syncActiveTaskSelection(); persist() } }
     @Published var distractionRules: [DistractionRuleSpec] = [] { didSet { persist() } }
     @Published var recentSessions: [FocusSessionRecord] = [] { didSet { persist() } }
+    @Published private(set) var pendingSessionOutcome: SessionOutcomePresentation?
 
     private var timer: Timer?
     private let engine: FocusTimerEngine
@@ -433,6 +441,11 @@ final class FocusGlassViewModel: ObservableObject {
         recentSessions.filter { $0.projectID == project.id }
     }
 
+    func task(for taskID: UUID?) -> FocusTask? {
+        guard let taskID else { return nil }
+        return tasks.first { $0.id == taskID }
+    }
+
     var unassignedSessions: [FocusSessionRecord] {
         recentSessions.filter { $0.projectID == nil }
     }
@@ -699,6 +712,44 @@ final class FocusGlassViewModel: ObservableObject {
         } else if !tasks[index].isDone {
             activeTaskID = task.id
         }
+    }
+
+    func dismissSessionOutcome() {
+        pendingSessionOutcome = nil
+    }
+
+    func completeOutcomeTask() {
+        guard let outcome = pendingSessionOutcome else { return }
+        if let taskID = outcome.record.taskID,
+           let index = tasks.firstIndex(where: { $0.id == taskID }) {
+            tasks[index].isDone = true
+            if activeTaskID == taskID {
+                activeTaskID = nil
+            }
+            syncActiveTaskSelection()
+        }
+        pendingSessionOutcome = nil
+    }
+
+    func continueOutcomeTask() {
+        guard let outcome = pendingSessionOutcome else { return }
+        selectOutcomeTaskIfAvailable(outcome)
+        pendingSessionOutcome = nil
+    }
+
+    func startNextSessionFromOutcome() {
+        guard let outcome = pendingSessionOutcome else { return }
+        selectOutcomeTaskIfAvailable(outcome)
+        pendingSessionOutcome = nil
+        guard engineSnapshot.status != .running else { return }
+
+        currentDistractionCount = 0
+        syncActiveTaskSelection()
+        sessionTaskID = selectedActiveTask?.id
+        engine.start()
+        focusGuard.runShortcut(named: "FocusGlass Start")
+        scheduleTick()
+        syncSnapshot()
     }
 
     func toggleRule(_ rule: DistractionRuleSpec) {
@@ -1065,22 +1116,26 @@ final class FocusGlassViewModel: ObservableObject {
                 title: t("timer.sessionCompleted"),
                 body: "\(t("focus.honestTime")): \(finalSnapshot.honestFocusTime.focusClock)"
             )
-            recentSessions.insert(
-                FocusSessionRecord(
-                    projectID: activeProjectID,
-                    projectName: activeProjectName,
-                    taskID: sessionTaskID,
-                    taskTitle: sessionTaskID.flatMap(taskTitle(for:)),
-                    mode: selectedPreset.mode,
-                    startedAt: .now.addingTimeInterval(-finalSnapshot.elapsed),
-                    endedAt: .now,
-                    plannedSeconds: max(1, selectedPreset.totalDuration),
-                    honestFocusSeconds: finalSnapshot.honestFocusTime,
-                    distractionCount: currentDistractionCount
-                ),
-                at: 0
+            let capturedTaskID = sessionTaskID
+            let sessionRecord = FocusSessionRecord(
+                projectID: activeProjectID,
+                projectName: activeProjectName,
+                taskID: capturedTaskID,
+                taskTitle: capturedTaskID.flatMap(taskTitle(for:)),
+                mode: selectedPreset.mode,
+                startedAt: .now.addingTimeInterval(-finalSnapshot.elapsed),
+                endedAt: .now,
+                plannedSeconds: max(1, selectedPreset.totalDuration),
+                honestFocusSeconds: finalSnapshot.honestFocusTime,
+                distractionCount: currentDistractionCount
             )
+            recentSessions.insert(sessionRecord, at: 0)
             applySessionTimeToCapturedTask(finalSnapshot.honestFocusTime)
+            pendingSessionOutcome = SessionOutcomePresentation(
+                record: sessionRecord,
+                task: capturedTaskID.flatMap(task(for:))
+            )
+            selectedSidebarItem = .focusToday
             sessionTaskID = nil
         }
     }
@@ -1314,6 +1369,14 @@ final class FocusGlassViewModel: ObservableObject {
             return
         }
         activeTaskID = nil
+    }
+
+    private func selectOutcomeTaskIfAvailable(_ outcome: SessionOutcomePresentation) {
+        guard let taskID = outcome.record.taskID,
+              let task = task(for: taskID),
+              !task.isDone else { return }
+        activeProjectID = task.projectID
+        activeTaskID = task.id
     }
 
     private func applySessionTimeToCapturedTask(_ honestFocusTime: TimeInterval) {

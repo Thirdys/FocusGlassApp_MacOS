@@ -18,6 +18,19 @@
 
 "session.intention" = "Намерение";
 "session.intention.placeholder" = "Что нужно закончить за эту сессию?";
+"session.outcome.title" = "Итог сессии";
+"session.outcome.subtitle" = "Сравни план с честным фокусом и реши, что делать с задачей.";
+"session.outcome.planned" = "План";
+"session.outcome.honest" = "Честно";
+"session.outcome.distractions" = "Отвлечения";
+"session.outcome.noTask" = "Задача не привязана";
+"session.outcome.noTask.detail" = "Сессия попадёт в аналитику, но отсюда нельзя закрыть конкретную задачу.";
+"session.outcome.checklist.detail" = "Обычная задача не получает время; закрывай её только когда результат готов.";
+"session.outcome.taskProgress" = "Прогресс задачи";
+"session.outcome.completeTask" = "Закрыть задачу";
+"session.outcome.continueTask" = "Продолжить";
+"session.outcome.startNext" = "Следующая сессия";
+"session.outcome.dismiss" = "Скрыть итог";
 
 "timer.start" = "Старт";
 "timer.pause" = "Пауза";
