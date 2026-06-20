@@ -19,6 +19,14 @@ rereading the whole handoff.
 
 Last done:
 
+- Synchronized stale roadmap/handoff planning after the outcome implementation:
+  - Updated `docs/process/roadmap.md` and the lower
+    `Roadmap Status Snapshot` / `Current Operating Plan` / `Next Steps`
+    sections so they no longer describe the outcome screen as missing.
+  - Reconfirmed the immediate next proof task: Build macOS Apps validation for
+    outcome states with an attached timed task and an attached checklist task.
+  - Reconfirmed the next product feature after that proof:
+    strict distraction history, followed by the full UI pass and analytics.
 - Implemented the Product Design-led post-session outcome screen:
   - Used Graphify first for the session/task persistence data flow:
     `graphify query "FocusGlass post-session outcome screen session task persistence planned honest distraction data flow" --budget 2600`.
@@ -63,8 +71,9 @@ Last done:
   - Loaded Product Design `index`, `user-context`, and `get-context`.
   - Product Design user-context preflight still reports no saved context.
   - Read `docs/design/design-source.md`.
-  - Outcome screen implementation has not started yet. No source files for the
-    outcome feature were changed.
+  - This was the pre-implementation state before the 2026-06-20 outcome pass.
+    The first post-session outcome screen is now implemented, tested, and
+    validated in the live `.app`.
 - Completed the QA First pre-tester pass through the new workflow:
   - Used Graphify for orientation before broad QA/status work.
   - Used Build macOS Apps `build-run-debug` through the real packaged
@@ -186,6 +195,10 @@ Validated:
 - `git diff --check` passed.
 - `graphify update .` passed and rebuilt the code graph: 992 nodes, 2172
   edges, 64 communities.
+- Current roadmap/handoff sync validation also passed:
+  `git diff --check`, stale-phrase search across `handoff.md` and
+  `docs/process/roadmap.md`, and `graphify update .`. No Swift build/test was
+  rerun for this docs-only checkpoint.
 - Next skill/workflow: use Build macOS Apps for any follow-up live `.app`
   validation; use Product Design before changing outcome/strict/settings UX;
   use Graphify before broad code navigation/status questions; use
@@ -283,15 +296,17 @@ Started or partially started roadmap items:
 - Timer system: partially started. Timer modes, default presets, mode
   descriptions, preset editing, persisted task estimates, task timing modes,
   manual minute entry, and timed-task progress from completed sessions exist.
-  Still missing: planned-time outcome flow and a decision on whether built-in
-  preset editing is enough or whether true custom timer creation is needed.
-- Session outcome: data foundation started, product flow mostly missing.
+  The first outcome flow now uses planned vs honest time after session
+  completion. Still missing: a decision on whether built-in preset editing is
+  enough or whether true custom timer creation is needed.
+- Session outcome: first implementation pass is complete.
   `FocusSessionRecord` stores project, planned seconds, honest focus seconds,
   distraction count, optional task ID/title, and sessions are recorded on
-  preset completion. Timed tasks receive captured honest focus time. Still
-  missing: real post-session review screen, planned vs honest comparison,
-  distraction summary, and actions like complete task / continue / start next
-  block.
+  preset completion. Timed tasks receive captured honest focus time. Focus
+  Today now shows the post-session review card with planned vs honest,
+  distraction count, task/no-task result, and complete/continue/start-next
+  actions. Still missing: extra live proof for attached timed/checklist task
+  states and any Product Design polish that follows from that proof.
 - Strict mode end-to-end: partially started. App/site rules, strict action
   types, warn/hide messages, browser checks, return-to-FocusGlass behavior, and
   hide/quit helpers exist. `pauseSession` is connected to the timer and strict
@@ -349,10 +364,10 @@ using the full current operating plan first, then the roadmap block.
    flow, weak readability, onboarding, permissions, Settings, strict-mode user
    path, or post-session outcome. Use Build macOS Apps after Product Design to
    validate the live `.app`.
-6. The next product chunk is the post-session outcome screen: Product Design
-   first for planned vs honest, distraction summary, task result, and
-   complete/continue/start-next actions; then Build macOS Apps validation in
-   the real app.
+6. The next small proof task is an attached-task outcome QA pass through Build
+   macOS Apps: timed task with visible progress and actions, then checklist
+   task with no time progress but manual completion. After that, the next
+   product chunk is strict distraction history.
 7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
    remain explicit owner-controlled steps.
@@ -1006,52 +1021,50 @@ Skills research:
 
 1. For broad status, planning, or codebase questions, start with Graphify:
    `graphify query "<question>"`, then read exact source/docs as needed.
-2. Before tester delivery, run Build macOS Apps packaged-app QA:
+2. Tester delivery `0.0.3` is complete. The isolated `tester/0.0.3` branch now
+   includes zip, checksum, README, build-info, and `tester-report-template.md`.
+   Do not create a GitHub Release without a separate owner command.
+3. Before the next tester delivery, repeat Build macOS Apps packaged-app QA:
    `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
    then check the main window, Settings, fullscreen, strict mode, logs,
    screenshots, and runtime proof against `docs/qa-checklist.md`.
-3. If the owner confirms tester delivery, bump/confirm `VERSION` to `0.0.3` by
-   default, commit, tag `v0.0.3`, run `./Scripts/package-release.sh`, verify
-   `.sha256`, and create/push isolated `tester/0.0.3` with zip/checksum/README
-   and build-info only. Do not create release/tag/tester branch/GitHub Release
-   without that explicit command.
 4. Use `./script/build_and_run.sh` or the Codex Run action for active dev-loop
    work. Improve the script only if verification exposes a real gap; keep
    `Scripts/package-app.sh` as the source of truth.
-5. Next product feature after tester handoff/dev-loop: post-session outcome
-   screen. Start with Product Design context from
-   `docs/design/design-source.md`, the current `.app`, and local concept
-   screenshots if any; then implement planned vs honest, distraction summary,
-   task result, and complete/continue/start-next actions; validate with Build
-   macOS Apps in the live app.
-6. After that, roadmap order is strict distraction history, full UI pass over
-   sidebar/cards/settings/strict rows, and analytics for planned vs actual,
-   recent sessions, and mode effectiveness.
-7. Do not break the existing FocusGlass identity. App icon, Dock/Finder icon,
+5. Immediate follow-up if time allows: Build macOS Apps proof for outcome with
+   attached timed and checklist tasks. Save screenshots/proof path in
+   `handoff.md`.
+6. Next product feature after outcome proof: strict distraction history. Track
+   what distracted, when it happened, which rule/action fired
+   (`warn`/`hide`/`pauseSession`), and which session it belonged to.
+7. After that, roadmap order is full UI pass over sidebar/cards/settings/strict
+   rows, then analytics for planned vs actual, recent sessions, mode
+   effectiveness, and distraction analytics by project/mode.
+8. Do not break the existing FocusGlass identity. App icon, Dock/Finder icon,
    menu bar glyph, launch animation, and visual style changes must improve the
    current FocusGlass Mac Glass OS / timer / focus direction, not create an
    accidental rebrand.
-8. Product roadmap memory from `docs/process/roadmap.md`: keep these visible
+9. Product roadmap memory from `docs/process/roadmap.md`: keep these visible
    after the immediate tester/release work so they are not forgotten.
    - Timer system is partially started. Done or started: all planned timer modes
      exist, default presets cover all modes, mode descriptions are in Settings,
      presets can be edited with segments/duration/phase/auto-start, and task
-     estimates persist with clamped progress. Still needed: make
-     `FocusTask.estimate` drive planned time, task progress, and session result;
-     decide whether editing built-in presets is enough or true custom preset
-     creation is needed.
-   - Session outcome is mostly not built yet. Started: `FocusSessionRecord`
+     estimates persist with clamped progress. The first outcome flow uses
+     planned vs honest session data. Still needed: decide whether editing
+     built-in presets is enough or true custom preset creation is needed.
+   - Session outcome first pass is built. Started/done: `FocusSessionRecord`
      stores project, planned seconds, honest focus seconds, distraction count,
-     and sessions are inserted when a preset completes. Still needed: actual
+     and sessions are inserted when a preset completes. Done: actual
      post-session review UI, task-level result, planned vs honest comparison,
      distraction summary, and actions such as complete task, continue, or start
      next block.
    - Strict mode end-to-end is partially started. Started: app/site rules,
      `warn`, `hide`, `pauseSession`, and `quitAfterOptIn` action types, warn/hide
      messages, return-to-FocusGlass behavior, browser URL checks, and hide/quit
-     helpers. Still needed: full packaged-app QA for warn/hide, connect
-     `pauseSession` to the timer, confirm/guard `quitAfterOptIn`, and add
-     distraction history.
+     helpers. `pauseSession` is already connected to the timer, and strict
+     break enforcement is configurable. Still needed: full packaged-app QA for
+     warn/hide/pause against real blocked apps/sites, confirm/guard
+     `quitAfterOptIn`, and add distraction history.
    - UI interactive layer is partially started. Started: `glassHover`,
      `GlassCheckboxToggleStyle`, `GlassSelect`, `GlassStepper`,
      `GlassSegmentedControl`, many expanded hit areas, and theme-aware hover
