@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-06-20
+Last updated: 2026-06-27
 
 ## Human Context
 
@@ -10,7 +10,7 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Latest Session Checkpoint
 
-Last checkpoint: 2026-06-20.
+Last checkpoint: 2026-06-27.
 
 Purpose: this section is the quick resume point for future sessions. Update it
 whenever work is completed, paused halfway, blocked, or intentionally deferred,
@@ -19,6 +19,34 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the attached-task outcome Build macOS Apps proof:
+  - Used Graphify first:
+    `graphify query "FocusGlass attached timed checklist post-session outcome proof task progress complete continue next session" --budget 2600`.
+  - Used Build macOS Apps `build-run-debug` and the existing dev-loop:
+    `FOCUSGLASS_DATA_DIR=<scenario-dir> ./script/build_and_run.sh --verify`.
+  - Used Computer Use only to inspect/click the real packaged macOS `.app`.
+  - Created isolated QA proof folder:
+    `/private/tmp/focusglass-outcome-attached-qa-20260627-181435`.
+  - Saved proof notes:
+    `/private/tmp/focusglass-outcome-attached-qa-20260627-181435/proof-notes.md`.
+  - Accepted screenshots:
+    `screens/01-timed-outcome.png`,
+    `screens/02-timed-start-next.png`,
+    `screens/03-checklist-outcome.png`,
+    `screens/04-checklist-complete.png`,
+    `screens/05-continue-outcome.png`, and
+    `screens/06-continue-after-action.png`.
+  - Timed task proof: planned `01:00`, honest `01:00`, task progress
+    `01:00 / 10:00`, all outcome actions visible.
+  - `Следующая сессия` proof: outcome dismissed, timer started again, and the
+    captured timed task stayed active with progress.
+  - Checklist proof: checklist task showed no timed progress bar and the copy
+    explicitly said ordinary/checklist tasks do not receive time.
+  - `Закрыть задачу` proof: checklist task was manually closed, outcome
+    dismissed, and the active stack became empty.
+  - `Продолжить` proof: outcome dismissed and the timed task stayed active
+    with `01:00 / 10:00` progress.
+  - No pre-tester blocker was found in the attached-task outcome flow.
 - Synchronized stale roadmap/handoff planning after the outcome implementation:
   - Updated `docs/process/roadmap.md` and the lower
     `Roadmap Status Snapshot` / `Current Operating Plan` / `Next Steps`
@@ -199,6 +227,19 @@ Validated:
   `git diff --check`, stale-phrase search across `handoff.md` and
   `docs/process/roadmap.md`, and `graphify update .`. No Swift build/test was
   rerun for this docs-only checkpoint.
+- Attached-task outcome proof validation also passed:
+  `bash -n script/build_and_run.sh`, three
+  `FOCUSGLASS_DATA_DIR=... ./script/build_and_run.sh --verify` runs through
+  the real `build/FocusGlass.app`, visual screenshot inspection with Computer
+  Use, screenshot files under
+  `/private/tmp/focusglass-outcome-attached-qa-20260627-181435/screens`, and
+  persisted workspace checks confirming timed progress, checklist no-progress,
+  start-next, complete, and continue outcomes. No source code changed in this
+  proof pass.
+- Full SwiftPM tests after the attached outcome proof passed:
+  `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+  completed 53/53 tests. The output included non-fatal macOS Shortcut warnings
+  about missing shortcuts, but the test process exited successfully.
 - Next skill/workflow: use Build macOS Apps for any follow-up live `.app`
   validation; use Product Design before changing outcome/strict/settings UX;
   use Graphify before broad code navigation/status questions; use
@@ -225,13 +266,12 @@ Not started yet:
   can still be done before tester delivery, but the QA First pass is no longer
   blocked on screenshots or Settings/fullscreen verification.
 - Deeper Product Design refinements for task-attached outcome states can still
-  be done later, but the first live post-session outcome screen now exists.
+  be done later, but both no-task and attached-task outcome states now have
+  live `.app` proof.
 - GitHub Release was not created for `v0.0.3`.
 
 Next likely choices:
 
-- Optionally run another Build macOS Apps proof pass with an attached timed task
-  and attached checklist task, so screenshots cover all outcome states.
 - Optionally run strict warn/hide/pause against real blocked apps/sites once
   system permissions are granted.
 - Next roadmap product chunks: strict distraction history, full UI pass over
@@ -244,7 +284,8 @@ Active partial work:
 - Release/tag/tester branch work for `0.0.3` is complete. No code partial
   remains in tester-fix, workflow/dev-loop, QA First, or tester delivery.
 - Post-session outcome first implementation is complete. No active partial code
-  work is intentionally left open in this checkpoint.
+  work is intentionally left open in this checkpoint. Attached-task outcome
+  proof is complete.
 
 Resume instructions if a future plan/thread continues from here:
 
@@ -305,8 +346,8 @@ Started or partially started roadmap items:
   preset completion. Timed tasks receive captured honest focus time. Focus
   Today now shows the post-session review card with planned vs honest,
   distraction count, task/no-task result, and complete/continue/start-next
-  actions. Still missing: extra live proof for attached timed/checklist task
-  states and any Product Design polish that follows from that proof.
+  actions. Attached timed/checklist states now have live Build macOS Apps proof.
+  Still missing: any Product Design polish that follows from future UX review.
 - Strict mode end-to-end: partially started. App/site rules, strict action
   types, warn/hide messages, browser checks, return-to-FocusGlass behavior, and
   hide/quit helpers exist. `pauseSession` is connected to the timer and strict
@@ -364,10 +405,10 @@ using the full current operating plan first, then the roadmap block.
    flow, weak readability, onboarding, permissions, Settings, strict-mode user
    path, or post-session outcome. Use Build macOS Apps after Product Design to
    validate the live `.app`.
-6. The next small proof task is an attached-task outcome QA pass through Build
-   macOS Apps: timed task with visible progress and actions, then checklist
-   task with no time progress but manual completion. After that, the next
-   product chunk is strict distraction history.
+6. Attached-task outcome QA proof is complete through Build macOS Apps: timed
+   task progress, checklist no-progress, and complete/continue/start-next
+   actions were validated in the live `.app`. The next product chunk is strict
+   distraction history.
 7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
    remain explicit owner-controlled steps.
@@ -1031,10 +1072,9 @@ Skills research:
 4. Use `./script/build_and_run.sh` or the Codex Run action for active dev-loop
    work. Improve the script only if verification exposes a real gap; keep
    `Scripts/package-app.sh` as the source of truth.
-5. Immediate follow-up if time allows: Build macOS Apps proof for outcome with
-   attached timed and checklist tasks. Save screenshots/proof path in
-   `handoff.md`.
-6. Next product feature after outcome proof: strict distraction history. Track
+5. Attached timed/checklist outcome proof is complete. Proof path:
+   `/private/tmp/focusglass-outcome-attached-qa-20260627-181435`.
+6. Next product feature: strict distraction history. Track
    what distracted, when it happened, which rule/action fired
    (`warn`/`hide`/`pauseSession`), and which session it belonged to.
 7. After that, roadmap order is full UI pass over sidebar/cards/settings/strict
@@ -1056,8 +1096,8 @@ Skills research:
      stores project, planned seconds, honest focus seconds, distraction count,
      and sessions are inserted when a preset completes. Done: actual
      post-session review UI, task-level result, planned vs honest comparison,
-     distraction summary, and actions such as complete task, continue, or start
-     next block.
+     distraction summary, actions such as complete task, continue, or start
+     next block, and live attached timed/checklist outcome proof.
    - Strict mode end-to-end is partially started. Started: app/site rules,
      `warn`, `hide`, `pauseSession`, and `quitAfterOptIn` action types, warn/hide
      messages, return-to-FocusGlass behavior, browser URL checks, and hide/quit

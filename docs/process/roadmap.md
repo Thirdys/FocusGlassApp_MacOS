@@ -38,8 +38,11 @@ FocusGlass развивается без смены идеи проекта. Э�
   - honest focus time;
   - отвлечения;
   - действие с задачей: завершить, продолжить, запустить следующий блок.
-- Осталось: дополнительный Build macOS Apps proof для attached timed/checklist
-  задач и Product Design polish при изменении UX.
+- Готово: Build macOS Apps proof для attached timed/checklist задач:
+  timed-задача показывает прогресс, checklist-задача не получает время,
+  действия завершить/продолжить/запустить следующий блок проверены в live
+  `.app`.
+- Осталось: Product Design polish при изменении UX.
 
 ### 3. Strict mode end-to-end
 
