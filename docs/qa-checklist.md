@@ -94,7 +94,15 @@
 ## Projects and tasks
 
 - Create a project from empty state.
-- Select the active project from the dropdown in the active project card.
+- Select the active project from the cockpit project dropdown.
+- Verify the wide cockpit layout keeps project context on the left, the timer in
+  the center, and active/project tasks on the right.
+- Verify the old top-level intention field is not visible in cockpit, menu bar,
+  or fullscreen focus.
+- Add project notes from the cockpit disclosure, relaunch with the same
+  `FOCUSGLASS_DATA_DIR`, and verify notes persist under the selected project.
+- Open the project editor sheet and verify the notes field can be edited there
+  too.
 - Rename a project and verify existing tasks still appear under that project.
 - Delete a project and verify its tasks/sessions become unassigned.
 - Add a task from the focus screen.
@@ -102,6 +110,10 @@
   `Без проекта` without creating a new project.
 - Create more than three unfinished tasks in one project and verify the active
   task list scrolls instead of truncating.
+- Verify the selected active task appears as a featured card with full title,
+  progress/status, and a compact edit affordance.
+- Verify regular task rows use one wide visual card, allow 2-3 title lines, and
+  do not waste width on a separate permanent edit column.
 - Select an active task for the next timer session, start the timer, switch the
   selection, complete the timer, and verify time was applied to the task
   selected at start.
@@ -160,6 +172,9 @@
 - Quickly switch between system/light/dark and theme profiles; UI should update
   with a smooth animated color transition while runtime icon, save, and custom
   app-icon persistence complete after their debounces.
+- When running the app from Documents, Desktop, or Downloads, changing Theme
+  Studio values must not show a macOS file-access prompt; the runtime Dock icon
+  may update only until app quit in those protected locations.
 - Change macOS light/dark while FocusGlass is set to "Как в macOS" and verify
   the app transitions smoothly rather than snapping instantly, and the runtime
   Dock icon updates with the resolved appearance.
@@ -171,7 +186,8 @@
 - Check Appearance for the theme side-effect status/performance message.
 - Confirm advanced Theme Studio is collapsed by default.
 - Expand advanced Theme Studio and verify background top/mid/bottom, surface,
-  elevated surface, text, and muted text changes are visible in the live preview.
+  elevated surface, text, and muted text can be changed through color pickers,
+  not manual hex typing, and changes are visible in the single live preview.
 - Duplicate or import a custom theme and verify `Удалить тему` appears only for
   that custom theme. Verify built-in themes show `Сбросить`, not delete.
 

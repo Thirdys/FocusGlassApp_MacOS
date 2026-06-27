@@ -11,10 +11,42 @@ struct RunningApplicationOption: Identifiable, Hashable {
 }
 
 struct FocusProject: Identifiable, Codable, Equatable {
-    var id = UUID()
+    var id: UUID
     var name: String
     var detail: String
     var accentName: String
+    var notes: String
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        detail: String,
+        accentName: String,
+        notes: String = ""
+    ) {
+        self.id = id
+        self.name = name
+        self.detail = detail
+        self.accentName = accentName
+        self.notes = notes
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case detail
+        case accentName
+        case notes
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        name = try container.decode(String.self, forKey: .name)
+        detail = try container.decodeIfPresent(String.self, forKey: .detail) ?? ""
+        accentName = try container.decodeIfPresent(String.self, forKey: .accentName) ?? "aurora"
+        notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
+    }
 }
 
 enum FocusTaskTimingMode: String, Codable, Equatable, CaseIterable, Identifiable {
@@ -554,10 +586,18 @@ final class FocusGlassViewModel: ObservableObject {
         guard let index = projects.firstIndex(where: { $0.id == project.id }) else { return }
         let trimmedName = project.name.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedDetail = project.detail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedNotes = project.notes.trimmingCharacters(in: .whitespacesAndNewlines)
         projects[index].name = trimmedName.isEmpty ? t("projects.new") : trimmedName
         projects[index].detail = trimmedDetail.isEmpty ? t("projects.new.detail") : trimmedDetail
         projects[index].accentName = project.accentName
+        projects[index].notes = trimmedNotes
         syncActiveProjectName()
+    }
+
+    func updateActiveProjectNotes(_ notes: String) {
+        guard let activeProjectID,
+              let index = projects.firstIndex(where: { $0.id == activeProjectID }) else { return }
+        projects[index].notes = notes
     }
 
     func deleteProject(_ project: FocusProject) {
@@ -1300,6 +1340,18 @@ final class FocusGlassViewModel: ObservableObject {
             lastIconStatus = t("icon.status.runtimeOnly")
             return
         }
+        guard !Self.isUserConsentProtectedBundleLocation(bundleURL) else {
+            lastIconStatus = t("icon.status.runtimeOnly")
+            FocusGlassDiagnosticsLogger.shared.log(
+                .info,
+                subsystem: "icon",
+                code: "icon.persist_skipped_protected_location",
+                message: "Skipped custom app icon persistence in a user-protected folder",
+                details: ["bundlePath": bundleURL.path],
+                resolutionHint: "The runtime Dock icon was updated. Move the app outside Documents, Desktop, or Downloads before expecting macOS to accept persistent app icon writes without a privacy prompt."
+            )
+            return
+        }
 
         let saved = NSWorkspace.shared.setIcon(image, forFile: bundleURL.path, options: [])
         if saved {
@@ -1314,6 +1366,20 @@ final class FocusGlassViewModel: ObservableObject {
                 details: ["bundlePath": bundleURL.path],
                 resolutionHint: "Runtime Dock icon was updated. Finder/Dock closed icon may keep the bundled fallback if macOS rejects NSWorkspace custom icon storage."
             )
+        }
+    }
+
+    static func isUserConsentProtectedBundleLocation(
+        _ url: URL,
+        homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+    ) -> Bool {
+        let bundlePath = url.standardizedFileURL.path
+        let home = homeDirectory.standardizedFileURL
+        let protectedDirectories = ["Documents", "Desktop", "Downloads"].map {
+            home.appendingPathComponent($0, isDirectory: true).standardizedFileURL.path
+        }
+        return protectedDirectories.contains { directory in
+            bundlePath == directory || bundlePath.hasPrefix(directory + "/")
         }
     }
 
@@ -1430,7 +1496,7 @@ final class FocusGlassViewModel: ObservableObject {
                 .map(\.name)
         )
 
-        let projects = persisted.projects.filter { !removedProjectNames.contains($0.name) }
+        var projects = persisted.projects.filter { !removedProjectNames.contains($0.name) }
         let projectsByName = Dictionary(uniqueKeysWithValues: projects.map { ($0.name, $0.id) })
         let projectNames = Set(projects.map(\.name))
         let tasks = persisted.tasks.filter { task in
@@ -1477,7 +1543,17 @@ final class FocusGlassViewModel: ObservableObject {
         let activeTaskID = persisted.activeTaskID.flatMap { id in
             tasks.contains { $0.id == id && !$0.isDone && $0.projectID == activeProjectID } ? id : nil
         }
-        let intention = starterIntentions.contains(persisted.intention) ? "" : persisted.intention
+        let legacyIntention = starterIntentions.contains(persisted.intention)
+            ? ""
+            : persisted.intention.trimmingCharacters(in: .whitespacesAndNewlines)
+        var intention = legacyIntention
+        if !legacyIntention.isEmpty,
+           let activeProjectID,
+           let index = projects.firstIndex(where: { $0.id == activeProjectID }),
+           projects[index].notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            projects[index].notes = legacyIntention
+            intention = ""
+        }
 
         return FocusGlassPersistedState(
             schemaVersion: 4,

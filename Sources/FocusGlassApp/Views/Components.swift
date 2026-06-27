@@ -851,6 +851,100 @@ struct GlassStepper: View {
     }
 }
 
+struct GlassSlider: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double = 0.01
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(CGFloat(1), proxy.size.width)
+            let fillWidth = max(CGFloat(12), width * CGFloat(fraction))
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18),
+                                model.theme.surface.opacity(model.theme.surfaceAlpha * 0.92),
+                                Color.black.opacity(model.theme.shadowDepth * 0.12)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .background(.thinMaterial, in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.88), lineWidth: 1)
+                    }
+                    .frame(height: 12)
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                model.theme.primary,
+                                model.theme.glow.opacity(0.92),
+                                model.theme.secondary
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: fillWidth, height: 12)
+                    .shadow(color: model.theme.glow.opacity(0.20), radius: 8, x: 0, y: 2)
+
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                model.theme.highlight.opacity(0.92),
+                                model.theme.primary,
+                                model.theme.secondary
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 22, height: 22)
+                    .overlay {
+                        Circle()
+                            .stroke(model.theme.highlight.opacity(max(0.34, model.theme.specularOpacity)), lineWidth: 1)
+                    }
+                    .shadow(color: model.theme.glow.opacity(0.26), radius: 10, x: 0, y: 4)
+                    .offset(x: min(width - 22, max(0, fillWidth - 11)))
+            }
+            .frame(height: 26)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in
+                        updateValue(locationX: Double(drag.location.x), width: Double(width))
+                    }
+            )
+        }
+        .frame(height: 26)
+        .accessibilityValue(Text(String(format: "%.2f", value)))
+    }
+
+    private var fraction: Double {
+        guard range.upperBound > range.lowerBound else { return 0 }
+        let clamped = min(range.upperBound, max(range.lowerBound, value))
+        return (clamped - range.lowerBound) / (range.upperBound - range.lowerBound)
+    }
+
+    private func updateValue(locationX: Double, width: Double) {
+        let rawFraction = min(1, max(0, locationX / max(1, width)))
+        let rawValue = range.lowerBound + rawFraction * (range.upperBound - range.lowerBound)
+        let stepped = step > 0 ? (rawValue / step).rounded() * step : rawValue
+        value = min(range.upperBound, max(range.lowerBound, stepped))
+    }
+}
+
 enum GlassStepperMath {
     static func increment(value: Int, range: ClosedRange<Int>, step: Int) -> Int {
         guard step > 1 else { return min(range.upperBound, value + step) }

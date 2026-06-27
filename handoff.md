@@ -19,6 +19,132 @@ rereading the whole handoff.
 
 Last done:
 
+- Implemented Cockpit First UI/UX polish with the owner-requested timer-center
+  correction:
+  - Used Graphify first:
+    `graphify query "FocusGlass cockpit FocusTodayView FocusProject notes intention task row launch overlay" --budget 4200`.
+  - Used Product Design `index`, `user-context` preflight, `get-context`
+    playback, and `audit` guidance. Saved Product Design context still does not
+    exist, so the visual/product source was `docs/design/design-source.md`, the
+    current packaged `.app`, and the owner's screenshots/feedback.
+  - Used Build macOS Apps `swiftui-patterns`, `build-run-debug`,
+    `swiftpm-macos`, and `test-triage` through SwiftPM plus packaged
+    `build/FocusGlass.app` validation.
+  - Removed the top-level cockpit `Текущее намерение` field and removed legacy
+    intention display from menu bar and fullscreen.
+  - Added project-scoped `FocusProject.notes`, backward-compatible decode, and
+    one-time migration from legacy `intention` into active project notes when
+    notes are empty.
+  - Added project notes editing in the cockpit disclosure and
+    `ProjectEditorSheet`.
+  - Rebuilt the cockpit as a three-column wide layout: project/notes on the
+    left, timer centered, active task and task list on the right. Do not move
+    the timer to a side column in follow-up polishing.
+  - Simplified cockpit project chrome: no persistent project edit button, task
+    count, or add-project action in the main focus surface.
+  - Reworked task rows into one visual card with compact completion/edit
+    controls, plus a featured active-task card for the selected session task.
+  - Improved the launch overlay with theme-aware glass reveal, timer ticks/ring
+    motion, brand fade, and Reduce Motion fallback.
+  - Added persistence tests for legacy project notes decode, project notes
+    relaunch, legacy intention migration, and active task/progress survival
+    after notes updates.
+  - Validation passed:
+    `swift build`,
+    `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+    with 58/58 tests,
+    `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-cockpit-ui-pass-20260627/data ./script/build_and_run.sh --verify`,
+    and `codesign --verify --deep --strict build/FocusGlass.app`.
+  - Product Design audit/proof folder:
+    `/private/tmp/focusglass-cockpit-ui-pass-20260627`.
+  - Accepted live screenshot:
+    `/private/tmp/focusglass-cockpit-ui-pass-20260627/screenshots/02-cockpit-centered.png`.
+  - Audit notes:
+    `/private/tmp/focusglass-cockpit-ui-pass-20260627/audit-notes.md`.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage.
+  - Local commit created for this checkpoint, but push from this environment is
+    blocked by GitHub HTTPS credentials: `fatal: could not read Username for
+    'https://github.com': Device not configured`. The local tracking ref points
+    at this commit, but a network push/remote verification could not be
+    confirmed until credentials are available.
+  - Next skill/workflow: run Product Design + Build macOS Apps for a narrower
+    responsive/keyboard pass on the new cockpit, then continue roadmap with
+    strict distraction history unless the owner prioritizes another UI issue.
+- Implemented the first Product Design-led UI polish pass after the full UI/UX
+  audit. This is not the end of the full UI roadmap item; it closes the most
+  visible pre-tester Theme Studio/display issues from the audit:
+  - Used Graphify first:
+    `graphify query "FocusGlass Theme Studio advanced theme editor settings appearance theme profile UI polish" --budget 3000`.
+  - Used Product Design `index`, `user-context` preflight, `get-context`, and
+    `audit` guidance. Saved Product Design context still does not exist, so
+    the visual/product source stayed `docs/design/design-source.md`, the
+    existing codebase patterns, and the live packaged `.app`.
+  - Used Build macOS Apps `swiftui-patterns`, `build-run-debug`,
+    `swiftpm-macos`, and `test-triage` through SwiftPM plus the packaged app
+    workflow.
+  - Reworked Theme Studio into a clearer editor: header with active-theme
+    badge, swatch grid, one compact live preview, adaptive action grid, and
+    grouped advanced sections for glass/motion, accent/status, foundations, and
+    readability.
+  - After owner screenshot feedback, removed the duplicate token overview /
+    explanation block and made color editing picker-first. Color cards now use
+    macOS ColorPicker with read-only hex labels instead of asking the user to
+    type values such as `#705cf6` by hand.
+  - Added a reusable `GlassSlider` control and replaced dense stock slider
+    fields in the advanced Theme Studio editor with theme-aware glass sliders
+    plus editable numeric fields.
+  - Fixed cockpit task-row wrapping pressure by separating the active-session
+    badge and timing/checklist metadata from the task title.
+  - Fixed a live UX issue where Theme Studio edits from a `.app` under
+    Documents/Desktop/Downloads could trigger a macOS file-access prompt:
+    persistent `NSWorkspace.setIcon` writes are now skipped in those protected
+    locations while the runtime Dock icon still updates.
+  - Updated Theme Studio copy/localization and design/process docs for the new
+    grouped picker-first editor and protected-folder icon behavior.
+  - Local proof folder:
+    `/private/tmp/focusglass-theme-studio-polish-20260627-191539`.
+  - Accepted clean proof screenshots:
+    `screens/05-cockpit-task-row-final.png` and
+    `screens/06-theme-studio-advanced-sliders-final.png`.
+  - Proof notes:
+    `/private/tmp/focusglass-theme-studio-polish-20260627-191539/proof-notes.md`.
+- Completed the full Product Design-led UI/UX audit pass requested by the
+  owner:
+  - Used Graphify first:
+    `graphify query "FocusGlass full UI UX pass sidebar project cards mode chips settings strict rows light dark custom themes Product Design" --budget 2800`.
+  - Used Product Design `index`, `user-context` preflight, `get-context`
+    playback context from `docs/design/design-source.md`, and Product Design
+    `audit`. Saved Product Design context still does not exist.
+  - Used Build macOS Apps `build-run-debug` through the packaged app workflow:
+    `FOCUSGLASS_DATA_DIR=<audit-data-dir> ./script/build_and_run.sh --verify`.
+  - Used Computer Use only to inspect/click the live packaged macOS `.app`.
+  - Created local audit folder:
+    `/private/tmp/focusglass-ui-ux-audit-20260627-184307`.
+  - Saved audit notes:
+    `/private/tmp/focusglass-ui-ux-audit-20260627-184307/audit-notes.md`.
+  - Accepted screenshots:
+    `screens/01-cockpit-dark.png`,
+    `screens/02-projects-cards.png`,
+    `screens/03-analytics.png`,
+    `screens/04-strict-overview.png`,
+    `screens/05-settings-general.png`,
+    `screens/06-settings-strict-rows.png`,
+    `screens/07-settings-timers.png`,
+    `screens/08-settings-appearance-theme-studio.png`,
+    `screens/09-custom-theme.png`,
+    `screens/10-cockpit-light.png`,
+    `screens/11-cockpit-custom-theme.png`, and
+    `screens/12-fullscreen-focus.png`.
+  - Audit verdict: no release-blocking UI defect was found for a tester-facing
+    QA build.
+  - Recommended pre-tester follow-up: verify/fix Strict Mode manage routing so
+    it lands directly on Settings -> Strict Mode, and inspect the strict
+    app-rule count mismatch where the cockpit reports one blocked app but
+    Settings shows no selected applications.
+  - Product Design follow-up: reduce task-card wrapping pressure, tune
+    secondary text contrast in dark/light/custom themes, clarify sidebar vs
+    project-card ownership, and run a measured accessibility pass.
 - Completed the attached-task outcome Build macOS Apps proof:
   - Used Graphify first:
     `graphify query "FocusGlass attached timed checklist post-session outcome proof task progress complete continue next session" --budget 2600`.
@@ -240,6 +366,22 @@ Validated:
   `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
   completed 53/53 tests. The output included non-fatal macOS Shortcut warnings
   about missing shortcuts, but the test process exited successfully.
+- Full Product Design UI/UX audit validation also passed:
+  `FOCUSGLASS_DATA_DIR=... ./script/build_and_run.sh --verify` through the
+  real packaged `build/FocusGlass.app`, visual screenshot inspection with
+  Computer Use, `screencapture` proof files under
+  `/private/tmp/focusglass-ui-ux-audit-20260627-184307/screens`, and written
+  audit notes at
+  `/private/tmp/focusglass-ui-ux-audit-20260627-184307/audit-notes.md`.
+- Theme Studio/UI polish validation passed:
+  `bash -n script/build_and_run.sh`, `swift build`,
+  `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+  passed 54/54 tests,
+  `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-theme-studio-polish-20260627-191539/data ./script/build_and_run.sh --verify`
+  rebuilt, verified, and launched the packaged `build/FocusGlass.app`,
+  `codesign --verify --deep --strict build/FocusGlass.app` passed,
+  `git diff --check` passed, and `graphify update .` rebuilt the graph at
+  1017 nodes, 2237 edges, and 57 communities.
 - Next skill/workflow: use Build macOS Apps for any follow-up live `.app`
   validation; use Product Design before changing outcome/strict/settings UX;
   use Graphify before broad code navigation/status questions; use
@@ -265,6 +407,12 @@ Not started yet:
 - A deeper manual QA pass for strict warn/hide against real blocked apps/sites
   can still be done before tester delivery, but the QA First pass is no longer
   blocked on screenshots or Settings/fullscreen verification.
+- The full UI/UX audit pass is complete, and the first implementation polish
+  pass is complete for Theme Studio plus cockpit task-row wrapping. The broader
+  UI pass is still open: Strict Mode settings routing/count consistency,
+  secondary text contrast, sidebar vs project-card ownership, strict rows,
+  project-card hierarchy, and measured accessibility checks still need Product
+  Design-led work.
 - Deeper Product Design refinements for task-attached outcome states can still
   be done later, but both no-task and attached-task outcome states now have
   live `.app` proof.
@@ -272,11 +420,19 @@ Not started yet:
 
 Next likely choices:
 
-- Optionally run strict warn/hide/pause against real blocked apps/sites once
+- If staying pre-tester: inspect/fix the two strict-mode audit findings, then
+  optionally run strict warn/hide/pause against real blocked apps/sites once
   system permissions are granted.
-- Next roadmap product chunks: strict distraction history, full UI pass over
-  sidebar/cards/settings/strict rows, then analytics for planned vs actual,
-  recent sessions, and mode effectiveness.
+- If continuing UI polish: use Product Design first, then Build macOS Apps live
+  validation. Next likely UI targets are Settings routing/count consistency,
+  strict rows, sidebar/project-card hierarchy, and contrast/readability across
+  light/dark/custom themes.
+- If moving product roadmap: strict distraction history is still the next
+  feature chunk. The full UI pass now has Product Design audit evidence, but
+  its implementation polish remains after strict history unless the owner
+  reorders it.
+- After that: analytics for planned vs actual, recent sessions, mode
+  effectiveness, and distraction analytics by project/mode.
 - Optional later: create a GitHub Release for `v0.0.3` only if the owner asks.
 
 Active partial work:
@@ -286,6 +442,9 @@ Active partial work:
 - Post-session outcome first implementation is complete. No active partial code
   work is intentionally left open in this checkpoint. Attached-task outcome
   proof is complete.
+- Full UI/UX audit is complete as evidence/planning work. First UI polish code
+  has been implemented for Theme Studio, cockpit task-row wrapping, and the
+  protected-folder icon-persistence prompt. Broader UI polish remains open.
 
 Resume instructions if a future plan/thread continues from here:
 
@@ -299,11 +458,13 @@ Resume instructions if a future plan/thread continues from here:
      onboarding, or other UX-flow changes; saved Product Design context is
      currently missing, so use `docs/design/design-source.md` plus the current
      `.app`.
-- If this checkpoint is seen before the commit lands, the intended source
-  changes are the outcome implementation, localization, focused tests, and this
-  handoff update. Local audit/proof artifacts live in `/private/tmp` and release
-  artifacts live under ignored `build/`. Do not stage `.codex/`, `graphify-out/`,
-  `build/`, `.build/`, or `.swiftpm/`.
+- If this checkpoint is seen before the commit lands, the intended tracked
+  source changes are the Theme Studio polish, reusable `GlassSlider`, cockpit
+  task-row wrapping fix, protected-folder icon-persistence skip, focused tests,
+  localization/docs updates, and this handoff update. Local audit/proof
+  artifacts live in `/private/tmp` and release artifacts live under ignored
+  `build/`. Do not stage `.codex/`, `graphify-out/`, `build/`, `.build/`, or
+  `.swiftpm/`.
 - Required final checks for this workflow pass:
   `bash -n script/build_and_run.sh`,
   `swift build`,
@@ -314,7 +475,7 @@ Resume instructions if a future plan/thread continues from here:
   `codesign --verify --deep --strict build/FocusGlass.app`,
   `git diff --check`, and `graphify update .`.
 - Intended commit message if not already committed:
-  `feat: добавить итог сессии` with commit body
+  `feat: улучшить Theme Studio` with commit body
   `Ассистент: Codex`.
 - Do not create a GitHub Release until the owner explicitly asks for it.
 
@@ -357,9 +518,15 @@ Started or partially started roadmap items:
 - UI interactive layer: partially started. Shared hover, checkbox, select,
   stepper, segmented control, expanded hit areas, and theme-aware interaction
   pieces exist. Project/task edit hit areas, fullscreen skip, scrollable task
-  lists, and Theme Studio token preview were improved in the tester pass. Still
-  missing: full UI pass over sidebar, project cards, mode chips, settings tabs,
-  strict rows, light/dark, and custom themes.
+  lists, and Theme Studio token preview were improved in the tester pass. Full
+  Product Design audit evidence now exists for sidebar, project cards, mode
+  chips, settings tabs, strict rows, light/dark, custom themes, and fullscreen
+  focus at `/private/tmp/focusglass-ui-ux-audit-20260627-184307`. The first
+  implementation polish pass improved Theme Studio advanced editing and cockpit
+  task-row wrapping, with proof at
+  `/private/tmp/focusglass-theme-studio-polish-20260627-191539`. Still missing:
+  broader implementation polish for sidebar/project-card hierarchy, strict
+  rows, Settings routing/count consistency, and measured contrast/readability.
 - Analytics: partially started. Daily summary, focus score, completed sessions,
   honest focus time, project grouping, unassigned session handling, and mini
   heatmap UI exist. Still missing: planned vs actual by sessions/tasks/projects,
@@ -391,9 +558,11 @@ using the full current operating plan first, then the roadmap block.
    finish code changes with `graphify update .`.
 2. Baseline pre-tester QA is complete through the real `.app`: Build macOS
    Apps verified launch, Settings, Strict Mode overview, fullscreen focus,
-   temp-data isolation, diagnostics, and Product Design audit proof. Optional
-   extra proof later is a strict warn/hide/pause scenario with a real
-   configured blocked app/site and running timer.
+   temp-data isolation, diagnostics, and Product Design audit proof. The later
+   full UI/UX audit is also complete at
+   `/private/tmp/focusglass-ui-ux-audit-20260627-184307`. Optional extra proof
+   later is a strict warn/hide/pause scenario with a real configured blocked
+   app/site and running timer.
 3. Tester delivery `0.0.3` is complete: `VERSION=0.0.3`, tag `v0.0.3`,
    release zip/checksum under `build/releases/0.0.3`, and isolated artifact
    branch `tester/0.0.3` pushed. GitHub Release is still owner-controlled and
@@ -407,8 +576,12 @@ using the full current operating plan first, then the roadmap block.
    validate the live `.app`.
 6. Attached-task outcome QA proof is complete through Build macOS Apps: timed
    task progress, checklist no-progress, and complete/continue/start-next
-   actions were validated in the live `.app`. The next product chunk is strict
-   distraction history.
+   actions were validated in the live `.app`. The next pre-tester code target,
+   if the owner wants polish before tester handoff, is either the remaining
+   UI/audit work or the strict-mode audit finding: direct Settings -> Strict
+   Mode routing and strict app-rule count consistency. Theme Studio first-pass
+   polish is already implemented and verified. The next roadmap product chunk
+   remains strict distraction history.
 7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
    remain explicit owner-controlled steps.

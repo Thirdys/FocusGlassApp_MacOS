@@ -38,20 +38,22 @@ source of truth.
 
 ## Current Screen Model
 
-- Main cockpit: quick preset chips and intention at the top; active project
-  selector on the left of the timer; project task stack on the right; analytics
-  below. The right context rail must not repeat the active project card or the
-  project task stack.
-- Menu bar: compact glass HUD with preset/time header, progress rail, intention
-  row, one primary timer action, strict-mode switch/status, and a bottom toolbar
-  for fullscreen, reset, skip, and opening the main app.
+- Main cockpit: quick preset chips at the top; project selector and collapsible
+  project notes on the left; circular timer as the center anchor; active task
+  plus project task cards on the right; analytics below. Keep this three-column
+  rhythm on wide layouts instead of moving the timer to a side column. The right
+  context rail must not repeat the active project card or the project task stack.
+- Menu bar: compact glass HUD with preset/time header, progress rail, one
+  primary timer action, strict-mode switch/status, and a bottom toolbar for
+  fullscreen, reset, skip, and opening the main app.
 - Settings: calm tabbed surface with General, Timers, Strict Mode, Access, and
   Appearance tabs. The selected tab gets a short summary below the rail so the
   sections read as tasks, not a bare label strip. Main settings controls use
   FocusGlass glass controls rather than stock macOS picker/stepper/textfield
   styling.
-- Fullscreen focus: large timer, optional intention/task rail, segment rail,
-  compact localized strict warning, and hover-only controls while running.
+- Fullscreen focus: large timer, optional task rail, segment rail, compact
+  localized strict warning, and hover-only controls while running. The legacy
+  global intention is not shown; project context lives in project notes.
 
 ## Quality Rules
 
@@ -122,6 +124,7 @@ source of truth.
 
 ## Known Design Caveats
 
-- Advanced Theme Studio currently uses SwiftUI `Slider` controls. If the goal
-  becomes fully custom controls everywhere, introduce a `GlassSlider` before
-  replacing those controls.
+- Advanced Theme Studio now uses a single live preview, custom `GlassSlider`,
+  grouped token sections, and ColorPicker-backed color cards. Future polish
+  should continue from that control language instead of returning to stock
+  sliders or manual hex entry as the primary color-editing path.

@@ -193,6 +193,88 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
+    func legacyProjectWithoutNotesDecodesWithEmptyNotes() throws {
+        let project = FocusProject(name: "Alpha", detail: "Client work", accentName: "aurora", notes: "Context")
+        let data = try JSONEncoder().encode(project)
+        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object.removeValue(forKey: "notes")
+        let legacyData = try JSONSerialization.data(withJSONObject: object)
+
+        let decoded = try JSONDecoder().decode(FocusProject.self, from: legacyData)
+
+        #expect(decoded.name == "Alpha")
+        #expect(decoded.notes == "")
+    }
+
+    @Test
+    @MainActor
+    func projectNotesPersistAcrossRelaunch() throws {
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        let firstLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        var project = firstLaunch.addProject()
+        project.name = "Deep Work Sprint"
+        project.notes = "Keep release context and tester handoff details."
+        firstLaunch.updateProject(project)
+
+        let secondLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let restored = try #require(secondLaunch.projects.first { $0.id == project.id })
+
+        #expect(restored.name == "Deep Work Sprint")
+        #expect(restored.notes == "Keep release context and tester handoff details.")
+    }
+
+    @Test
+    @MainActor
+    func legacyIntentionMigratesIntoActiveProjectNotesWhenEmpty() throws {
+        let project = FocusProject(name: "Alpha", detail: "Client work", accentName: "aurora")
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        store.save(
+            FocusGlassPersistedState(
+                schemaVersion: 3,
+                selectedThemeID: ThemeProfile.noirCrimsonID,
+                themeProfiles: ThemeProfile.builtIn,
+                language: .en,
+                strictModeEnabled: false,
+                intention: "Keep the release checklist visible.",
+                activeProjectID: project.id,
+                activeProject: project.name,
+                projects: [project],
+                tasks: [],
+                distractionRules: [],
+                recentSessions: []
+            )
+        )
+
+        let model = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let restored = try #require(model.projects.first { $0.id == project.id })
+
+        #expect(restored.notes == "Keep the release checklist visible.")
+        #expect(model.intention == "")
+    }
+
+    @Test
+    @MainActor
+    func projectNotesUpdateDoesNotBreakActiveTaskSelectionOrProgress() throws {
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        let firstLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let project = firstLaunch.addProject()
+        var task = firstLaunch.addQuickTask()
+        task.title = "Audit cockpit task layout"
+        task.completed = 12 * 60
+        firstLaunch.updateTask(task)
+        firstLaunch.updateActiveProjectNotes("UI/UX audit notes")
+
+        let secondLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let restoredTask = try #require(secondLaunch.selectedActiveTask)
+        let restoredProject = try #require(secondLaunch.projects.first { $0.id == project.id })
+
+        #expect(restoredTask.id == task.id)
+        #expect(restoredTask.completed == 12 * 60)
+        #expect(restoredProject.notes == "UI/UX audit notes")
+    }
+
+    @Test
+    @MainActor
     func presetEditChangesOnlySelectedPreset() {
         let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
         let countdownBefore = model.presets.first { $0.id == TimerPreset.countdown30ID }
@@ -769,6 +851,37 @@ struct FocusGlassPersistenceTests {
         #expect(flushedSettings.selectedThemeID == nextTheme.id)
         #expect(!model.isThemeSideEffectPending)
         #expect(model.lastThemePerformanceMessage != nil)
+    }
+
+    @Test
+    @MainActor
+    func userProtectedBundleLocationsSkipPersistentIconWrites() {
+        let home = URL(fileURLWithPath: "/Users/focusglass", isDirectory: true)
+
+        #expect(
+            FocusGlassViewModel.isUserConsentProtectedBundleLocation(
+                home.appendingPathComponent("Documents/FocusGlass/build/FocusGlass.app", isDirectory: true),
+                homeDirectory: home
+            )
+        )
+        #expect(
+            FocusGlassViewModel.isUserConsentProtectedBundleLocation(
+                home.appendingPathComponent("Desktop/FocusGlass.app", isDirectory: true),
+                homeDirectory: home
+            )
+        )
+        #expect(
+            FocusGlassViewModel.isUserConsentProtectedBundleLocation(
+                home.appendingPathComponent("Downloads/FocusGlass.app", isDirectory: true),
+                homeDirectory: home
+            )
+        )
+        #expect(
+            !FocusGlassViewModel.isUserConsentProtectedBundleLocation(
+                URL(fileURLWithPath: "/Applications/FocusGlass.app", isDirectory: true),
+                homeDirectory: home
+            )
+        )
     }
 
     @Test

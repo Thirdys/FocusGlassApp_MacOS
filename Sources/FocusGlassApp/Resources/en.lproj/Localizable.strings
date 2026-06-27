@@ -52,6 +52,9 @@
 "tasks.selectForSession" = "Select for session";
 "tasks.noActiveTask" = "No task selected";
 "projects.unassigned.detail" = "Tasks without a project live here. Use them as a quick personal list.";
+"projects.notes" = "Project notes";
+"projects.notes.placeholder" = "Context, decisions, links, or the thought to keep for the next session.";
+"projects.notes.empty" = "No notes yet";
 
 "analytics.honestFocus" = "Honest focus";
 "analytics.honestFocusDetail" = "Only active focus time";
@@ -179,8 +182,20 @@
 "menu.openApp" = "Open App";
 
 "theme.title" = "Theme Studio";
-"theme.subtitle" = "Choose a ready theme. Detailed color controls live in advanced settings.";
-"theme.advancedColors" = "Advanced colors and glass";
+"theme.subtitle" = "Choose a theme, then tune glass, colors, and readability with pickers and sliders.";
+"theme.activeTheme" = "Active theme";
+"theme.builtIn" = "Built-in";
+"theme.customTheme" = "Custom";
+"theme.livePreviewDetail" = "Checks the cockpit, timer, and secondary labels against the current tokens.";
+"theme.group.accent" = "Accent and state";
+"theme.group.accent.detail" = "Buttons, timer ring, strict state, and glow accents.";
+"theme.group.foundation" = "Background and surfaces";
+"theme.group.foundation.detail" = "Window gradient, glass layers, elevated cards, and highlight color.";
+"theme.group.readability" = "Readability";
+"theme.group.readability.detail" = "Primary text, muted labels, heatmap, and secondary data contrast.";
+"theme.group.glass" = "Glass and motion";
+"theme.group.glass.detail" = "Opacity, blur, borders, shadow, density, and motion.";
+"theme.advancedColors" = "Theme controls";
 "theme.highlightColor" = "Highlight color";
 "theme.saving" = "Saving theme...";
 "theme.delete" = "Delete theme";

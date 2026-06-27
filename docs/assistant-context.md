@@ -213,19 +213,23 @@ Notes:
 
 Main cockpit:
 
-- `FocusTodayView` has quick preset chips, intention input, project selector on
-  the left, circular timer in the center, and project tasks on the right.
-- `ActiveProjectCard` is for project selection/edit/add and does not list
-  tasks.
-- `FocusStackCard` lists active tasks for the current project and opens task
-  editing sheets.
+- `FocusTodayView` has quick preset chips, project selector plus collapsible
+  project notes on the left, circular timer in the center, and active/task cards
+  on the right.
+- Keep the timer as the center anchor on wide layouts. Do not move it to the
+  left just to make a larger task panel.
+- Project edit/add stays in the Projects screen and project editor sheet, not as
+  persistent cockpit chrome. Cockpit project context is selection plus notes.
+- Task rows are one visual card with a small completion control and compact
+  trailing edit affordance. Do not return to checkbox + narrow card + separate
+  edit-button columns.
 - Every piece of working information needs one primary home. Avoid duplicating
   the same project, task, timer, analytics, permission, or strict-mode content in
   multiple visible areas unless the repeated appearance has a clearly different
   role such as navigation, status, or editing.
 - `FocusContextRailView` must not duplicate working content from the main area.
   It should stay contextual: timer state and strict-mode status only. Project
-  tasks belong in `FocusStackCard` next to the timer.
+  tasks belong in the task panel next to the timer.
 
 Settings:
 
@@ -239,7 +243,9 @@ Settings:
 - Permissions rows share `FocusPermissionStatus` and show calm states instead
   of false red warnings.
 - Appearance exposes built-in themes first and keeps Theme Studio advanced
-  controls in a disclosure group.
+  controls in a disclosure group. Theme Studio uses one compact live preview,
+  ColorPicker-backed color token cards, and glass sliders for numeric tokens;
+  hex strings are display/export details, not the primary editing path.
 
 Reusable controls live in `Views/Components.swift`:
 
@@ -256,8 +262,9 @@ Known visual caveats to remember:
 
 - The main active project selector uses `GlassSelect` so the cockpit matches
   Settings controls instead of showing a stock SwiftUI `Menu`.
-- Advanced Theme Studio still uses SwiftUI `Slider`; build a `GlassSlider` if
-  the goal becomes "no stock controls anywhere".
+- Theme Studio color editing should stay picker-first. Do not return to manual
+  hex text entry as the main interaction unless there is a separate expert-mode
+  decision.
 
 ## Fullscreen focus
 
@@ -334,8 +341,10 @@ Theme switching is intentionally animated, split, and batched:
   `updateSystemAppearanceAnimated`.
 - Runtime Dock icon drawing is deferred by about 120 ms so AppKit icon drawing
   does not block the selection click or light/dark switch.
-- Settings persistence and `NSWorkspace.setIcon` custom app-icon persistence
-  are debounced by about 700 ms.
+- Settings persistence and best-effort `NSWorkspace.setIcon` custom app-icon
+  persistence are debounced by about 700 ms. Persistent icon writes are skipped
+  when the running `.app` lives under the user's Documents, Desktop, or
+  Downloads folder so Theme Studio edits do not trigger macOS privacy prompts.
 - Built-in theme edits are batched into one custom-theme mutation instead of
   creating several theme side-effect schedules.
 - `isThemeSideEffectPending` is only published when it actually changes, so
@@ -349,7 +358,8 @@ Finder `.icns` is static and generated from the same geometry as the runtime
 icon. `Scripts/package-app.sh` regenerates the static icon before packaging so
 the bundled app stays aligned with `FocusGlassRuntimeIcon`. Runtime/custom app
 icon persistence is best-effort; macOS may reject `NSWorkspace.setIcon` for
-local bundles.
+local bundles, and FocusGlass skips persistent writes in user-protected folders
+to avoid permission prompts during theme editing.
 
 `L10n` must not directly call SwiftPM's generated `Bundle.module` accessor. For
 local `.app` bundles, resources live under `Contents/Resources`, while the

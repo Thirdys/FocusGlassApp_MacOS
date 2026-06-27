@@ -52,6 +52,9 @@
 "tasks.selectForSession" = "Выбрать для сессии";
 "tasks.noActiveTask" = "Задача не выбрана";
 "projects.unassigned.detail" = "Задачи без проекта живут здесь. Их можно вести как быстрый личный список.";
+"projects.notes" = "Заметки проекта";
+"projects.notes.placeholder" = "Контекст, решения, ссылки или мысль для следующей сессии.";
+"projects.notes.empty" = "Заметок пока нет";
 
 "analytics.honestFocus" = "Честный фокус";
 "analytics.honestFocusDetail" = "Только активное время работы";
@@ -179,8 +182,20 @@
 "menu.openApp" = "Открыть приложение";
 
 "theme.title" = "Студия темы";
-"theme.subtitle" = "Выбери готовую тему. Детальные цвета спрятаны в расширенных настройках.";
-"theme.advancedColors" = "Расширенные цвета и стекло";
+"theme.subtitle" = "Выбери тему и настрой стекло, цвета и читаемость через палитры и слайдеры.";
+"theme.activeTheme" = "Активная тема";
+"theme.builtIn" = "Встроенная";
+"theme.customTheme" = "Пользовательская";
+"theme.livePreviewDetail" = "Проверка cockpit, таймера и вторичных подписей на текущих токенах.";
+"theme.group.accent" = "Акцент и состояние";
+"theme.group.accent.detail" = "Кнопки, кольцо таймера, strict state и световые акценты.";
+"theme.group.foundation" = "Фон и поверхности";
+"theme.group.foundation.detail" = "Градиент окна, стеклянные слои, elevated cards и highlight.";
+"theme.group.readability" = "Читаемость";
+"theme.group.readability.detail" = "Основной текст, тихие подписи, heatmap и контраст вторичных данных.";
+"theme.group.glass" = "Стекло и движение";
+"theme.group.glass.detail" = "Прозрачность, blur, границы, тени, плотность и motion.";
+"theme.advancedColors" = "Настройка темы";
 "theme.highlightColor" = "Цвет блика";
 "theme.saving" = "Сохраняю тему...";
 "theme.delete" = "Удалить тему";

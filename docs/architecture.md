@@ -79,10 +79,12 @@ The state is local-only and currently includes:
 - `language`, `strictModeEnabled`, `strictModeEnforcesDuringBreaks`,
   `hasSeenPermissionsOnboarding`: app-level preferences, strict-mode break
   behavior, and first-launch permission onboarding state.
-- `intention`, `activeProjectID`, `activeTaskID`, `activeProject`: current
-  focus context. `activeProject` is retained only as a legacy/readable string.
+- `intention`, `activeProjectID`, `activeTaskID`, `activeProject`: current and
+  legacy focus context. `intention` is retained for backward-compatible decode
+  and migration only; it is no longer shown as a standalone cockpit/menu/fullscreen
+  UI field. `activeProject` is retained only as a legacy/readable string.
 - `projects`: `FocusProject` values with stable `id`, `name`, `detail`, and
-  `accentName`.
+  `accentName`, plus project-scoped `notes`.
 - `tasks`: `FocusTask` values keyed to projects by optional `projectID`.
   `timingMode` is `.timed` or `.checklist`; legacy tasks without this field
   decode as `.timed`. `projectName` is decoded only for legacy migration and is
@@ -109,6 +111,9 @@ before the app starts writing current split files:
   silently selecting a different task.
 - Legacy starter/demo projects, tasks, intentions, and placeholder projects
   from pre-schema builds are removed so an empty user state stays empty.
+- A non-starter legacy `intention` migrates once into the active project's
+  `notes` when that project has empty notes, then the persisted intention is
+  cleared for the current UI.
 - `sanitizedStarterState` returns a schema v4 migrated state marker for legacy
   cleanup, then new saves write split `schemaVersion: 4` files. Legacy
   `state.json` is kept in place and not deleted.
@@ -163,8 +168,11 @@ and batch multi-step theme mutations:
 - Runtime Dock icon drawing is deferred by about 120 ms with
   `scheduleRuntimeIconUpdate`. `iconTheme` uses the selected theme adapted to the
   resolved light/dark appearance, including system appearance changes.
-- Settings persistence and `NSWorkspace.setIcon` custom app-icon persistence
-  are debounced by about 700 ms in `scheduleThemeSideEffects`.
+- Settings persistence and best-effort `NSWorkspace.setIcon` custom app-icon
+  persistence are debounced by about 700 ms in `scheduleThemeSideEffects`.
+  Persistent icon writes are skipped when the running `.app` lives under the
+  user's Documents, Desktop, or Downloads folder so Theme Studio edits do not
+  trigger macOS privacy prompts.
 - App termination flushes pending theme side effects before the process exits,
   so the last chosen icon snapshot is not lost only because a debounce was
   still waiting.
@@ -182,9 +190,9 @@ and batch multi-step theme mutations:
 - Built-in Theme Studio edits are applied through `performThemeMutation`, so
   duplicating a built-in theme and applying the actual edit produce one
   side-effect schedule instead of several.
-- Theme Studio preview explicitly visualizes advanced color tokens: background
-  top/mid/bottom as a window gradient, text/muted text on a live sample, and
-  surface/elevated colors as chips.
+- Theme Studio uses one compact live preview plus grouped controls. Color
+  tokens are edited through ColorPicker-backed cards with read-only hex labels;
+  numeric glass/motion tokens use the custom `GlassSlider`.
 - Built-in themes can be reset to defaults. Custom themes have a separate
   delete action and are never removed through reset.
 - `lastThemePerformanceMessage` records UI scheduling, runtime icon, save, and

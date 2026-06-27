@@ -137,7 +137,7 @@ struct ContentView: View {
             return
         }
 
-        let duration = accessibilityReduceMotion ? Duration.milliseconds(280) : .milliseconds(920)
+        let duration = accessibilityReduceMotion ? Duration.milliseconds(280) : .milliseconds(1180)
         try? await Task.sleep(for: duration)
         withAnimation(.easeInOut(duration: accessibilityReduceMotion ? 0.16 : 0.34)) {
             showsLaunchSequence = false
@@ -202,6 +202,7 @@ private struct FocusGlassLaunchOverlay: View {
     let reduceMotion: Bool
 
     @State private var isRevealed = false
+    @State private var isSettled = false
 
     var body: some View {
         ZStack {
@@ -215,14 +216,40 @@ private struct FocusGlassLaunchOverlay: View {
                 .scaleEffect(isRevealed && !reduceMotion ? 1.08 : 0.82)
 
             VStack(spacing: 22) {
-                iconMark
-                    .frame(width: 144, height: 144)
-                    .scaleEffect(isRevealed || reduceMotion ? 1 : 0.86)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 42, style: .continuous)
+                        .fill(theme.highlight.opacity(0.10))
+                        .frame(width: 176, height: 176)
+                        .blur(radius: 24)
+                        .opacity(isSettled || reduceMotion ? 1 : 0)
+
+                    iconMark
+                        .frame(width: 144, height: 144)
+                }
+                .scaleEffect(isRevealed || reduceMotion ? 1 : 0.84)
+                .rotation3DEffect(.degrees(isRevealed || reduceMotion ? 0 : -7), axis: (x: 1, y: 0, z: 0))
+                .offset(y: isRevealed || reduceMotion ? 0 : 12)
 
                 Text("FocusGlass")
                     .font(.system(size: 35, weight: .bold, design: .rounded))
                     .foregroundStyle(theme.text)
-                    .opacity(isRevealed || reduceMotion ? 1 : 0.22)
+                    .opacity(isSettled || reduceMotion ? 1 : 0.18)
+                    .offset(y: isSettled || reduceMotion ? 0 : 8)
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                theme.primary.opacity(0.18),
+                                theme.glow.opacity(0.42),
+                                theme.highlight.opacity(0.18)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: isSettled || reduceMotion ? 118 : 34, height: 4)
+                    .opacity(isSettled || reduceMotion ? 1 : 0.24)
             }
             .shadow(color: theme.glow.opacity(0.20), radius: 26, x: 0, y: 16)
         }
@@ -230,11 +257,18 @@ private struct FocusGlassLaunchOverlay: View {
         .onAppear {
             guard !reduceMotion else {
                 isRevealed = true
+                isSettled = true
                 return
             }
 
             withAnimation(.spring(duration: 0.72, bounce: 0.16)) {
                 isRevealed = true
+            }
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(260))
+                withAnimation(.easeInOut(duration: 0.34)) {
+                    isSettled = true
+                }
             }
         }
     }
@@ -281,8 +315,18 @@ private struct FocusGlassLaunchOverlay: View {
                         .padding(29)
                 }
 
+            ForEach(0..<28, id: \.self) { index in
+                Capsule()
+                    .fill(theme.text.opacity(index.isMultiple(of: 4) ? 0.20 : 0.10))
+                    .frame(width: 2, height: index.isMultiple(of: 4) ? 10 : 6)
+                    .offset(y: -47)
+                    .rotationEffect(.degrees(Double(index) * (360 / 28)))
+                    .opacity(isRevealed || reduceMotion ? 1 : 0)
+                    .scaleEffect(isRevealed || reduceMotion ? 1 : 0.72)
+            }
+
             Circle()
-                .trim(from: 0.05, to: isRevealed || reduceMotion ? 0.70 : 0.15)
+                .trim(from: 0.05, to: isSettled || reduceMotion ? 0.82 : (isRevealed ? 0.70 : 0.15))
                 .stroke(
                     AngularGradient(
                         colors: [theme.primary.opacity(0.72), theme.primary, theme.glow.opacity(0.94)],
@@ -309,10 +353,17 @@ private struct FocusGlassLaunchOverlay: View {
                 .offset(x: 35, y: -35)
 
             Capsule()
-                .fill(theme.highlight.opacity(0.26))
-                .frame(width: 42, height: 4)
-                .rotationEffect(.degrees(-14))
-                .offset(x: -19, y: -36)
+                .fill(
+                    LinearGradient(
+                        colors: [.clear, theme.highlight.opacity(0.72), .clear],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 72, height: 5)
+                .rotationEffect(.degrees(-16))
+                .offset(x: isSettled || reduceMotion ? 30 : -24, y: -42)
+                .opacity(isSettled || reduceMotion ? 0.82 : 0.18)
         }
     }
 
@@ -668,26 +719,6 @@ private struct FocusTodayView: View {
         VStack(spacing: 22) {
             VStack(spacing: 18) {
                 QuickModeRow()
-                VStack(alignment: .leading, spacing: 7) {
-                    Text(model.t("focus.intent"))
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(model.theme.mutedText)
-                    HStack(spacing: 10) {
-                        TextField(model.t("focus.intent.placeholder"), text: $model.intention)
-                            .textFieldStyle(.plain)
-                            .font(.system(size: 15, weight: .medium))
-                        Image(systemName: "pencil")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundStyle(model.theme.mutedText)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 13)
-                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
-                            .stroke(.white.opacity(0.10), lineWidth: 1)
-                    }
-                }
 
                 if let outcome = model.pendingSessionOutcome {
                     SessionOutcomeCard(outcome: outcome)
@@ -704,24 +735,28 @@ private struct FocusTodayView: View {
     private var focusLayout: some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .center, spacing: 24) {
-                ActiveProjectCard()
-                    .frame(width: 250)
-
-                Spacer(minLength: 0)
+                FocusProjectPanel()
+                    .frame(width: 360)
 
                 timerStack(size: 360, clockSize: 72)
+                    .frame(minWidth: 360)
 
-                Spacer(minLength: 0)
-
-                FocusStackCard()
-                    .frame(width: 286)
+                FocusTaskPanel()
+                    .frame(width: 360)
             }
 
             VStack(spacing: 18) {
                 timerStack(size: 318, clockSize: 62)
-                HStack(alignment: .top, spacing: 16) {
-                    ActiveProjectCard()
-                    FocusStackCard()
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 16) {
+                        FocusProjectPanel()
+                        FocusTaskPanel()
+                    }
+
+                    VStack(spacing: 16) {
+                        FocusProjectPanel()
+                        FocusTaskPanel()
+                    }
                 }
             }
         }
@@ -775,94 +810,256 @@ private struct QuickModeRow: View {
     }
 }
 
-private struct ActiveProjectCard: View {
+private struct FocusProjectPanel: View {
     @EnvironmentObject private var model: FocusGlassViewModel
-    @State private var editingProject: FocusProject?
+    @State private var isNotesExpanded = false
+
+    private var activeProject: FocusProject? {
+        model.activeProjectID.flatMap { projectID in
+            model.projects.first { $0.id == projectID }
+        }
+    }
 
     var body: some View {
         LiquidGlassPanel(radius: 18, padding: 16) {
             VStack(alignment: .leading, spacing: 14) {
-                VStack(alignment: .leading, spacing: 5) {
+                projectContext
+                projectNotes
+            }
+        }
+    }
+
+    private var projectContext: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text(model.t("focus.activeProject"))
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(model.theme.mutedText)
+                        .textCase(.uppercase)
+
                     GlassSelect(
                         selection: $model.activeProjectID,
                         options: [nil] + model.projects.map(\.id),
                         title: projectTitle,
                         symbol: { $0 == nil ? "tray" : "folder" },
-                        minWidth: 218
+                        minWidth: 260
                     )
+                    .help(model.t("focus.activeProject"))
                 }
 
-                Divider().opacity(0.14)
+                Spacer(minLength: 0)
+            }
 
-                if let activeProject = model.activeProjectID.flatMap({ id in model.projects.first { $0.id == id } }) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(activeProject.detail.isEmpty ? model.t("projects.new.detail") : activeProject.detail)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(model.theme.mutedText)
-                            .lineLimit(3)
-
-                        HStack(spacing: 8) {
-                            Label("\(model.tasks(for: activeProject).count) \(model.t("projects.tasks"))", systemImage: "checklist.unchecked")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(model.theme.mutedText)
-
-                            Spacer()
-
-                            Button {
-                                editingProject = activeProject
-                            } label: {
-                                Label(model.t("projects.edit"), systemImage: "pencil")
-                                    .labelStyle(.iconOnly)
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(model.theme.mutedText)
-                            .glassHover(theme: model.theme, radius: 10)
-                            .help(model.t("projects.edit"))
-                        }
-                    }
-                } else {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(model.t("projects.unassigned.detail"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(model.theme.mutedText)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Label("\(model.activeTasks.count) \(model.t("projects.tasks"))", systemImage: "tray")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(model.theme.mutedText)
-                    }
-                }
-
-                Button {
-                    editingProject = model.addProject()
-                } label: {
-                    Label(model.t("projects.add"), systemImage: "plus")
-                        .font(.system(size: 12, weight: .semibold))
-                }
-                .buttonStyle(.plain)
+            Text(projectDetail)
+                .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(model.theme.mutedText)
-                .glassHover(theme: model.theme, radius: 10)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .stroke(model.theme.highlight.opacity(0.12), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private var projectNotes: some View {
+        if activeProject != nil {
+            DisclosureGroup(isExpanded: $isNotesExpanded) {
+                TextField(model.t("projects.notes.placeholder"), text: activeProjectNotesBinding, axis: .vertical)
+                    .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(3...7)
+                    .padding(.top, 8)
+            } label: {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(model.theme.primary)
+                        Text(model.t("projects.notes"))
+                            .font(.system(size: 12, weight: .bold))
+                        Spacer(minLength: 0)
+                    }
+
+                    if !isNotesExpanded {
+                        Text(notesPreview.isEmpty ? model.t("projects.notes.empty") : notesPreview)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(model.theme.mutedText)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .padding(13)
+            .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(model.theme.highlight.opacity(0.12), lineWidth: 1)
             }
         }
-        .sheet(item: $editingProject) { project in
-            ProjectEditorSheet(project: project) { updatedProject in
-                model.updateProject(updatedProject)
-                editingProject = nil
-            } onDelete: { deletedProject in
-                model.deleteProject(deletedProject)
-                editingProject = nil
+    }
+
+    private var activeProjectNotesBinding: Binding<String> {
+        Binding(
+            get: { activeProject?.notes ?? "" },
+            set: { model.updateActiveProjectNotes($0) }
+        )
+    }
+
+    private var notesPreview: String {
+        activeProject?.notes.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+
+    private var projectDetail: String {
+        if let activeProject {
+            return activeProject.detail.isEmpty ? model.t("projects.new.detail") : activeProject.detail
+        }
+        return model.t("projects.unassigned.detail")
+    }
+
+    private func projectTitle(_ projectID: UUID?) -> String {
+        projectID.flatMap(model.projectName(for:)) ?? model.t("projects.unassigned")
+    }
+}
+
+private struct FocusTaskPanel: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var editingTask: FocusTask?
+
+    private var secondaryTasks: [FocusTask] {
+        model.activeTasks.filter { $0.id != model.activeTaskID }
+    }
+
+    var body: some View {
+        LiquidGlassPanel(radius: 20, padding: 16, depth: .floating) {
+            VStack(alignment: .leading, spacing: 14) {
+                activeTaskSummary
+                taskList
+                addTaskButton
+            }
+        }
+        .sheet(item: $editingTask) { task in
+            TaskEditorSheet(task: task) { updatedTask in
+                model.updateTask(updatedTask)
+                editingTask = nil
+            } onDelete: { deletedTask in
+                model.deleteTask(deletedTask)
+                editingTask = nil
             }
             .environmentObject(model)
         }
     }
 
-    private func projectTitle(_ projectID: UUID?) -> String {
-        projectID.flatMap(model.projectName(for:)) ?? model.t("projects.unassigned")
+    @ViewBuilder
+    private var activeTaskSummary: some View {
+        if let task = model.selectedActiveTask {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Label(model.t("tasks.activeForSession"), systemImage: "target")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(model.theme.primary)
+                    Spacer()
+                    Button {
+                        editingTask = task
+                    } label: {
+                        Image(systemName: "pencil")
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(model.theme.mutedText)
+                    .glassHover(theme: model.theme, radius: 8)
+                    .help(model.t("tasks.edit"))
+                }
+
+                Text(task.title)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.82)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    taskMeta(for: task)
+                    Spacer(minLength: 0)
+                }
+
+                if task.timingMode == .timed {
+                    ProgressView(value: task.completed, total: max(1, task.estimate))
+                        .tint(model.theme.primary)
+                }
+            }
+            .padding(15)
+            .background(
+                LinearGradient(
+                    colors: [
+                        model.theme.primary.opacity(0.18),
+                        model.theme.surface.opacity(0.58),
+                        Color.white.opacity(0.04)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 17, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 17, style: .continuous)
+                    .stroke(model.theme.primary.opacity(0.42), lineWidth: 1)
+            }
+            .shadow(color: model.theme.primary.opacity(0.16), radius: 22, x: 0, y: 14)
+        }
+    }
+
+    private var taskList: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(model.activeProjectID == nil ? model.t("tasks.focusStack") : model.t("tasks.projectTasks"))
+                .font(.system(size: 14, weight: .bold))
+
+            if model.activeTasks.isEmpty {
+                EmptyInlineState(
+                    symbol: "checklist.unchecked",
+                    title: model.t("tasks.empty.title"),
+                    detail: model.t("tasks.empty.detail")
+                )
+            } else if !secondaryTasks.isEmpty {
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(secondaryTasks) { task in
+                            FocusTaskCardRow(task: task) {
+                                editingTask = task
+                            }
+                        }
+                    }
+                    .padding(.trailing, 2)
+                }
+                .frame(maxHeight: 360)
+            }
+        }
+    }
+
+    private var addTaskButton: some View {
+        Button {
+            editingTask = model.addQuickTask()
+        } label: {
+            Label(model.t("focus.addTask"), systemImage: "plus")
+                .font(.system(size: 12, weight: .bold))
+        }
+        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
+    }
+
+    @ViewBuilder
+    private func taskMeta(for task: FocusTask) -> some View {
+        if task.timingMode == .timed {
+            Label("\(task.completed.focusClock) / \(task.estimate.focusClock)", systemImage: "clock")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundStyle(model.theme.mutedText)
+        } else {
+            Label(model.t("tasks.checklist"), systemImage: "checklist")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(model.theme.mutedText)
+        }
     }
 }
 
@@ -912,61 +1109,9 @@ private struct TimerControlRow: View {
     }
 }
 
-private struct FocusStackCard: View {
+private struct FocusTaskCardRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
-    @State private var editingTask: FocusTask?
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(model.activeProjectID == nil ? model.t("tasks.focusStack") : model.t("tasks.projectTasks"))
-                    .font(.system(size: 14, weight: .bold))
-                Spacer()
-            }
-
-            if model.activeTasks.isEmpty {
-                EmptyInlineState(
-                    symbol: "checklist.unchecked",
-                    title: model.t("tasks.empty.title"),
-                    detail: model.t("tasks.empty.detail")
-                )
-            } else {
-                ScrollView {
-                    LazyVStack(spacing: 10) {
-                        ForEach(model.activeTasks) { task in
-                            FocusTaskRow(task: task) {
-                                editingTask = task
-                            }
-                        }
-                    }
-                    .padding(.trailing, 2)
-                }
-                .frame(maxHeight: 360)
-            }
-
-            Button {
-                editingTask = model.addQuickTask()
-            } label: {
-                Label(model.t("focus.addTask"), systemImage: "plus")
-                    .font(.system(size: 12, weight: .bold))
-            }
-            .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
-        }
-        .sheet(item: $editingTask) { task in
-            TaskEditorSheet(task: task) { updatedTask in
-                model.updateTask(updatedTask)
-                editingTask = nil
-            } onDelete: { deletedTask in
-                model.deleteTask(deletedTask)
-                editingTask = nil
-            }
-            .environmentObject(model)
-        }
-    }
-}
-
-private struct FocusTaskRow: View {
-    @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var isHovering = false
 
     let task: FocusTask
     let onEdit: () -> Void
@@ -976,13 +1121,13 @@ private struct FocusTaskRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
             Button {
                 model.toggleTask(task)
             } label: {
                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 16, weight: .bold))
-                    .frame(width: 44, height: 44)
+                    .frame(width: 30, height: 30)
                     .contentShape(Rectangle())
                     .foregroundStyle(task.isDone ? model.theme.primary : model.theme.mutedText)
             }
@@ -993,51 +1138,76 @@ private struct FocusTaskRow: View {
                 model.selectTaskForSession(task)
             } label: {
                 VStack(alignment: .leading, spacing: 7) {
-                    HStack(spacing: 8) {
+                    HStack(alignment: .top, spacing: 8) {
                         Text(task.title)
-                            .font(.system(size: 13, weight: .bold))
-                            .lineLimit(1)
-                        if isSelected {
-                            Label(model.t("tasks.activeForSession"), systemImage: "target")
-                                .labelStyle(.titleAndIcon)
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(model.theme.primary)
-                        }
-                        Spacer()
-                        taskMeta
+                            .font(.system(size: 14, weight: .bold))
+                            .lineLimit(3)
+                            .minimumScaleFactor(0.82)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .layoutPriority(1)
+                        Spacer(minLength: 0)
                     }
+
+                    HStack(spacing: 8) {
+                        selectedBadge
+                        taskMeta
+                        Spacer(minLength: 0)
+                    }
+
                     if task.timingMode == .timed {
                         ProgressView(value: task.completed, total: max(1, task.estimate))
                             .tint(model.theme.primary)
                     }
                 }
-                .padding(13)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
-                .background(
-                    (isSelected ? model.theme.primary.opacity(0.12) : .white.opacity(0.055)),
-                    in: RoundedRectangle(cornerRadius: 13, style: .continuous)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 13, style: .continuous)
-                        .stroke(isSelected ? model.theme.primary.opacity(0.42) : .clear, lineWidth: 1)
-                }
             }
             .buttonStyle(.plain)
-            .glassHover(theme: model.theme, radius: 13, isActive: isSelected)
             .help(model.t("tasks.selectForSession"))
 
             Button {
                 onEdit()
             } label: {
                 Image(systemName: "pencil")
-                    .frame(width: 44, height: 44)
+                    .frame(width: 28, height: 28)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(model.theme.mutedText)
-            .glassHover(theme: model.theme, radius: 10)
+            .opacity(isHovering || isSelected ? 1 : 0.58)
+            .glassHover(theme: model.theme, radius: 8)
             .help(model.t("tasks.edit"))
+        }
+        .padding(13)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .background(
+            (isSelected ? model.theme.primary.opacity(0.13) : Color.white.opacity(0.052)),
+            in: RoundedRectangle(cornerRadius: 15, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .stroke(isSelected ? model.theme.primary.opacity(0.44) : model.theme.highlight.opacity(0.10), lineWidth: 1)
+        }
+        .glassHover(theme: model.theme, radius: 15, isActive: isSelected)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.14)) {
+                isHovering = hovering
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedBadge: some View {
+        if isSelected {
+            Label(model.t("tasks.activeForSession"), systemImage: "target")
+                .labelStyle(.titleAndIcon)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(model.theme.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(model.theme.primary.opacity(0.12), in: Capsule())
         }
     }
 
@@ -1047,10 +1217,14 @@ private struct FocusTaskRow: View {
             Text("\(task.completed.focusClock) / \(task.estimate.focusClock)")
                 .font(.system(size: 11, weight: .bold, design: .rounded))
                 .foregroundStyle(model.theme.mutedText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
         } else {
             Text(model.t("tasks.checklist"))
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(model.theme.mutedText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
         }
     }
 }
@@ -1395,6 +1569,13 @@ private struct ProjectEditorSheet: View {
                     .foregroundStyle(model.theme.mutedText)
                 TextField(model.t("projects.detail"), text: $draft.detail, axis: .vertical)
                     .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
+
+                Text(model.t("projects.notes"))
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(model.theme.mutedText)
+                TextField(model.t("projects.notes.placeholder"), text: $draft.notes, axis: .vertical)
+                    .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
+                    .lineLimit(4...8)
             }
 
             HStack {

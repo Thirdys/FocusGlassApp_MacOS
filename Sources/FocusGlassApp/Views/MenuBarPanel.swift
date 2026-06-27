@@ -35,8 +35,6 @@ struct MenuBarPanel: View {
                     .tint(model.theme.primary)
                     .scaleEffect(x: 1, y: 0.62, anchor: .center)
 
-                intentionRow
-
                 Button {
                     model.toggleTimer()
                 } label: {
@@ -115,46 +113,6 @@ struct MenuBarPanel: View {
                 .font(.system(size: 34, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .minimumScaleFactor(0.72)
-        }
-    }
-
-    private var intentionRow: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "scope")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(model.theme.primary)
-                .frame(width: 24, height: 24)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(model.t("focus.intent"))
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(model.theme.mutedText)
-                    .textCase(.uppercase)
-                Text(model.intention.isEmpty ? model.t("focus.intent.empty") : model.intention)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(model.intention.isEmpty ? model.theme.mutedText : model.theme.text)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-        }
-        .padding(12)
-        .background(
-            LinearGradient(
-                colors: [
-                    model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18),
-                    model.theme.surface.opacity(model.theme.surfaceAlpha * 0.70),
-                    Color.black.opacity(model.theme.shadowDepth * 0.10)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.62), lineWidth: 1)
         }
     }
 

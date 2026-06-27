@@ -29,16 +29,8 @@ struct FullscreenFocusView: View {
                 Spacer(minLength: 18)
 
                 HStack(alignment: .center, spacing: 48) {
-                    if !model.intention.isEmpty || !model.activeTasks.isEmpty {
-                        VStack(alignment: .leading, spacing: 20) {
-                            if !model.intention.isEmpty {
-                                Text(model.intention)
-                                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                                    .lineLimit(3)
-                                    .frame(maxWidth: 460, alignment: .leading)
-                            }
-                            taskRail
-                        }
+                    if !model.activeTasks.isEmpty {
+                        taskRail
                     }
 
                     CircularTimerView(
