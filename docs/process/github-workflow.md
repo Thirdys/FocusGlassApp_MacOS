@@ -180,6 +180,24 @@ Zip и checksum не переносятся в tracked files. Пока прое�
 подписанный/notarized канал распространения, такие архивы считаются локальными
 unsigned сборками для ручной проверки и аккуратной передачи тестеру.
 
+Если владелец просит branch-based tester handoff, создаётся отдельная
+артефактная ветка `tester/<version>`. Это не source branch и не PR-кандидат в
+`main`. Допустимое содержимое:
+
+- `FocusGlass-<version>.zip`;
+- `FocusGlass-<version>.zip.sha256`;
+- `README.md`;
+- `build-info.md`;
+- `TESTER_CHECKLIST.md`;
+- `TESTER_RULES.md`;
+- `tester-report-template.md`.
+
+Ветка тестера должна объяснять, что именно проверять, как проверять checksum,
+как запускать `.app`, какие известные ограничения есть у local/ad-hoc signed
+сборки, и как оформить отчёт. Если предыдущий tester build ещё не проверялся,
+следующая tester-сборка должна получить новый semantic version, а checklist
+должен быть накопительным.
+
 GitHub Release можно использовать как ручную страницу раздачи уже собранного
 архива. Это не сборка приложения. Процесс:
 

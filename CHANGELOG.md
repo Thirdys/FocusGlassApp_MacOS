@@ -4,6 +4,59 @@
 
 ## [Unreleased]
 
+- Пока нет новых изменений после подготовки tester-сборки `0.0.4`.
+
+## [0.0.4] - 2026-06-27
+
+### Добавлено
+
+- Post-session outcome screen: planned vs honest time, distraction count,
+  task/no-task summary, actions `Закрыть задачу`, `Продолжить`,
+  `Следующая сессия`.
+- Project-scoped notes: заметки проекта доступны в cockpit disclosure и в
+  Project Editor.
+- Backward-compatible migration: legacy `intention` переносится в notes
+  активного проекта, если notes пустые.
+- Tester checklist для первого полного прохода:
+  `docs/process/tester-checklist.md`.
+- Более строгий `tester-report-template.md`: severity, permissions/data state,
+  screenshots и правила воспроизведения.
+- Build/run workflow через `script/build_and_run.sh` с `--verify`, `--logs`,
+  `--telemetry`, `--debug`.
+
+### Изменено
+
+- Cockpit rebuilt вокруг старой предпочтительной композиции: проект/notes
+  слева, таймер в центре, active task и project tasks справа.
+- Top-level `Текущее намерение` больше не показывается в cockpit, menu bar и
+  fullscreen; пользовательский контекст теперь живёт в project notes.
+- Task rows стали одной широкой карточкой с compact completion/edit controls.
+- Active task показывается featured-карточкой с полным названием, status и
+  progress.
+- Theme Studio стал picker-first: ColorPicker вместо ручного ввода hex,
+  один live preview, grouped advanced sections и glass sliders.
+- Launch overlay получил theme-aware glass reveal, timer ring/ticks animation
+  и Reduce Motion fallback.
+- Docs/process обновлены под branch-based tester handoff с checklist/rules.
+
+### Исправлено
+
+- Theme Studio больше не требует ручного ввода hex вроде `#705cf6`.
+- Дублирующий Theme Studio preview/explanation block удалён.
+- Смена темы из protected user folders не пытается делать persistent icon write,
+  чтобы не провоцировать лишний macOS file-access prompt.
+- Checklist tasks не получают timed progress от завершённой сессии.
+- Timed task progress сохраняется за задачей, выбранной на старте сессии.
+- Fullscreen/menu не показывают устаревшее intention поле.
+
+### Проверено
+
+- `swift build`
+- `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+  прошёл: 58/58.
+- `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-cockpit-ui-pass-20260627/data ./script/build_and_run.sh --verify`
+- `codesign --verify --deep --strict build/FocusGlass.app`
+
 ### Добавлено
 
 - Правила ведения GitHub-проекта, веток, коммитов, тегов и релизов.

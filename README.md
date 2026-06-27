@@ -126,6 +126,8 @@ VERSION                # текущий понятный номер сборки
 - [QA Checklist](docs/qa-checklist.md) - ручная и автоматическая проверка.
 - [GitHub Workflow](docs/process/github-workflow.md) - ветки, коммиты, теги, релизы и правила работы.
 - [Roadmap](docs/process/roadmap.md) - ближайшее развитие без смены идеи проекта.
+- [Tester Checklist](docs/process/tester-checklist.md) - компактный чеклист для ручной проверки tester-сборки.
+- [Tester Report Template](docs/process/tester-report-template.md) - шаблон отчёта тестера со screenshots и severity.
 
 Документация считается частью реализации. Если меняется поведение, структура данных, permissions, UI, сборка или QA, соответствующий документ обновляется в том же изменении.
 

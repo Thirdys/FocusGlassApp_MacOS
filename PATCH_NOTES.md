@@ -1,60 +1,98 @@
-# FocusGlass 0.0.2 tester patch notes
+# FocusGlass 0.0.4 tester patch notes
 
-Дата подготовки: 2026-06-19
+Дата подготовки: 2026-06-27
 
 Ветка разработки: `codex/next`
 
-Tester branch: будет заполнено после финального коммита и сборки, например `tester/0.0.2`
+Tester branch: `tester/0.0.4`
 
-Commit/tag сборки: будет заполнено перед передачей тестеру
+Commit/tag сборки: `v0.0.4`
 
-## Что исправлено по отчёту тестера
+## Что важно
 
-1. Theme Studio теперь показывает, на что влияют `Фон верх`, `Фон середина`, `Фон низ`, `Поверхность` и `Тихий текст`. В preview добавлен отдельный живой блок с градиентом окна, текстом, приглушённым текстом и surface-чипами.
+Тестер ещё не проходил предыдущий пакет, поэтому `0.0.4` надо проверять как
+накопительную tester-сборку. В неё входят изменения из `0.0.2/0.0.3` и новые
+изменения после них: outcome screen, полный UI/UX audit pass, Theme Studio
+polish и Cockpit First polish.
 
-2. Strict mode на перерывах стал настраиваемым. По умолчанию правила не срабатывают вне focus-фазы; в Settings можно включить `Строгий режим во время перерывов`.
+## Главное, что нужно проверить
 
-3. Действие strict-rule `Поставить на паузу` теперь реально ставит таймер на паузу, останавливает tick и запускает Shortcut `FocusGlass Pause`.
+1. Первый запуск `.app`, permission banner, Notifications, Accessibility и
+   Automation prompts.
+2. Таймеры: Pomodoro, Countdown, Stopwatch, Flow, Timebox, Intervals.
+3. Задачи:
+   - задачи без проекта;
+   - больше трёх задач в проекте;
+   - timed-задача получает прогресс после сессии;
+   - checklist-задача не получает время и закрывается вручную;
+   - активная задача сохраняется как выбранная задача сессии.
+4. Post-session outcome:
+   - planned vs honest time;
+   - distraction count;
+   - `Закрыть задачу`;
+   - `Продолжить`;
+   - `Следующая сессия`.
+5. Cockpit UI:
+   - таймер остаётся в центре;
+   - проект и заметки проекта слева;
+   - активная задача и задачи справа;
+   - старое поле `Текущее намерение` не показывается;
+   - длинные RU task titles читаются в 2-3 строки.
+6. Project notes:
+   - заметки открываются в cockpit;
+   - заметки редактируются в Project Editor;
+   - legacy intention мигрирует в notes активного проекта при старых данных.
+7. Theme Studio:
+   - цвет выбирается через macOS ColorPicker, а не ручной ввод hex;
+   - один live preview, без дублирующего preview/explanation блока;
+   - glass/motion, accent/status, foundations/readability sliders работают;
+   - смена темы не ломает light/dark/custom readability.
+8. Strict Mode:
+   - app rules;
+   - site rules;
+   - warn/hide/pause;
+   - strict rules во время break по настройке;
+   - fullscreen strict flow.
+9. Fullscreen focus:
+   - timer;
+   - task rail;
+   - skip/reset/pause controls;
+   - strict warning;
+   - старое intention не показывается.
+10. Menu bar HUD:
+    - timer/progress;
+    - strict toggle/status;
+    - fullscreen/reset/skip/main-window actions;
+    - старое intention не показывается.
 
-4. Stepper времени теперь snap-ится к сетке по 5 минут: `1 -> 5 -> 10`, `6 -> 10`, `5 -> 1`, для диапазона с нулём `0 -> 5`. Также добавлено ручное поле ввода минут в задачах и сегментах пресета; в редакторе сегмента поле вынесено в отдельную строку рядом со stepper, чтобы его можно было нормально нажать и ввести точное число.
+## Правила отчёта
 
-5. Быстрая задача без выбранного проекта теперь создаётся как задача `Без проекта`, а не теряется и не создаёт новый проект.
-
-6. Кнопки редактирования проекта и задач получили увеличенную область нажатия 44x44 с hover по всей зоне вокруг карандаша.
-
-7. Список активных задач больше не обрезается до трёх задач. Все незавершённые задачи показываются в scrollable list.
-
-Дополнительно:
-
-- Для пользовательских тем добавлена отдельная кнопка `Удалить тему`. Встроенные темы удалить нельзя; `Сбросить` теперь относится только к встроенным темам.
-- В fullscreen top controls добавлена кнопка пропуска сегмента с тем же `forward.end.fill`, состоянием disabled и подсказкой, что на основном экране.
-- Задачи получили два типа: `С временем` и `Обычная`. Задачи с временем получают прогресс от завершённой сессии; обычные checklist-задачи закрываются вручную и не получают time progress.
-- При старте таймера фиксируется выбранная задача сессии. Даже если пользователь выберет другую задачу во время сессии, честное focus time запишется в задачу, выбранную на старте.
-- Сессии теперь сохраняют optional `taskID` и `taskTitle`, чтобы позже построить экран результата с привязкой к задаче.
-
-## Что нужно перепроверить
-
-- Theme Studio: изменить advanced background/text/surface токены и убедиться, что preview понятно показывает эффект.
-- Strict mode: на break-фазе правила не должны срабатывать по умолчанию; после включения настройки должны срабатывать.
-- Strict action `Поставить на паузу`: при открытии запрещённого приложения таймер должен перейти в paused.
-- Timer controls: проверить `1 -> 5 -> 10`, `6 -> 10`, `5 -> 1`, ручной ввод минут в настройке задачи и сегмента, включая сегменты Flow вроде `Разогрев`.
-- Задачи без проекта: создать задачу без активного проекта и проверить список `Без проекта`.
-- Project task list: создать больше трёх задач в одном проекте и проверить scroll.
-- Edit hit area: нажимать не только на сам карандаш, но и на область вокруг него.
-- Fullscreen: проверить кнопку skip segment в верхних hover-controls.
-- Checklist/timed tasks: timed получает прогресс после завершения сессии, checklist не получает.
+- Один пункт отчёта = одна проблема или одно UX-наблюдение.
+- Для каждого пункта нужны: экран/путь, что ожидалось, что произошло, шаги,
+  серьёзность и screenshot.
+- Номер пункта должен совпадать с номером screenshot.
+- Screenshot names: латиница, без пробелов, с номером:
+  `01-cockpit-long-task.png`, `02-theme-picker.png`.
+- Если к одному пункту несколько screenshot, добавлять suffix:
+  `08-strict-warn-1.png`, `08-strict-warn-2.png`.
+- Если баг связан с permissions/strict mode, указать macOS permission state.
+- Если баг связан с данными, указать был ли запуск с чистым профилем или с
+  уже существующим `~/Library/Application Support/FocusGlass`.
 
 ## Известные ограничения
 
-- Полный post-session outcome screen пока не добавлен. Данные уже сохраняются на уровне задачи и сессии, но отдельного экрана результата ещё нет.
-- Tester branch и release zip не создавались автоматически в этом проходе. Их нужно подготовить отдельным release/handoff шагом после финального коммита.
-- Strict site-rules по браузерам по-прежнему зависят от macOS Automation permissions и поддержки конкретного браузера.
-- Встроенные темы специально нельзя удалить.
+- Сборка локальная/ad-hoc signed, без notarization. macOS может показать
+  предупреждение при первом запуске архива.
+- Strict site-rules зависят от macOS Automation permissions и браузера.
+- GitHub Release не создаётся автоматически; tester branch содержит архив,
+  checksum и документы для ручной передачи.
+- Следующий продуктовый chunk после tester QA: strict distraction history.
 
 ## Проверки перед передачей
 
 - `swift build`
 - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
-- `./Scripts/package-app.sh`
-- При release handoff: `./Scripts/package-release.sh`
-- Перед tester branch: заполнить commit/tag/branch в этом файле и убедиться, что `VERSION`, tag `v0.0.2`, zip и tester branch называют одну и ту же версию.
+- `./Scripts/package-release.sh`
+- `shasum -a 256 -c FocusGlass-0.0.4.zip.sha256`
+- `codesign --verify --deep --strict build/releases/0.0.4/FocusGlass.app`
+- `plutil -p build/releases/0.0.4/FocusGlass.app/Contents/Info.plist`
