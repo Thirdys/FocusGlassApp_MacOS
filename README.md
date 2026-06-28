@@ -1,21 +1,22 @@
-# FocusGlass 0.0.4 tester build
+# FocusGlass 0.0.4: сборка для тестера
 
 Дата сборки: 2026-06-27
 
-Эта сборка заменяет непроверенную `0.0.3` для первого полного tester pass.
-Проверять нужно накопительно: таймеры, задачи, outcome, Theme Studio, cockpit,
-fullscreen, menu bar и strict mode.
+Эта сборка заменяет непроверенную `0.0.3` для первого полного прохода
+тестирования. Проверять нужно накопительно: таймеры, задачи, экран итога
+сессии, редактор темы, главное окно, fullscreen-режим, панель menu bar и
+Strict Mode.
 
 ## Файлы
 
 - `FocusGlass-0.0.4.zip` - архив приложения для тестирования.
-- `FocusGlass-0.0.4.zip.sha256` - checksum для проверки архива.
-- `build-info.md` - источник сборки, tag, commit и результаты validation.
+- `FocusGlass-0.0.4.zip.sha256` - контрольная сумма для проверки архива.
+- `build-info.md` - источник сборки, tag, commit и результаты проверки.
 - `TESTER_CHECKLIST.md` - полный чеклист ручной проверки.
-- `TESTER_RULES.md` - правила запуска, отчёта и severity.
-- `tester-report-template.md` - шаблон отчёта с примерами screenshots.
+- `TESTER_RULES.md` - правила запуска, отчёта и уровни серьёзности проблем.
+- `tester-report-template.md` - шаблон отчёта с примерами скриншотов.
 
-## Проверка checksum
+## Проверка контрольной суммы
 
 ```bash
 shasum -a 256 -c FocusGlass-0.0.4.zip.sha256
@@ -32,34 +33,45 @@ FocusGlass-0.0.4.zip: OK
 1. Распакуй `FocusGlass-0.0.4.zip`.
 2. Запусти `FocusGlass.app`.
 3. Если macOS предупредит о приложении из интернета, открой через правый клик
-   -> Open. Это ожидаемо для local/ad-hoc signed tester build.
+   -> Open. Это ожидаемо: сборка подписана локально для тестирования и не
+   проходила проверку Apple для публичного распространения.
 
 ## С чего начать
 
 1. Прочитай `TESTER_RULES.md`.
 2. Иди по `TESTER_CHECKLIST.md`.
 3. Заполняй `tester-report-template.md`.
-4. Для каждого найденного пункта добавляй screenshot в папку `screenshots/`.
+4. Для каждого найденного пункта добавляй скриншот в папку `screenshots/`.
 
 ## Главное для проверки
 
-- Первый запуск и permissions.
-- Cockpit: timer center, project notes left, active task/tasks right.
-- Project notes и migration старого intention.
-- Timed/checklist tasks и post-session outcome.
-- Theme Studio picker-first editor.
-- Strict Mode warn/hide/pause, apps/sites, break setting.
-- Fullscreen focus и menu bar HUD без старого intention.
+- Первый запуск и системные разрешения.
+- Главное окно: таймер по центру, заметки проекта слева, активная задача и
+  список задач справа.
+- Заметки проекта и перенос старого поля намерения в заметки.
+- Задачи с временем и чеклист-задачи, экран итога после сессии.
+- Редактор темы без ручного ввода hex-кодов как основного пути.
+- Strict Mode: действия warn/hide/pause для приложений и сайтов, поведение на
+  перерывах.
+- Fullscreen-режим и menu bar HUD без старого поля намерения.
 
 ## Известные ограничения
 
-- Сборка ad-hoc signed и не notarized.
-- Strict site rules зависят от macOS Automation permissions и браузера.
-- Если проверяешь на реальных пользовательских данных, сначала сделай backup
-  `~/Library/Application Support/FocusGlass`.
+- Сборка подписана локально для тестирования. Она не проходила notarization:
+  это проверка Apple для публично распространяемых macOS-приложений. Поэтому
+  предупреждение macOS при первом запуске ожидаемо и само по себе не является
+  багом FocusGlass.
+- Правила Strict Mode для сайтов зависят от разрешения macOS Automation. Это
+  системное разрешение позволяет FocusGlass читать активную вкладку браузера
+  через автоматизацию macOS. Если разрешение не выдано, сайт-правила могут не
+  сработать, и это нужно отметить в отчёте.
+- Если проверяешь на реальных пользовательских данных, сначала сделай
+  резервную копию: скопируй папку `~/Library/Application Support/FocusGlass` в
+  безопасное место. Так можно восстановить проекты, задачи и настройки после
+  теста.
 
 ## Как прислать отчёт
 
 1. Заполни `tester-report-template.md`.
 2. Приложи папку `screenshots/`.
-3. Если есть blocker/crash, поставь severity `blocker` и отправь его первым.
+3. Если есть blocker/crash, поставь серьёзность `blocker` и отправь его первым.
