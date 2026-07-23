@@ -600,9 +600,11 @@ private struct CompactNavBar: View {
                             .font(.system(size: 12, weight: .bold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 9)
+                            .fixedSize(horizontal: true, vertical: false)
                             .foregroundStyle(model.selectedSidebarItem == item ? model.theme.text : model.theme.mutedText)
                     }
                     .buttonStyle(.plain)
+                    .fixedSize(horizontal: true, vertical: false)
                     .glassHover(theme: model.theme, radius: 14, isActive: model.selectedSidebarItem == item)
                     .accessibilityAddTraits(model.selectedSidebarItem == item ? .isSelected : [])
                 }

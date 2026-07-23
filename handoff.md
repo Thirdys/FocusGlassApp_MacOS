@@ -19,6 +19,45 @@ rereading the whole handoff.
 
 Last done:
 
+- Closed the remaining first-step live QA through Product Design plus Build
+  macOS Apps:
+  - Ran Graphify orientation before the broad QA pass and used the packaged
+    `build/FocusGlass.app` with isolated data at
+    `/private/tmp/focusglass-step1-live-qa-AliHYHWx/data`.
+  - Product Design found one real compact defect: the horizontal navigation
+    labels compressed and could overlap below 980 pt. `CompactNavBar` now keeps
+    each label/button at intrinsic horizontal width while preserving the
+    existing scrollable navigation rail and owner-approved centered timer.
+  - Live proof covers compact layout with long RU/EN project/task titles,
+    dark/light/Paper/custom themes, and visible keyboard focus during Tab
+    traversal. macOS Keyboard Navigation was enabled only for QA and restored
+    to its original disabled state.
+  - Real Strict Mode proof covers TextEdit `warn`, TextEdit `pauseSession`, and
+    a Safari site-rule `hide` through the already granted Automation URL path.
+    The deterministic site test used a local `127.0.0.1` page, not an external
+    website.
+  - The `quitAfterOptIn` destructive confirmation appeared in the live app;
+    Cancel kept `allowsQuitAfterOptIn=false`, preserved the prior
+    `pauseSession` action, and did not terminate the target.
+  - No security-sensitive permission was changed. Automation was already
+    granted; Accessibility remains missing in the isolated run and was not
+    required for the proven paths.
+  - Validation passed with Xcode Swift 6.3.3: `swift build`, 63/63 Swift tests,
+    `bash -n script/build_and_run.sh`, strict codesign verification, and
+    `git diff --check`. Test-triage found that Swift 6.3.3 reported false
+    failures for optional `TimeInterval` `#expect` comparisons even when the
+    printed values matched; affected fixtures now use `#require` before exact
+    value assertions.
+  - Evidence and Product Design audit:
+    `/private/tmp/focusglass-step1-live-qa-AliHYHWx`. The ordered proof and
+    limitations are in `audit-notes.md`.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage, and Computer Use.
+  - Next skill/workflow: triage tester feedback through SwiftPM/test-triage
+    when it arrives. For new product work, use Product Design first and Build
+    macOS Apps second for targeted analytics/task-flow polish or the next
+    timer/strict-rule decision. Do not create another release, tag, tester
+    branch, or GitHub Release without an owner command.
 - Completed the Product Design-led cockpit, Strict Mode history, remaining
   first-pass UI/accessibility, and analytics implementation package:
   - Preserved the owner-approved wide cockpit composition: project context on
@@ -55,16 +94,13 @@ Last done:
   - Live `.app` proof confirmed direct Strict Settings routing, consistent
     enabled-app counts, destructive quit confirmation, history persistence, and
     a real TextEdit `hide` action tied to the active session/project/mode.
-  - Honest remaining QA limits: real `warn`, `pauseSession`, and browser-site
-    enforcement still need a packaged-app run with the required macOS
-    permissions; compact below 980 pt and complete Tab traversal still need
-    live proof with macOS Full Keyboard Access enabled.
+  - The remaining real `warn`, `pauseSession`, browser-site, compact, and
+    keyboard-focus proof limits from this implementation checkpoint were
+    closed by the newer live-QA checkpoint above.
   - Used/validated with: Graphify, Product Design, Build macOS Apps,
     SwiftPM/test-triage, and Computer Use.
-  - Next skill/workflow: Product Design plus Build macOS Apps to close the
-    compact/keyboard and real warn/pause/site QA limits, then triage tester
-    feedback or continue targeted UI polish. Do not create another release,
-    tag, or tester branch without an owner command.
+  - Next skill/workflow from this older checkpoint is superseded by the newer
+    live-QA checkpoint above.
 - Synchronized the durable handoff with the completed cumulative tester
   delivery `0.0.4`:
   - Source release commit
@@ -480,11 +516,12 @@ Previous tester-fix validation still relevant:
 
 Remaining after the newest implementation checkpoint:
 
-- A deeper packaged-app QA pass for real `warn`, `pauseSession`, and blocked
-  browser sites remains. Real TextEdit `hide` is proven; automated tests cover
-  all three non-destructive action paths.
-- The broad UI implementation pass is complete. Compact layout below 980 pt
-  and full Tab traversal with macOS Full Keyboard Access still need live proof.
+- The requested compact, keyboard-focus, real `warn`, real `pauseSession`,
+  Safari site-rule, and safe `quitAfterOptIn` live-QA limits are closed. The
+  proof folder is `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
+- This was not a full VoiceOver audit and did not test every supported browser
+  or an external public site. Those are wider-distribution follow-ups, not
+  current tester blockers.
 - Deeper Product Design refinements for task-attached outcome states can still
   be done later, but both no-task and attached-task outcome states now have
   live `.app` proof.
@@ -492,9 +529,8 @@ Remaining after the newest implementation checkpoint:
 
 Next likely choices:
 
-- If addressing tester risk before the next build: run the remaining live
-  strict/compact/keyboard scenarios once system permissions and Full Keyboard
-  Access are available.
+- If tester feedback arrives: classify it with SwiftPM/test-triage, use Product
+  Design for UX findings, and validate fixes through Build macOS Apps.
 - If continuing UI polish: use Product Design first, then Build macOS Apps live
   validation against real accumulated session/distraction data.
 - If moving product roadmap: decide whether analytics needs deeper task-level
@@ -510,7 +546,9 @@ Active partial work:
   proof is complete.
 - Full UI/UX audit is complete as evidence/planning work. First UI polish code
   has been implemented for Theme Studio, cockpit task-row wrapping, and the
-  protected-folder icon-persistence prompt. Broader UI polish remains open.
+  protected-folder icon-persistence prompt. The compact navigation issue found
+  by the follow-up live pass is also fixed. Broader targeted UI polish remains
+  open.
 
 Resume instructions if a future plan/thread continues from here:
 
@@ -580,18 +618,19 @@ Started or partially started roadmap items:
   hide/quit helpers exist. `pauseSession` is connected to the timer and strict
   break enforcement is configurable. Direct Strict Settings routing, enabled
   app/site count consistency, safe confirmed `quitAfterOptIn`, and persistent
-  session-linked distraction history are implemented. Real TextEdit `hide`
-  packaged-app proof passed. Still missing: packaged-app proof for real
-  `warn`, `pauseSession`, and browser-site enforcement with macOS permissions.
+  session-linked distraction history are implemented. Real packaged-app proof
+  passed for TextEdit `warn`, `hide`, and `pauseSession`, plus a Safari
+  site-rule `hide` using the real Automation URL path against local
+  `127.0.0.1`. Safe cancellation of `quitAfterOptIn` is also proven.
 - UI interactive layer: first broad implementation pass is complete. Shared
   hover, checkbox, select, stepper, segmented control, focus surfaces,
   accessibility selected traits, expanded hit areas, responsive strict rows,
   adaptive mode chips, keyboard-focusable project cards, and improved
   secondary-text contrast exist. The centered-timer cockpit now removes its
-  extra context rail below 1680 pt. Product Design and Build macOS Apps proof
-  is at `/private/tmp/focusglass-product-pass-HBsAlZ73`. Still missing:
-  compact live proof below 980 pt and full Tab traversal with macOS Full
-  Keyboard Access enabled.
+  extra context rail below 1680 pt. Compact proof below 980 pt, long RU/EN
+  titles, theme readability, and Tab traversal with visible focus are complete.
+  The newest evidence is at
+  `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
 - Analytics: first requested implementation pass is complete. Daily summary,
   focus score, planned vs actual/effectiveness, recent sessions, mode
   effectiveness, project summaries, and distraction analytics by project/mode
@@ -625,9 +664,9 @@ using the full current operating plan first, then the roadmap block.
    Apps verified launch, Settings, Strict Mode overview, fullscreen focus,
    temp-data isolation, diagnostics, and Product Design audit proof. The later
    full UI/UX audit is also complete at
-   `/private/tmp/focusglass-ui-ux-audit-20260627-184307`. Optional extra proof
-   later is a strict warn/hide/pause scenario with a real configured blocked
-   app/site and running timer.
+   `/private/tmp/focusglass-ui-ux-audit-20260627-184307`. The later compact,
+   keyboard-focus, real warn/pause, Safari site-rule, and safe quit proof is
+   complete at `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
 3. Cumulative tester delivery `0.0.4` is complete: `VERSION=0.0.4`, tag
    `v0.0.4`, release zip/checksum under `build/releases/0.0.4`, and isolated
    artifact branch `tester/0.0.4` pushed. The branch includes the full tester
@@ -640,11 +679,10 @@ using the full current operating plan first, then the roadmap block.
    flow, weak readability, onboarding, permissions, Settings, strict-mode user
    path, or post-session outcome. Use Build macOS Apps after Product Design to
    validate the live `.app`.
-6. The requested cockpit/Strict Mode/history/UI/analytics implementation pass is
-   complete. Product Design and live Build macOS Apps proof is under
-   `/private/tmp/focusglass-product-pass-HBsAlZ73`. The next focused QA pass is
-   real `warn`, `pauseSession`, and browser-site enforcement with macOS
-   permissions, plus compact layout and Full Keyboard Access traversal.
+6. The requested cockpit/Strict Mode/history/UI/analytics implementation and
+   its focused compact/keyboard/Strict live-QA pass are complete. The next
+   product decision is targeted Product Design polish against real tester data,
+   deeper task-level analytics, or custom timer/strict-rule presets.
 7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
    remain explicit owner-controlled steps.
@@ -1282,10 +1320,9 @@ Completed:
 - Branch protection and CI are deferred. They can be useful later to protect
   `main` and automatically test PRs, but they are not near-term tasks while the
   project is still using a simple local build -> commit -> push flow.
-- CI automation remains blocked until work happens from an environment with
-  GitHub `workflow` scope. The current shell also does not have `gh` installed,
-  so PR, release, and branch-protection setup cannot be automated here through
-  GitHub CLI.
+- GitHub CLI is now installed. PR creation can be automated after verifying
+  `gh auth status`; GitHub Actions still requires the appropriate workflow
+  permissions and remains a separate owner decision.
 
 Skills research:
 
@@ -1304,11 +1341,11 @@ Skills research:
    triaged when it arrives, but current product work is not blocked on it. Do
    not create a GitHub Release or another tester version without a separate
    owner command.
-3. Close the honest live-QA limits through Product Design plus Build macOS
-   Apps: compact cockpit below 980 pt, full Tab traversal with macOS Full
-   Keyboard Access, and real `warn`, `pauseSession`, and browser-site rules
-   with required permissions. Unit/service coverage already passes; do not
-   describe it as live OS proof.
+3. The honest live-QA limits are closed through Product Design plus Build
+   macOS Apps: compact cockpit below 980 pt, long RU/EN titles, theme
+   readability, visible keyboard focus during Tab traversal, real `warn`,
+   `pauseSession`, Safari site-rule enforcement, and safe quit confirmation.
+   Proof: `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
 4. Before the next tester delivery, repeat Build macOS Apps packaged-app QA:
    `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
    then check the main window, Settings, fullscreen, strict mode, logs,
@@ -1345,15 +1382,15 @@ Skills research:
      messages, return-to-FocusGlass behavior, browser URL checks, and hide/quit
      helpers exist. Direct Strict Settings routing, enabled-rule counts, safe
      destructive quit opt-in, and persistent session-linked distraction
-     history are complete. Still needed: full packaged-app proof for real
-     warn/pause and blocked browser sites.
+     history are complete. Packaged-app proof now covers real warn/pause and a
+     Safari site rule through the real Automation URL path.
    - UI interactive layer has a first broad implementation pass:
      `glassHover`,
      `GlassCheckboxToggleStyle`, `GlassSelect`, `GlassStepper`,
      `GlassSegmentedControl`, visible focus surfaces, selected accessibility
      traits, keyboard project cards, responsive strict rows, adaptive chips,
-     and measured muted-text improvements. Still needed: compact live proof and
-     Full Keyboard Access traversal.
+     and measured muted-text improvements. Compact live proof and keyboard Tab
+     traversal with visible focus are complete.
    - Analytics first pass is complete: daily summary, focus score, planned vs
      actual/effectiveness, recent sessions, mode effectiveness, project
      summaries, unassigned handling, and distraction grouping by project/mode.

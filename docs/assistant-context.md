@@ -1,6 +1,6 @@
 # FocusGlass Assistant Context
 
-Last reviewed: 2026-06-19.
+Last reviewed: 2026-07-23.
 
 Read this file first when returning to the project. It is intentionally written
 as implementation context for future assistant sessions, not as marketing copy.
@@ -325,6 +325,9 @@ Strict rules:
 - `quitAfterOptIn` requires explicit destructive confirmation. Its persisted
   `allowsQuitAfterOptIn` flag defaults to false, and an unconfirmed rule uses
   `hide` as its effective action.
+- Browser-rule QA can use a local `127.0.0.1` page to exercise the real Safari
+  Apple Events URL probe without relying on an external website. This proves
+  the Automation path and selected action, but not every supported browser.
 
 ## Theme, appearance, and icons
 
@@ -434,4 +437,9 @@ clamping, project-scoped task lists, and debounced theme side effects.
   `NSWorkspace.setIcon` back into immediate slider/change handlers.
 - Localization: RU is default and must be checked for clipping in compact
   layouts.
+- Compact navigation labels keep their intrinsic horizontal width inside the
+  scrollable navigation rail; do not let labels compress or overlap to force
+  every route into one fixed-width row.
+- Keyboard QA may temporarily enable macOS Keyboard Navigation for full Tab
+  traversal, but the original system setting must be restored after the run.
 - Documentation: update docs whenever implementation behavior changes.

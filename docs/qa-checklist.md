@@ -93,6 +93,10 @@
 - In fullscreen focus mode while the timer is running, open a blocked site in a
   supported browser and verify the browser is hidden and FocusGlass returns to
   the timer.
+- For a deterministic browser-rule smoke test without an external network
+  dependency, serve a local page on `127.0.0.1`, add an enabled site rule for
+  `127.0.0.1`, open the page in Safari, and verify the real Automation URL
+  probe applies the selected action and records the event.
 - Verify the fullscreen warning uses localized text, for example
   "`youtube.com заблокирован. Возвращаю к таймеру.`" in RU.
 - Select `quitAfterOptIn` and verify FocusGlass shows a destructive
@@ -239,6 +243,9 @@
 - Check medium layout around 980-1679 pt. The timer must remain centered between
   project context and the task workspace without a duplicate context rail.
 - Check compact layout below 980 px.
+- In compact layout, verify navigation labels retain their readable width and
+  move through the horizontal navigation rail instead of compressing or
+  overlapping.
 - Verify the main screen has project selection on the left of the timer and
   project tasks on the right.
 - Verify the right context rail does not duplicate the active project card.
@@ -250,6 +257,8 @@
   mode chips, task actions, Settings tabs, strict rows, and destructive
   confirmations. Verify focus rings are visible and selected controls expose
   the selected accessibility trait exactly once.
+- Restore the owner's original macOS Keyboard Navigation setting after the QA
+  run.
 - Compare secondary labels in system light, system dark, and a custom theme;
   muted text must remain readable without competing with primary text.
 - Verify notification titles/bodies and permission error text follow the

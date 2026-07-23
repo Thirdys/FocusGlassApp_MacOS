@@ -54,10 +54,13 @@ FocusGlass развивается без смены идеи проекта. Э�
 - Готово: история отвлечений сохраняет цель, время, правило, действие,
   сессию, проект, задачу и режим; Strict Mode показывает историю и позволяет
   очистить её.
-- Готово: live `.app` proof для `hide`. Логика `warn`, `hide` и
-  `pauseSession` покрыта SwiftPM/service-тестами.
-- Осталось: повторить реальный packaged-app QA для `warn`, `pauseSession` и
-  browser-site rules после выдачи необходимых macOS permissions.
+- Готово: live `.app` proof для `warn`, `hide` и `pauseSession` на реальном
+  приложении. Для site-rule также проверен реальный Safari Automation URL-path
+  на безопасной локальной странице `127.0.0.1`: браузер скрыт, событие
+  записано в историю.
+- Готово: destructive confirmation для `quitAfterOptIn` проверен в live
+  `.app`; отмена сохраняет предыдущее безопасное действие и не закрывает
+  целевое приложение.
 - Готово: реально связать `pauseSession` с таймером.
 - Готово: добавить настройку strict-mode enforcement во время перерывов.
 
@@ -71,9 +74,11 @@ FocusGlass развивается без смены идеи проекта. Э�
   medium-layout и возвращает его только при ширине от 1680 pt.
 - Готово: усилен контраст вторичного текста в light/dark/custom themes;
   проверены light и dark Theme Studio состояния.
-- Осталось: live compact-layout proof ниже 980 pt и полный Tab traversal после
-  включения macOS Full Keyboard Access, затем точечный Product Design polish
-  по результатам.
+- Готово: live compact-layout proof ниже 980 pt, длинные RU/EN названия,
+  light/dark/custom themes и Tab traversal с временно включённой macOS
+  Keyboard Navigation. Найденное сжатие compact-nav labels исправлено.
+- Осталось: точечный Product Design polish по реальным накопленным данным и
+  отдельный VoiceOver-аудит, если он понадобится перед более широкой поставкой.
 
 ### 5. Аналитика
 

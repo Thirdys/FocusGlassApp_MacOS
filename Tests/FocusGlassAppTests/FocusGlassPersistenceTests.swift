@@ -98,7 +98,7 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
-    func orphanLegacyProjectNameBecomesUnassignedAndIsNotGroupedByName() {
+    func orphanLegacyProjectNameBecomesUnassignedAndIsNotGroupedByName() throws {
         let project = FocusProject(name: "Alpha", detail: "Current project", accentName: "aurora")
         let fileURL = temporaryStateURL()
         let store = FocusGlassStore(fileURL: fileURL)
@@ -145,7 +145,8 @@ struct FocusGlassPersistenceTests {
         #expect(model.recentSessions.first?.projectID == nil)
         #expect(model.recentSessions.first?.projectName == "")
         #expect(model.sessions(for: project).isEmpty)
-        #expect(model.unassignedSessions.first?.honestFocusSeconds == 15 * 60)
+        let unassignedSession = try #require(model.unassignedSessions.first)
+        #expect(unassignedSession.honestFocusSeconds == 15 * 60)
     }
 
     @Test
@@ -275,7 +276,7 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
-    func presetEditChangesOnlySelectedPreset() {
+    func presetEditChangesOnlySelectedPreset() throws {
         let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
         let countdownBefore = model.presets.first { $0.id == TimerPreset.countdown30ID }
 
@@ -284,17 +285,18 @@ struct FocusGlassPersistenceTests {
             preset.segments[0].duration = 35 * 60
         }
 
-        let pomodoro = model.presets.first { $0.id == TimerPreset.pomodoroID }
+        let pomodoro = try #require(model.presets.first { $0.id == TimerPreset.pomodoroID })
         let countdownAfter = model.presets.first { $0.id == TimerPreset.countdown30ID }
+        let pomodoroSegment = try #require(pomodoro.segments.first)
 
-        #expect(pomodoro?.name == "Pomodoro Custom")
-        #expect(pomodoro?.segments.first?.duration == 35 * 60)
+        #expect(pomodoro.name == "Pomodoro Custom")
+        #expect(pomodoroSegment.duration == 35 * 60)
         #expect(countdownAfter == countdownBefore)
     }
 
     @Test
     @MainActor
-    func resetPresetRestoresOnlyThatDefault() {
+    func resetPresetRestoresOnlyThatDefault() throws {
         let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
         model.updatePreset(TimerPreset.pomodoroID) { preset in
             preset.name = "Pomodoro Custom"
@@ -308,24 +310,26 @@ struct FocusGlassPersistenceTests {
         model.resetPresetToDefault(TimerPreset.pomodoroID)
 
         let pomodoro = model.presets.first { $0.id == TimerPreset.pomodoroID }
-        let countdown = model.presets.first { $0.id == TimerPreset.countdown30ID }
+        let countdown = try #require(model.presets.first { $0.id == TimerPreset.countdown30ID })
+        let countdownSegment = try #require(countdown.segments.first)
 
         #expect(pomodoro == .pomodoro)
-        #expect(countdown?.name == "Countdown Custom")
-        #expect(countdown?.segments.first?.duration == 40 * 60)
+        #expect(countdown.name == "Countdown Custom")
+        #expect(countdownSegment.duration == 40 * 60)
     }
 
     @Test
     @MainActor
-    func presetSegmentCanStoreExactManualMinutes() {
+    func presetSegmentCanStoreExactManualMinutes() throws {
         let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
 
         model.updatePresetSegment(TimerPreset.deepWorkID, index: 0) { segment in
             segment.duration = 17 * 60
         }
 
-        let deepWork = model.presets.first { $0.id == TimerPreset.deepWorkID }
-        #expect(deepWork?.segments.first?.duration == 17 * 60)
+        let deepWork = try #require(model.presets.first { $0.id == TimerPreset.deepWorkID })
+        let deepWorkSegment = try #require(deepWork.segments.first)
+        #expect(deepWorkSegment.duration == 17 * 60)
     }
 
     @Test
@@ -340,7 +344,7 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
-    func taskEstimateUpdatePersistsMinutesAndClampsProgress() {
+    func taskEstimateUpdatePersistsMinutesAndClampsProgress() throws {
         let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
         var task = model.addQuickTask()
         task.completed = 20 * 60
@@ -348,9 +352,9 @@ struct FocusGlassPersistenceTests {
 
         model.updateTaskEstimate(task, estimate: 10 * 60)
 
-        let updatedTask = model.tasks.first { $0.id == task.id }
-        #expect(updatedTask?.estimate == 10 * 60)
-        #expect(updatedTask?.completed == 10 * 60)
+        let updatedTask = try #require(model.tasks.first { $0.id == task.id })
+        #expect(updatedTask.estimate == 10 * 60)
+        #expect(updatedTask.completed == 10 * 60)
     }
 
     @Test
