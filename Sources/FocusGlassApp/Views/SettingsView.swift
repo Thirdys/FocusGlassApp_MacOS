@@ -16,7 +16,6 @@ struct SettingsView: View {
 
 struct SettingsContentView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
-    @State private var selectedTab: SettingsTab = .general
     var showsHeader = true
 
     var body: some View {
@@ -32,15 +31,15 @@ struct SettingsContentView: View {
             }
 
             GlassSegmentedControl(
-                selection: $selectedTab,
+                selection: $model.selectedSettingsTab,
                 options: SettingsTab.allCases,
                 title: { model.t($0.titleKey) },
                 symbol: { $0.symbolName }
             )
 
-            SettingsTabSummary(tab: selectedTab)
+            SettingsTabSummary(tab: model.selectedSettingsTab)
 
-            switch selectedTab {
+            switch model.selectedSettingsTab {
             case .general:
                 GeneralSettingsSection()
             case .timers:
@@ -56,7 +55,7 @@ struct SettingsContentView: View {
     }
 }
 
-private enum SettingsTab: String, CaseIterable, Identifiable {
+enum SettingsTab: String, CaseIterable, Identifiable {
     case general
     case timers
     case strictMode
@@ -509,6 +508,7 @@ private struct PresetSegmentEditor: View {
                 TextField(model.t("presets.segmentName"), text: titleBinding)
                     .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
                     .help(model.t("presets.segmentName"))
+                    .layoutPriority(1)
 
                 GlassSelect(
                     selection: phaseBinding,
@@ -519,11 +519,6 @@ private struct PresetSegmentEditor: View {
                 )
                 .help(model.t("presets.phase"))
 
-                GlassStepper(value: minutesBinding, range: 0...240, step: 5) { value in
-                    "\(value) \(model.t("tasks.minutes"))"
-                }
-                .help(model.t("tasks.estimate"))
-
                 Button {
                     model.deletePresetSegment(presetID, index: index)
                 } label: {
@@ -532,6 +527,22 @@ private struct PresetSegmentEditor: View {
                 }
                 .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
                 .disabled(!canDelete)
+            }
+
+            HStack(spacing: 10) {
+                Label(model.t("tasks.minutes"), systemImage: "timer")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(model.theme.mutedText)
+                    .frame(minWidth: 76, alignment: .leading)
+
+                GlassStepper(value: minutesBinding, range: 0...240, step: 5) { value in
+                    "\(value) \(model.t("tasks.minutes"))"
+                }
+                .help(model.t("tasks.estimate"))
+
+                GlassMinuteInputField(value: minutesBinding, range: 0...240)
+
+                Spacer(minLength: 0)
             }
 
             Toggle(model.t("presets.autoStartNext"), isOn: autoStartBinding)
@@ -606,6 +617,26 @@ private struct StrictModeSettingsSection: View {
                         .labelsHidden()
                         .help(model.t("help.strictMode"))
                 }
+
+                HStack(spacing: 10) {
+                    Image(systemName: "cup.and.saucer")
+                        .frame(width: 24)
+                        .foregroundStyle(model.theme.primary)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(model.t("strict.enforceDuringBreaks"))
+                            .font(.system(size: 13, weight: .bold))
+                        Text(model.t("strict.enforceDuringBreaks.detail"))
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(model.theme.mutedText)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $model.strictModeEnforcesDuringBreaks)
+                        .toggleStyle(GlassCheckboxToggleStyle(theme: model.theme))
+                        .labelsHidden()
+                        .help(model.t("help.strictBreaks"))
+                }
+                .padding(12)
+                .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 StrictRulesEditor()
             }
@@ -691,13 +722,49 @@ private struct StrictRuleGroup: View {
 
 private struct StrictRuleRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var asksQuitConfirmation = false
     let rule: DistractionRuleSpec
 
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                ruleIdentity
+                Spacer(minLength: 12)
+                actionControls
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                ruleIdentity
+                HStack(spacing: 10) {
+                    actionControls
+                }
+            }
+        }
+        .padding(12)
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .confirmationDialog(
+            model.t("strict.quit.confirm.title"),
+            isPresented: $asksQuitConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(model.t("strict.quit.confirm.action"), role: .destructive) {
+                var updated = model.distractionRules.first(where: { $0.id == rule.id }) ?? rule
+                updated.action = .quitAfterOptIn
+                updated.allowsQuitAfterOptIn = true
+                model.updateRule(updated)
+            }
+            Button(model.t("common.cancel"), role: .cancel) {}
+        } message: {
+            Text(model.t("strict.quit.confirm.detail"))
+        }
+    }
+
+    private var ruleIdentity: some View {
         HStack(spacing: 10) {
             Toggle("", isOn: enabledBinding)
                 .toggleStyle(GlassCheckboxToggleStyle(theme: model.theme))
                 .labelsHidden()
+                .accessibilityLabel(rule.label)
 
             Image(systemName: rule.targetKind == .app ? "app.badge" : "globe")
                 .frame(width: 22)
@@ -706,21 +773,24 @@ private struct StrictRuleRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(rule.label)
                     .font(.system(size: 13, weight: .bold))
-                    .lineLimit(1)
+                    .lineLimit(2)
                 Text(rule.matchValue)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(model.theme.mutedText)
                     .lineLimit(1)
             }
+            .layoutPriority(1)
+        }
+    }
 
-            Spacer()
-
+    private var actionControls: some View {
+        HStack(spacing: 10) {
             GlassSelect(
                 selection: actionBinding,
                 options: DistractionAction.allCases,
                 title: model.actionTitle,
                 symbol: actionSymbol,
-                minWidth: 230
+                minWidth: 210
             )
             .help(model.t("help.strictRuleAction"))
 
@@ -731,9 +801,8 @@ private struct StrictRuleRow: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
+            .accessibilityLabel(model.t("common.delete"))
         }
-        .padding(12)
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var enabledBinding: Binding<Bool> {
@@ -751,8 +820,13 @@ private struct StrictRuleRow: View {
         Binding(
             get: { rule.action },
             set: { newValue in
+                if newValue == .quitAfterOptIn {
+                    asksQuitConfirmation = true
+                    return
+                }
                 var updated = rule
                 updated.action = newValue
+                updated.allowsQuitAfterOptIn = false
                 model.updateRule(updated)
             }
         )
@@ -968,138 +1042,216 @@ struct ThemeStudioView: View {
     var body: some View {
         LiquidGlassPanel(radius: 22, padding: 18) {
             VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(model.t("theme.title"))
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                        Text(model.t("theme.subtitle"))
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundStyle(model.theme.mutedText)
-                    }
-                    Spacer()
-                }
-
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 10)], spacing: 10) {
-                    ForEach(model.themeProfiles) { profile in
-                        ThemeSwatch(profile: profile, isSelected: profile.id == model.selectedThemeID) {
-                            model.selectTheme(profile)
-                        }
-                    }
-                }
-
-                HStack(spacing: 10) {
-                    Button {
-                        model.duplicateActiveTheme()
-                    } label: {
-                        Label(model.t("theme.duplicate"), systemImage: "plus.square.on.square")
-                    }
-                    .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
-                    .help(model.t("help.themeDuplicate"))
-
-                    Button {
-                        model.resetActiveTheme()
-                    } label: {
-                        Label(model.t("theme.reset"), systemImage: "arrow.counterclockwise")
-                    }
-                    .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
-                    .help(model.t("help.themeReset"))
-
-                    Button {
-                        model.exportActiveThemeJSON()
-                    } label: {
-                        Label(model.t("theme.export"), systemImage: "square.and.arrow.up")
-                    }
-                    .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
-                    .help(model.t("help.themeExport"))
-
-                    Button {
-                        model.importThemeJSONFromClipboard()
-                    } label: {
-                        Label(model.t("theme.import"), systemImage: "square.and.arrow.down")
-                    }
-                    .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
-                    .help(model.t("help.themeImport"))
-
-                    if let message = model.lastThemeMessage {
-                        Text(message)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(model.theme.mutedText)
-                    }
-
-                    if let iconStatus = model.lastIconStatus {
-                        Text(iconStatus)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(model.theme.mutedText)
-                    }
-
-                    if model.isThemeSideEffectPending {
-                        Text(model.t("theme.saving"))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(model.theme.mutedText)
-                    } else if let performance = model.lastThemePerformanceMessage {
-                        Text(performance)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(model.theme.mutedText)
-                            .help(model.t("help.themePerformance"))
-                    }
-                }
-
-                DisclosureGroup(model.t("theme.advancedColors"), isExpanded: $showsAdvanced) {
-                    HStack(alignment: .top, spacing: 18) {
-                        VStack(alignment: .leading, spacing: 13) {
-                            Text(model.t("theme.editor"))
-                                .font(.system(size: 15, weight: .bold))
-
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 10)], spacing: 10) {
-                                ThemeHexField(title: model.t("theme.primary"), value: hexBinding(\.primaryHex), swatch: model.theme.primary)
-                                ThemeHexField(title: model.t("theme.secondary"), value: hexBinding(\.secondaryHex), swatch: model.theme.secondary)
-                                ThemeHexField(title: model.t("theme.glow"), value: hexBinding(\.glowHex), swatch: model.theme.glow)
-                                ThemeHexField(title: model.t("theme.backgroundTop"), value: hexBinding(\.backgroundTopHex), swatch: Color(hex: model.selectedThemeProfile.backgroundTopHex))
-                                ThemeHexField(title: model.t("theme.backgroundMid"), value: hexBinding(\.backgroundMidHex), swatch: Color(hex: model.selectedThemeProfile.backgroundMidHex))
-                                ThemeHexField(title: model.t("theme.backgroundBottom"), value: hexBinding(\.backgroundBottomHex), swatch: Color(hex: model.selectedThemeProfile.backgroundBottomHex))
-                                ThemeHexField(title: model.t("theme.surface"), value: hexBinding(\.surfaceHex), swatch: Color(hex: model.selectedThemeProfile.surfaceHex))
-                                ThemeHexField(title: model.t("theme.elevatedSurface"), value: hexBinding(\.elevatedSurfaceHex), swatch: Color(hex: model.selectedThemeProfile.elevatedSurfaceHex))
-                                ThemeHexField(title: model.t("theme.text"), value: hexBinding(\.textHex), swatch: Color(hex: model.selectedThemeProfile.textHex))
-                                ThemeHexField(title: model.t("theme.muted"), value: hexBinding(\.mutedTextHex), swatch: Color(hex: model.selectedThemeProfile.mutedTextHex))
-                                ThemeHexField(title: model.t("theme.ringStart"), value: hexBinding(\.timerRingStartHex), swatch: Color(hex: model.selectedThemeProfile.timerRingStartHex))
-                                ThemeHexField(title: model.t("theme.ringEnd"), value: hexBinding(\.timerRingEndHex), swatch: Color(hex: model.selectedThemeProfile.timerRingEndHex))
-                                ThemeHexField(title: model.t("theme.heatmapLow"), value: hexBinding(\.heatmapLowHex), swatch: Color(hex: model.selectedThemeProfile.heatmapLowHex))
-                                ThemeHexField(title: model.t("theme.heatmapHigh"), value: hexBinding(\.heatmapHighHex), swatch: Color(hex: model.selectedThemeProfile.heatmapHighHex))
-                                ThemeHexField(title: model.t("theme.strict"), value: hexBinding(\.strictHex), swatch: Color(hex: model.selectedThemeProfile.strictHex))
-                                ThemeHexField(title: model.t("theme.highlightColor"), value: hexBinding(\.highlightHex), swatch: Color(hex: model.selectedThemeProfile.highlightHex))
-                            }
-
-                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 12)], spacing: 12) {
-                                ThemeSliderField(title: model.t("theme.glass"), value: doubleBinding(\.glassOpacity), range: 0.2...0.9)
-                                ThemeSliderField(title: model.t("theme.menuGlass"), value: doubleBinding(\.menuGlassOpacity), range: 0.2...0.95)
-                                ThemeSliderField(title: model.t("theme.surfaceAlpha"), value: doubleBinding(\.surfaceAlpha), range: 0.08...0.60)
-                                ThemeSliderField(title: model.t("theme.highlightAlpha"), value: doubleBinding(\.highlightAlpha), range: 0.04...0.60)
-                                ThemeSliderField(title: model.t("theme.specularOpacity"), value: doubleBinding(\.specularOpacity), range: 0.04...0.70)
-                                ThemeSliderField(title: model.t("theme.blurIntensity"), value: doubleBinding(\.blurIntensity), range: 0.20...1.00)
-                                ThemeSliderField(title: model.t("theme.fullscreenGlow"), value: doubleBinding(\.fullscreenGlowIntensity), range: 0...1)
-                                ThemeSliderField(title: model.t("theme.radius"), value: doubleBinding(\.cornerRadius), range: 8...28)
-                                ThemeSliderField(title: model.t("theme.border"), value: doubleBinding(\.borderOpacity), range: 0...0.5)
-                                ThemeSliderField(title: model.t("theme.shadow"), value: doubleBinding(\.shadowDepth), range: 0...0.65)
-                                ThemeSliderField(title: model.t("theme.density"), value: doubleBinding(\.density), range: 0...1)
-                                ThemeSliderField(title: model.t("theme.motion"), value: doubleBinding(\.motion), range: 0...1)
-                            }
-                        }
-
-                        ThemePreviewCard()
-                            .frame(width: 260)
-                    }
-                }
-                .font(.system(size: 13, weight: .bold))
+                header
+                swatchGrid
+                ThemePreviewCard()
+                actionGrid
+                statusStrip
+                advancedEditor
             }
         }
     }
 
-    private func hexBinding(_ keyPath: WritableKeyPath<ThemeProfile, String>) -> Binding<String> {
+    private var header: some View {
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 7) {
+                Text(model.t("theme.title"))
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                Text(model.t("theme.subtitle"))
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(model.theme.mutedText)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 7) {
+                Text(model.t("theme.activeTheme"))
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(model.theme.mutedText)
+                    .textCase(.uppercase)
+                ThemeStatusBadge(
+                    title: model.selectedThemeProfile.name,
+                    detail: model.selectedThemeProfile.isBuiltIn ? model.t("theme.builtIn") : model.t("theme.customTheme")
+                )
+            }
+        }
+    }
+
+    private var swatchGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 176), spacing: 10)], spacing: 10) {
+            ForEach(model.themeProfiles) { profile in
+                ThemeSwatch(profile: profile, isSelected: profile.id == model.selectedThemeID) {
+                    model.selectTheme(profile)
+                }
+            }
+        }
+    }
+
+    private var actionGrid: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 142), spacing: 10)], alignment: .leading, spacing: 10) {
+            themeAction(title: model.t("theme.duplicate"), symbol: "plus.square.on.square", help: model.t("help.themeDuplicate")) {
+                model.duplicateActiveTheme()
+            }
+
+            if model.selectedThemeProfile.isBuiltIn {
+                themeAction(title: model.t("theme.reset"), symbol: "arrow.counterclockwise", help: model.t("help.themeReset")) {
+                    model.resetActiveTheme()
+                }
+            } else {
+                themeAction(title: model.t("theme.delete"), symbol: "trash", variant: .danger, help: model.t("help.themeDelete")) {
+                    model.deleteActiveCustomTheme()
+                }
+            }
+
+            themeAction(title: model.t("theme.export"), symbol: "square.and.arrow.up", help: model.t("help.themeExport")) {
+                model.exportActiveThemeJSON()
+            }
+
+            themeAction(title: model.t("theme.import"), symbol: "square.and.arrow.down", help: model.t("help.themeImport")) {
+                model.importThemeJSONFromClipboard()
+            }
+        }
+    }
+
+    private var statusStrip: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 8)], alignment: .leading, spacing: 8) {
+            ForEach(statusMessages, id: \.self) { message in
+                Text(message)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(model.theme.mutedText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 6)
+                    .background(model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18), in: Capsule())
+                    .help(message)
+            }
+        }
+    }
+
+    private var statusMessages: [String] {
+        var messages: [String] = []
+        if let message = model.lastThemeMessage {
+            messages.append(message)
+        }
+        if let iconStatus = model.lastIconStatus {
+            messages.append(iconStatus)
+        }
+        if model.isThemeSideEffectPending {
+            messages.append(model.t("theme.saving"))
+        } else if let performance = model.lastThemePerformanceMessage {
+            messages.append(performance)
+        }
+        return messages
+    }
+
+    private var advancedEditor: some View {
+        DisclosureGroup(isExpanded: $showsAdvanced) {
+            editorSections
+            .padding(.top, 12)
+        } label: {
+            Label(model.t("theme.advancedColors"), systemImage: "slider.horizontal.3")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(model.theme.text)
+        }
+        .tint(model.theme.primary)
+    }
+
+    private var editorSections: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ThemeEditorSection(
+                title: model.t("theme.group.glass"),
+                symbolName: "sparkles"
+            ) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
+                    ThemeSliderField(title: model.t("theme.glass"), value: doubleBinding(\.glassOpacity), range: 0.2...0.9)
+                    ThemeSliderField(title: model.t("theme.menuGlass"), value: doubleBinding(\.menuGlassOpacity), range: 0.2...0.95)
+                    ThemeSliderField(title: model.t("theme.surfaceAlpha"), value: doubleBinding(\.surfaceAlpha), range: 0.08...0.60)
+                    ThemeSliderField(title: model.t("theme.highlightAlpha"), value: doubleBinding(\.highlightAlpha), range: 0.04...0.60)
+                    ThemeSliderField(title: model.t("theme.specularOpacity"), value: doubleBinding(\.specularOpacity), range: 0.04...0.70)
+                    ThemeSliderField(title: model.t("theme.blurIntensity"), value: doubleBinding(\.blurIntensity), range: 0.20...1.00)
+                    ThemeSliderField(title: model.t("theme.fullscreenGlow"), value: doubleBinding(\.fullscreenGlowIntensity), range: 0...1)
+                    ThemeSliderField(title: model.t("theme.radius"), value: doubleBinding(\.cornerRadius), range: 8...28, step: 1, displayMode: .integer)
+                    ThemeSliderField(title: model.t("theme.border"), value: doubleBinding(\.borderOpacity), range: 0...0.5)
+                    ThemeSliderField(title: model.t("theme.shadow"), value: doubleBinding(\.shadowDepth), range: 0...0.65)
+                    ThemeSliderField(title: model.t("theme.density"), value: doubleBinding(\.density), range: 0...1)
+                    ThemeSliderField(title: model.t("theme.motion"), value: doubleBinding(\.motion), range: 0...1)
+                }
+            }
+
+            ThemeEditorSection(
+                title: model.t("theme.group.accent"),
+                symbolName: "paintpalette"
+            ) {
+                colorGrid {
+                    ThemeColorField(title: model.t("theme.primary"), value: stringBinding(\.primaryHex))
+                    ThemeColorField(title: model.t("theme.secondary"), value: stringBinding(\.secondaryHex))
+                    ThemeColorField(title: model.t("theme.glow"), value: stringBinding(\.glowHex))
+                    ThemeColorField(title: model.t("theme.ringStart"), value: stringBinding(\.timerRingStartHex))
+                    ThemeColorField(title: model.t("theme.ringEnd"), value: stringBinding(\.timerRingEndHex))
+                    ThemeColorField(title: model.t("theme.strict"), value: stringBinding(\.strictHex))
+                }
+            }
+
+            ThemeEditorSection(
+                title: model.t("theme.group.foundation"),
+                symbolName: "rectangle.3.group"
+            ) {
+                colorGrid {
+                    ThemeColorField(title: model.t("theme.backgroundTop"), value: stringBinding(\.backgroundTopHex))
+                    ThemeColorField(title: model.t("theme.backgroundMid"), value: stringBinding(\.backgroundMidHex))
+                    ThemeColorField(title: model.t("theme.backgroundBottom"), value: stringBinding(\.backgroundBottomHex))
+                    ThemeColorField(title: model.t("theme.surface"), value: stringBinding(\.surfaceHex))
+                    ThemeColorField(title: model.t("theme.elevatedSurface"), value: stringBinding(\.elevatedSurfaceHex))
+                    ThemeColorField(title: model.t("theme.highlightColor"), value: stringBinding(\.highlightHex))
+                }
+            }
+
+            ThemeEditorSection(
+                title: model.t("theme.group.readability"),
+                symbolName: "textformat.size"
+            ) {
+                colorGrid {
+                    ThemeColorField(title: model.t("theme.text"), value: stringBinding(\.textHex))
+                    ThemeColorField(title: model.t("theme.muted"), value: stringBinding(\.mutedTextHex))
+                    ThemeColorField(title: model.t("theme.heatmapLow"), value: stringBinding(\.heatmapLowHex))
+                    ThemeColorField(title: model.t("theme.heatmapHigh"), value: stringBinding(\.heatmapHighHex))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func themeAction(
+        title: String,
+        symbol: String,
+        variant: LiquidGlassButtonStyle.Variant = .secondary,
+        help: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: variant))
+        .help(help)
+    }
+
+    private func colorGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 10)], spacing: 10) {
+            content()
+        }
+    }
+
+    private func stringBinding(_ keyPath: WritableKeyPath<ThemeProfile, String>) -> Binding<String> {
         Binding(
             get: { model.selectedThemeProfile[keyPath: keyPath] },
             set: { value in
                 model.updateActiveTheme { profile in
-                    profile[keyPath: keyPath] = normalizeHex(value)
+                    profile[keyPath: keyPath] = value
                 }
             }
         )
@@ -1116,60 +1268,163 @@ struct ThemeStudioView: View {
         )
     }
 
-    private func normalizeHex(_ value: String) -> String {
-        let cleaned = value.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        guard !cleaned.isEmpty else { return "#" }
-        return "#\(cleaned.prefix(6))"
-    }
 }
 
-private struct ThemeHexField: View {
+private struct ThemeColorField: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
     let title: String
     @Binding var value: String
-    let swatch: Color
 
     var body: some View {
-        HStack(spacing: 8) {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(swatch)
-                .frame(width: 24, height: 24)
-                .overlay {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .stroke(.white.opacity(0.18), lineWidth: 1)
-                }
+        HStack(spacing: 10) {
+            ColorPicker("", selection: colorBinding, supportsOpacity: false)
+                .labelsHidden()
+                .frame(width: 36, height: 30)
+                .controlSize(.large)
+
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.secondary)
-                TextField("#FFFFFF", text: $value)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .font(.system(size: 11, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                    .foregroundStyle(model.theme.mutedText)
+                Text(value.uppercased())
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundStyle(model.theme.text.opacity(0.88))
             }
+            Spacer(minLength: 0)
         }
-        .padding(9)
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(10)
+        .background(
+            LinearGradient(
+                colors: [
+                    model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18),
+                    model.theme.elevatedSurface.opacity(model.theme.surfaceAlpha * 1.02),
+                    model.theme.surface.opacity(model.theme.surfaceAlpha * 0.72)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.72), lineWidth: 1)
+        }
+        .help("\(title): \(value)")
+    }
+
+    private var colorBinding: Binding<Color> {
+        Binding(
+            get: { Color(hex: value) },
+            set: { color in
+                value = NSColor(color).hexString
+            }
+        )
     }
 }
 
 private struct ThemeSliderField: View {
+    enum DisplayMode {
+        case decimal
+        case integer
+    }
+
+    @EnvironmentObject private var model: FocusGlassViewModel
+
     let title: String
     @Binding var value: Double
     let range: ClosedRange<Double>
+    var step: Double = 0.01
+    var displayMode: DisplayMode = .decimal
+
+    @State private var draftText = ""
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
+            HStack(spacing: 10) {
                 Text(title)
                     .font(.system(size: 11, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
                 Spacer()
-                Text(String(format: "%.2f", value))
+                TextField("", text: $draftText)
+                    .textFieldStyle(.plain)
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.trailing)
+                    .foregroundStyle(model.theme.text)
+                    .focused($isFocused)
+                    .frame(width: 54)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(model.theme.highlight.opacity(model.theme.highlightAlpha * 0.16), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+                    .onSubmit {
+                        commitDraft()
+                    }
+                    .onChange(of: draftText) { _, _ in
+                        guard isFocused else { return }
+                        commitDraft()
+                    }
+                    .onChange(of: isFocused) { _, focused in
+                        if focused {
+                            syncDraft()
+                        } else {
+                            commitDraft()
+                            syncDraft()
+                        }
+                    }
             }
-            Slider(value: $value, in: range)
+            GlassSlider(value: $value, range: range, step: step)
         }
-        .padding(10)
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .padding(11)
+        .background(
+            LinearGradient(
+                colors: [
+                    model.theme.highlight.opacity(model.theme.highlightAlpha * 0.16),
+                    model.theme.elevatedSurface.opacity(model.theme.surfaceAlpha * 0.96),
+                    model.theme.surface.opacity(model.theme.surfaceAlpha * 0.68)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.70), lineWidth: 1)
+        }
+        .onAppear {
+            syncDraft()
+        }
+        .onChange(of: value) { _, _ in
+            guard !isFocused else { return }
+            syncDraft()
+        }
+        .help("\(title): \(formattedValue)")
+    }
+
+    private var formattedValue: String {
+        switch displayMode {
+        case .decimal:
+            return String(format: "%.2f", value)
+        case .integer:
+            return String(format: "%.0f", value)
+        }
+    }
+
+    private func syncDraft() {
+        draftText = formattedValue
+    }
+
+    private func commitDraft() {
+        let normalized = draftText.replacingOccurrences(of: ",", with: ".")
+        guard let parsed = Double(normalized) else { return }
+        let stepped = step > 0 ? (parsed / step).rounded() * step : parsed
+        value = min(range.upperBound, max(range.lowerBound, stepped))
     }
 }
 
@@ -1177,42 +1432,157 @@ private struct ThemePreviewCard: View {
     @EnvironmentObject private var model: FocusGlassViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(model.t("theme.preview"))
-                .font(.system(size: 14, weight: .bold))
-
+        ZStack {
             RoundedRectangle(cornerRadius: CGFloat(model.theme.cornerRadius), style: .continuous)
                 .fill(model.theme.background)
-                .frame(height: 120)
-                .overlay {
-                    VStack(spacing: 10) {
-                        CircularTimerView(
-                            clockText: "25:00",
-                            phase: model.t("timer.phase.focus"),
-                            progress: 0.68,
-                            theme: model.theme,
-                            statusText: model.t("timer.status.running"),
-                            size: 86,
-                            clockSize: 18
-                        )
-                        Text(model.theme.name)
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                    }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: CGFloat(model.theme.cornerRadius), style: .continuous))
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(model.t("theme.appliesTo"))
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(model.theme.mutedText)
-                Label(model.t("theme.surface.mainWindow"), systemImage: "macwindow")
-                Label(model.t("theme.surface.menuBar"), systemImage: "menubar.rectangle")
-                Label(model.t("theme.surface.fullscreen"), systemImage: "arrow.up.left.and.arrow.down.right")
+            HStack(alignment: .center, spacing: 18) {
+                VStack(alignment: .leading, spacing: 13) {
+                    Label(model.t("theme.preview"), systemImage: "sparkle.magnifyingglass")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(model.theme.mutedText)
+
+                    Text(model.t("focus.today"))
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                        .foregroundStyle(model.theme.text)
+
+                    HStack(spacing: 8) {
+                        ThemePreviewDot(color: model.theme.primary)
+                        ThemePreviewDot(color: model.theme.secondary)
+                        ThemePreviewDot(color: model.theme.strict)
+                        ThemePreviewDot(color: model.theme.glow)
+                        ThemePreviewDot(color: model.theme.mutedText)
+                    }
+
+                    Text(model.t("timer.phase.focus"))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(model.theme.primary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 7)
+                        .background(model.theme.surface.opacity(max(0.16, model.theme.surfaceAlpha)), in: Capsule())
+                }
+
+                Spacer(minLength: 0)
+
+                CircularTimerView(
+                    clockText: "25:00",
+                    phase: model.t("timer.phase.focus"),
+                    progress: 0.68,
+                    theme: model.theme,
+                    statusText: model.t("timer.status.running"),
+                    size: 122,
+                    clockSize: 25
+                )
+                .frame(width: 134, height: 134)
             }
-            .font(.system(size: 11, weight: .semibold))
+            .padding(16)
+        }
+        .frame(height: 180)
+        .clipShape(RoundedRectangle(cornerRadius: CGFloat(model.theme.cornerRadius), style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: CGFloat(model.theme.cornerRadius), style: .continuous)
+                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity), lineWidth: 1)
+        }
+    }
+}
+
+private struct ThemeEditorSection<Content: View>: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    let title: String
+    let symbolName: String
+    let content: Content
+
+    init(title: String, symbolName: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.symbolName = symbolName
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: symbolName)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(model.theme.primary)
+                    .frame(width: 28, height: 28)
+                    .background(model.theme.primary.opacity(0.13), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .bold))
+                }
+
+                Spacer(minLength: 0)
+            }
+
+            content
         }
         .padding(14)
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(model.theme.highlight.opacity(model.theme.highlightAlpha * 0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.66), lineWidth: 1)
+        }
+    }
+}
+
+private struct ThemeStatusBadge: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(spacing: 9) {
+            ThemePreviewDot(color: model.theme.primary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 12, weight: .bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(detail)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(model.theme.mutedText)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18), in: Capsule())
+        .overlay {
+            Capsule()
+                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.72), lineWidth: 1)
+        }
+    }
+}
+
+private struct ThemePreviewDot: View {
+    let color: Color
+    var size: CGFloat = 20
+
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: size, height: size)
+            .overlay {
+                Circle()
+                    .stroke(.white.opacity(0.22), lineWidth: 1)
+            }
+    }
+}
+
+private struct ThemeScopeRow: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    let title: String
+    let symbolName: String
+
+    var body: some View {
+        Label(title, systemImage: symbolName)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(model.theme.text)
+            .lineLimit(1)
+            .minimumScaleFactor(0.72)
     }
 }
 

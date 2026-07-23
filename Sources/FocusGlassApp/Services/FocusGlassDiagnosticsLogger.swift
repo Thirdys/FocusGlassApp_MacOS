@@ -30,9 +30,9 @@ final class FocusGlassDiagnosticsLogger {
     private let fileURL: URL
 
     private init(fileManager: FileManager = .default) {
-        let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSTemporaryDirectory())
-        let directory = baseURL.appendingPathComponent("FocusGlass/Logs", isDirectory: true)
+        let directory = FocusGlassStoragePaths(fileManager: fileManager)
+            .dataDirectory
+            .appendingPathComponent("Logs", isDirectory: true)
         try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
         fileURL = directory.appendingPathComponent("diagnostics.jsonl")
         encoder.dateEncodingStrategy = .iso8601

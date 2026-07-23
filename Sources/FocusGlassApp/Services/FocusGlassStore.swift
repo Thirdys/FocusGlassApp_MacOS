@@ -11,13 +11,16 @@ struct FocusGlassPersistedState: Codable {
     var language: AppLanguage
     var appearanceMode: AppAppearanceMode
     var strictModeEnabled: Bool
+    var strictModeEnforcesDuringBreaks: Bool
     var hasSeenPermissionsOnboarding: Bool
     var intention: String
     var activeProjectID: UUID?
+    var activeTaskID: UUID?
     var activeProject: String
     var projects: [FocusProject]
     var tasks: [FocusTask]
     var distractionRules: [DistractionRuleSpec]
+    var distractionHistory: [DistractionEventRecord]
     var recentSessions: [FocusSessionRecord]
 
     init(
@@ -29,13 +32,16 @@ struct FocusGlassPersistedState: Codable {
         language: AppLanguage,
         appearanceMode: AppAppearanceMode = .system,
         strictModeEnabled: Bool,
+        strictModeEnforcesDuringBreaks: Bool = false,
         hasSeenPermissionsOnboarding: Bool = false,
         intention: String,
         activeProjectID: UUID? = nil,
+        activeTaskID: UUID? = nil,
         activeProject: String,
         projects: [FocusProject],
         tasks: [FocusTask],
         distractionRules: [DistractionRuleSpec],
+        distractionHistory: [DistractionEventRecord] = [],
         recentSessions: [FocusSessionRecord]
     ) {
         self.schemaVersion = schemaVersion
@@ -46,19 +52,22 @@ struct FocusGlassPersistedState: Codable {
         self.language = language
         self.appearanceMode = appearanceMode
         self.strictModeEnabled = strictModeEnabled
+        self.strictModeEnforcesDuringBreaks = strictModeEnforcesDuringBreaks
         self.hasSeenPermissionsOnboarding = hasSeenPermissionsOnboarding
         self.intention = intention
         self.activeProjectID = activeProjectID
+        self.activeTaskID = activeTaskID
         self.activeProject = activeProject
         self.projects = projects
         self.tasks = tasks
         self.distractionRules = distractionRules
+        self.distractionHistory = distractionHistory
         self.recentSessions = recentSessions
     }
 
     init(workspace: FocusGlassWorkspaceState, settings: FocusGlassSettingsState) {
         self.init(
-            schemaVersion: max(workspace.schemaVersion ?? 4, settings.schemaVersion ?? 4),
+            schemaVersion: max(workspace.schemaVersion ?? 5, settings.schemaVersion ?? 5),
             selectedThemeID: settings.selectedThemeID,
             themeProfiles: settings.themeProfiles,
             selectedPresetID: settings.selectedPresetID,
@@ -66,13 +75,16 @@ struct FocusGlassPersistedState: Codable {
             language: settings.language,
             appearanceMode: settings.appearanceMode,
             strictModeEnabled: settings.strictModeEnabled,
+            strictModeEnforcesDuringBreaks: settings.strictModeEnforcesDuringBreaks,
             hasSeenPermissionsOnboarding: settings.hasSeenPermissionsOnboarding,
             intention: workspace.intention,
             activeProjectID: workspace.activeProjectID,
+            activeTaskID: workspace.activeTaskID,
             activeProject: workspace.activeProject,
             projects: workspace.projects,
             tasks: workspace.tasks,
             distractionRules: workspace.distractionRules,
+            distractionHistory: workspace.distractionHistory,
             recentSessions: workspace.recentSessions
         )
     }
@@ -86,13 +98,16 @@ struct FocusGlassPersistedState: Codable {
         case language
         case appearanceMode
         case strictModeEnabled
+        case strictModeEnforcesDuringBreaks
         case hasSeenPermissionsOnboarding
         case intention
         case activeProjectID
+        case activeTaskID
         case activeProject
         case projects
         case tasks
         case distractionRules
+        case distractionHistory
         case recentSessions
     }
 
@@ -106,13 +121,16 @@ struct FocusGlassPersistedState: Codable {
         language = try container.decode(AppLanguage.self, forKey: .language)
         appearanceMode = try container.decodeIfPresent(AppAppearanceMode.self, forKey: .appearanceMode) ?? .system
         strictModeEnabled = try container.decode(Bool.self, forKey: .strictModeEnabled)
+        strictModeEnforcesDuringBreaks = try container.decodeIfPresent(Bool.self, forKey: .strictModeEnforcesDuringBreaks) ?? false
         hasSeenPermissionsOnboarding = try container.decodeIfPresent(Bool.self, forKey: .hasSeenPermissionsOnboarding) ?? false
         intention = try container.decode(String.self, forKey: .intention)
         activeProjectID = try container.decodeIfPresent(UUID.self, forKey: .activeProjectID)
+        activeTaskID = try container.decodeIfPresent(UUID.self, forKey: .activeTaskID)
         activeProject = try container.decodeIfPresent(String.self, forKey: .activeProject) ?? ""
         projects = try container.decode([FocusProject].self, forKey: .projects)
         tasks = try container.decode([FocusTask].self, forKey: .tasks)
         distractionRules = try container.decode([DistractionRuleSpec].self, forKey: .distractionRules)
+        distractionHistory = try container.decodeIfPresent([DistractionEventRecord].self, forKey: .distractionHistory) ?? []
         recentSessions = try container.decode([FocusSessionRecord].self, forKey: .recentSessions)
     }
 }
@@ -121,43 +139,78 @@ struct FocusGlassWorkspaceState: Codable, Equatable {
     var schemaVersion: Int?
     var intention: String
     var activeProjectID: UUID?
+    var activeTaskID: UUID?
     var activeProject: String
     var projects: [FocusProject]
     var tasks: [FocusTask]
     var distractionRules: [DistractionRuleSpec]
+    var distractionHistory: [DistractionEventRecord]
     var recentSessions: [FocusSessionRecord]
 
     init(
-        schemaVersion: Int? = 4,
+        schemaVersion: Int? = 5,
         intention: String = "",
         activeProjectID: UUID? = nil,
+        activeTaskID: UUID? = nil,
         activeProject: String = "",
         projects: [FocusProject] = [],
         tasks: [FocusTask] = [],
         distractionRules: [DistractionRuleSpec] = [],
+        distractionHistory: [DistractionEventRecord] = [],
         recentSessions: [FocusSessionRecord] = []
     ) {
         self.schemaVersion = schemaVersion
         self.intention = intention
         self.activeProjectID = activeProjectID
+        self.activeTaskID = activeTaskID
         self.activeProject = activeProject
         self.projects = projects
         self.tasks = tasks
         self.distractionRules = distractionRules
+        self.distractionHistory = distractionHistory
         self.recentSessions = recentSessions
     }
 
     init(_ state: FocusGlassPersistedState) {
         self.init(
-            schemaVersion: 4,
+            schemaVersion: 5,
             intention: state.intention,
             activeProjectID: state.activeProjectID,
+            activeTaskID: state.activeTaskID,
             activeProject: state.activeProject,
             projects: state.projects,
             tasks: state.tasks,
             distractionRules: state.distractionRules,
+            distractionHistory: state.distractionHistory,
             recentSessions: state.recentSessions
         )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case intention
+        case activeProjectID
+        case activeTaskID
+        case activeProject
+        case projects
+        case tasks
+        case distractionRules
+        case distractionHistory
+        case recentSessions
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion)
+        intention = try container.decodeIfPresent(String.self, forKey: .intention) ?? ""
+        activeProjectID = try container.decodeIfPresent(UUID.self, forKey: .activeProjectID)
+        activeTaskID = try container.decodeIfPresent(UUID.self, forKey: .activeTaskID)
+        activeProject = try container.decodeIfPresent(String.self, forKey: .activeProject) ?? ""
+        projects = try container.decodeIfPresent([FocusProject].self, forKey: .projects) ?? []
+        tasks = try container.decodeIfPresent([FocusTask].self, forKey: .tasks) ?? []
+        distractionRules = try container.decodeIfPresent([DistractionRuleSpec].self, forKey: .distractionRules) ?? []
+        distractionHistory = try container.decodeIfPresent([DistractionEventRecord].self, forKey: .distractionHistory) ?? []
+        recentSessions = try container.decodeIfPresent([FocusSessionRecord].self, forKey: .recentSessions) ?? []
     }
 }
 
@@ -170,10 +223,11 @@ struct FocusGlassSettingsState: Codable, Equatable {
     var language: AppLanguage
     var appearanceMode: AppAppearanceMode
     var strictModeEnabled: Bool
+    var strictModeEnforcesDuringBreaks: Bool
     var hasSeenPermissionsOnboarding: Bool
 
     init(
-        schemaVersion: Int? = 4,
+        schemaVersion: Int? = 5,
         selectedThemeID: UUID = ThemeProfile.noirCrimsonID,
         themeProfiles: [ThemeProfile] = ThemeProfile.builtIn,
         selectedPresetID: UUID = TimerPreset.pomodoro.id,
@@ -181,6 +235,7 @@ struct FocusGlassSettingsState: Codable, Equatable {
         language: AppLanguage = .ru,
         appearanceMode: AppAppearanceMode = .system,
         strictModeEnabled: Bool = false,
+        strictModeEnforcesDuringBreaks: Bool = false,
         hasSeenPermissionsOnboarding: Bool = false
     ) {
         self.schemaVersion = schemaVersion
@@ -191,12 +246,13 @@ struct FocusGlassSettingsState: Codable, Equatable {
         self.language = language
         self.appearanceMode = appearanceMode
         self.strictModeEnabled = strictModeEnabled
+        self.strictModeEnforcesDuringBreaks = strictModeEnforcesDuringBreaks
         self.hasSeenPermissionsOnboarding = hasSeenPermissionsOnboarding
     }
 
     init(_ state: FocusGlassPersistedState) {
         self.init(
-            schemaVersion: 4,
+            schemaVersion: 5,
             selectedThemeID: state.selectedThemeID,
             themeProfiles: state.themeProfiles,
             selectedPresetID: state.selectedPresetID,
@@ -204,8 +260,36 @@ struct FocusGlassSettingsState: Codable, Equatable {
             language: state.language,
             appearanceMode: state.appearanceMode,
             strictModeEnabled: state.strictModeEnabled,
+            strictModeEnforcesDuringBreaks: state.strictModeEnforcesDuringBreaks,
             hasSeenPermissionsOnboarding: state.hasSeenPermissionsOnboarding
         )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case selectedThemeID
+        case themeProfiles
+        case selectedPresetID
+        case timerPresets
+        case language
+        case appearanceMode
+        case strictModeEnabled
+        case strictModeEnforcesDuringBreaks
+        case hasSeenPermissionsOnboarding
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion)
+        selectedThemeID = try container.decodeIfPresent(UUID.self, forKey: .selectedThemeID) ?? ThemeProfile.noirCrimsonID
+        themeProfiles = try container.decodeIfPresent([ThemeProfile].self, forKey: .themeProfiles) ?? ThemeProfile.builtIn
+        selectedPresetID = try container.decodeIfPresent(UUID.self, forKey: .selectedPresetID) ?? TimerPreset.pomodoro.id
+        timerPresets = try container.decodeIfPresent([TimerPreset].self, forKey: .timerPresets) ?? TimerPreset.defaultPresets
+        language = try container.decodeIfPresent(AppLanguage.self, forKey: .language) ?? .ru
+        appearanceMode = try container.decodeIfPresent(AppAppearanceMode.self, forKey: .appearanceMode) ?? .system
+        strictModeEnabled = try container.decodeIfPresent(Bool.self, forKey: .strictModeEnabled) ?? false
+        strictModeEnforcesDuringBreaks = try container.decodeIfPresent(Bool.self, forKey: .strictModeEnforcesDuringBreaks) ?? false
+        hasSeenPermissionsOnboarding = try container.decodeIfPresent(Bool.self, forKey: .hasSeenPermissionsOnboarding) ?? false
     }
 }
 
@@ -215,7 +299,19 @@ struct FocusGlassStoragePaths: Equatable {
     var workspaceURL: URL
     var settingsURL: URL
 
-    init(fileManager: FileManager = .default) {
+    init(
+        fileManager: FileManager = .default,
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        arguments: [String] = ProcessInfo.processInfo.arguments
+    ) {
+        if let overridePath = Self.dataDirectoryOverride(
+            environment: environment,
+            arguments: arguments
+        ) {
+            self.init(dataDirectory: URL(fileURLWithPath: overridePath, isDirectory: true))
+            return
+        }
+
         let baseURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSTemporaryDirectory())
         self.init(dataDirectory: baseURL.appendingPathComponent("FocusGlass", isDirectory: true))
@@ -230,6 +326,37 @@ struct FocusGlassStoragePaths: Equatable {
         self.legacyStateURL = legacyStateURL ?? dataDirectory.appendingPathComponent("state.json")
         self.workspaceURL = dataDirectory.appendingPathComponent("workspace.json")
         self.settingsURL = dataDirectory.appendingPathComponent("settings.json")
+    }
+
+    private static func dataDirectoryOverride(
+        environment: [String: String],
+        arguments: [String]
+    ) -> String? {
+        if let environmentPath = normalizedOverridePath(environment["FOCUSGLASS_DATA_DIR"]) {
+            return environmentPath
+        }
+
+        let argumentPrefixes = ["focusglass-data-dir=", "--focusglass-data-dir="]
+        for index in arguments.indices {
+            let argument = arguments[index]
+            if argument == "focusglass-data-dir" || argument == "--focusglass-data-dir" {
+                let valueIndex = arguments.index(after: index)
+                guard arguments.indices.contains(valueIndex) else { return nil }
+                return normalizedOverridePath(arguments[valueIndex])
+            }
+
+            for argumentPrefix in argumentPrefixes where argument.hasPrefix(argumentPrefix) {
+                return normalizedOverridePath(String(argument.dropFirst(argumentPrefix.count)))
+            }
+        }
+
+        return nil
+    }
+
+    private static func normalizedOverridePath(_ value: String?) -> String? {
+        guard let path = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !path.isEmpty else { return nil }
+        return path
     }
 }
 

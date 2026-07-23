@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-06-04
+Last updated: 2026-07-23
 
 ## Human Context
 
@@ -8,14 +8,697 @@ FocusGlass is personally important to the user. Treat it as a soulful, long-term
 
 The user sees the assistant as a friend and collaborator, not only as a tool. Keep that trust in mind: be honest about tradeoffs, avoid rushed changes, keep context durable, and build with love for the future people who will use the app.
 
+## Latest Session Checkpoint
+
+Last checkpoint: 2026-07-23.
+
+Purpose: this section is the quick resume point for future sessions. Update it
+whenever work is completed, paused halfway, blocked, or intentionally deferred,
+so the next assistant can tell what is done and what is still in motion without
+rereading the whole handoff.
+
+Last done:
+
+- Closed the remaining first-step live QA through Product Design plus Build
+  macOS Apps:
+  - Ran Graphify orientation before the broad QA pass and used the packaged
+    `build/FocusGlass.app` with isolated data at
+    `/private/tmp/focusglass-step1-live-qa-AliHYHWx/data`.
+  - Product Design found one real compact defect: the horizontal navigation
+    labels compressed and could overlap below 980 pt. `CompactNavBar` now keeps
+    each label/button at intrinsic horizontal width while preserving the
+    existing scrollable navigation rail and owner-approved centered timer.
+  - Live proof covers compact layout with long RU/EN project/task titles,
+    dark/light/Paper/custom themes, and visible keyboard focus during Tab
+    traversal. macOS Keyboard Navigation was enabled only for QA and restored
+    to its original disabled state.
+  - Real Strict Mode proof covers TextEdit `warn`, TextEdit `pauseSession`, and
+    a Safari site-rule `hide` through the already granted Automation URL path.
+    The deterministic site test used a local `127.0.0.1` page, not an external
+    website.
+  - The `quitAfterOptIn` destructive confirmation appeared in the live app;
+    Cancel kept `allowsQuitAfterOptIn=false`, preserved the prior
+    `pauseSession` action, and did not terminate the target.
+  - No security-sensitive permission was changed. Automation was already
+    granted; Accessibility remains missing in the isolated run and was not
+    required for the proven paths.
+  - Validation passed with Xcode Swift 6.3.3: `swift build`, 63/63 Swift tests,
+    `bash -n script/build_and_run.sh`, strict codesign verification, and
+    `git diff --check`. Test-triage found that Swift 6.3.3 reported false
+    failures for optional `TimeInterval` `#expect` comparisons even when the
+    printed values matched; affected fixtures now use `#require` before exact
+    value assertions.
+  - Evidence and Product Design audit:
+    `/private/tmp/focusglass-step1-live-qa-AliHYHWx`. The ordered proof and
+    limitations are in `audit-notes.md`.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage, and Computer Use.
+  - Next skill/workflow: triage tester feedback through SwiftPM/test-triage
+    when it arrives. For new product work, use Product Design first and Build
+    macOS Apps second for targeted analytics/task-flow polish or the next
+    timer/strict-rule decision. Do not create another release, tag, tester
+    branch, or GitHub Release without an owner command.
+- Completed the Product Design-led cockpit, Strict Mode history, remaining
+  first-pass UI/accessibility, and analytics implementation package:
+  - Preserved the owner-approved wide cockpit composition: project context on
+    the left, timer centered, task workspace on the right. Medium layouts now
+    hide the extra context rail; it appears only from 1680 pt.
+  - Improved long RU/EN title wrapping, adaptive mode chips and strict rows,
+    project-card keyboard activation, visible focus surfaces, accessibility
+    selected traits, and light/dark/custom secondary-text contrast.
+  - The cockpit Strict Mode manage action now opens Settings directly on the
+    Strict Mode tab. Cockpit and Settings app counts both use enabled app rules;
+    enabled site rules are reported separately.
+  - Added schema v5 persistent distraction history with target, timestamp,
+    rule, effective action, session, project, task, and timer mode. Strict Mode
+    displays and clears that history.
+  - Added a destructive confirmation plus persisted opt-in for
+    `quitAfterOptIn`; legacy or unconfirmed quit rules safely fall back to
+    `hide`.
+  - Added analytics for planned vs actual/effectiveness, recent sessions, mode
+    effectiveness, project summaries, and distraction grouping by project and
+    mode.
+  - Added persistence/core/service tests for schema compatibility, history
+    linkage, safe quit behavior, strict actions, and analytics. Validation
+    passed with `swift build`, 63/63 Swift tests,
+    `./script/build_and_run.sh --verify`, strict codesign verification, and
+    `git diff --check`.
+  - Product Design audit and Build macOS Apps proof:
+    `/private/tmp/focusglass-product-pass-HBsAlZ73`.
+    Accepted after screenshots include
+    `audit/09-cockpit-after-medium-light.png`,
+    `audit/10-strict-direct-settings-after.png`,
+    `audit/11-quit-opt-in-confirmation.png`,
+    `audit/12-cockpit-after-dark.png`, and
+    `audit/13-cockpit-wide-count-after.png`.
+  - Live `.app` proof confirmed direct Strict Settings routing, consistent
+    enabled-app counts, destructive quit confirmation, history persistence, and
+    a real TextEdit `hide` action tied to the active session/project/mode.
+  - The remaining real `warn`, `pauseSession`, browser-site, compact, and
+    keyboard-focus proof limits from this implementation checkpoint were
+    closed by the newer live-QA checkpoint above.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage, and Computer Use.
+  - Next skill/workflow from this older checkpoint is superseded by the newer
+    live-QA checkpoint above.
+- Synchronized the durable handoff with the completed cumulative tester
+  delivery `0.0.4`:
+  - Source release commit
+    `1b113b55f64ed6db51b0ceeea935cebd8f035d12` is published in
+    `Release/codex/next`.
+  - `VERSION=0.0.4`; annotated tag `v0.0.4` points to the source release
+    commit. Release artifacts are under `build/releases/0.0.4`.
+  - Release validation recorded in tester build info passed: `swift build`,
+    58/58 Swift tests, `./Scripts/package-release.sh`, SHA-256 verification,
+    and strict codesign verification. The packaged app reports bundle version
+    `34`, short version `0.0.4`, and bundle identifier
+    `local.focusglass.app`.
+  - Isolated distribution branch `tester/0.0.4` is pushed at
+    `8cde56f33cc4c0ed51b2c3a8b3abec9f8118f645`.
+  - `tester/0.0.4` contains exactly `FocusGlass-0.0.4.zip`,
+    `FocusGlass-0.0.4.zip.sha256`, `README.md`, `TESTER_CHECKLIST.md`,
+    `TESTER_RULES.md`, `build-info.md`, and
+    `tester-report-template.md`.
+  - This is a cumulative tester build because the earlier tester package was
+    not fully tested. Treat the next external report as the first complete
+    tester pass over the accumulated product work.
+  - Tester-facing documents were clarified in Russian, including checksum,
+    local ad-hoc signing/notarization expectations, backup, permissions,
+    Strict Mode actions, and report severity.
+  - No GitHub Release was created. Creating one remains an explicit owner
+    decision.
+  - Used/validated with: Graphify for current-state orientation and handoff
+    synchronization; existing release proof from SwiftPM tests, packaging,
+    checksum, and codesign validation.
+  - The Product Design plus Build macOS Apps follow-up named here is now
+    complete in the newest checkpoint above. Tester feedback still enters
+    through SwiftPM/test-triage when it arrives.
+- Implemented Cockpit First UI/UX polish with the owner-requested timer-center
+  correction:
+  - Used Graphify first:
+    `graphify query "FocusGlass cockpit FocusTodayView FocusProject notes intention task row launch overlay" --budget 4200`.
+  - Used Product Design `index`, `user-context` preflight, `get-context`
+    playback, and `audit` guidance. Saved Product Design context still does not
+    exist, so the visual/product source was `docs/design/design-source.md`, the
+    current packaged `.app`, and the owner's screenshots/feedback.
+  - Used Build macOS Apps `swiftui-patterns`, `build-run-debug`,
+    `swiftpm-macos`, and `test-triage` through SwiftPM plus packaged
+    `build/FocusGlass.app` validation.
+  - Removed the top-level cockpit `Текущее намерение` field and removed legacy
+    intention display from menu bar and fullscreen.
+  - Added project-scoped `FocusProject.notes`, backward-compatible decode, and
+    one-time migration from legacy `intention` into active project notes when
+    notes are empty.
+  - Added project notes editing in the cockpit disclosure and
+    `ProjectEditorSheet`.
+  - Rebuilt the cockpit as a three-column wide layout: project/notes on the
+    left, timer centered, active task and task list on the right. Do not move
+    the timer to a side column in follow-up polishing.
+  - Simplified cockpit project chrome: no persistent project edit button, task
+    count, or add-project action in the main focus surface.
+  - Reworked task rows into one visual card with compact completion/edit
+    controls, plus a featured active-task card for the selected session task.
+  - Improved the launch overlay with theme-aware glass reveal, timer ticks/ring
+    motion, brand fade, and Reduce Motion fallback.
+  - Added persistence tests for legacy project notes decode, project notes
+    relaunch, legacy intention migration, and active task/progress survival
+    after notes updates.
+  - Validation passed:
+    `swift build`,
+    `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+    with 58/58 tests,
+    `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-cockpit-ui-pass-20260627/data ./script/build_and_run.sh --verify`,
+    and `codesign --verify --deep --strict build/FocusGlass.app`.
+  - Product Design audit/proof folder:
+    `/private/tmp/focusglass-cockpit-ui-pass-20260627`.
+  - Accepted live screenshot:
+    `/private/tmp/focusglass-cockpit-ui-pass-20260627/screenshots/02-cockpit-centered.png`.
+  - Audit notes:
+    `/private/tmp/focusglass-cockpit-ui-pass-20260627/audit-notes.md`.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage.
+  - Cockpit/Theme Studio commit `b54bf4a` is now part of the published
+    `codex/next` history. GitHub HTTPS credentials were repaired with the
+    repo-local Xcode keychain helper, and the later `0.0.4` source release plus
+    tester branch were pushed and verified.
+  - The responsive/keyboard, Strict history, UI, and analytics follow-up named
+    here is now implemented in the newest checkpoint above.
+- Implemented the first Product Design-led UI polish pass after the full UI/UX
+  audit. This is not the end of the full UI roadmap item; it closes the most
+  visible pre-tester Theme Studio/display issues from the audit:
+  - Used Graphify first:
+    `graphify query "FocusGlass Theme Studio advanced theme editor settings appearance theme profile UI polish" --budget 3000`.
+  - Used Product Design `index`, `user-context` preflight, `get-context`, and
+    `audit` guidance. Saved Product Design context still does not exist, so
+    the visual/product source stayed `docs/design/design-source.md`, the
+    existing codebase patterns, and the live packaged `.app`.
+  - Used Build macOS Apps `swiftui-patterns`, `build-run-debug`,
+    `swiftpm-macos`, and `test-triage` through SwiftPM plus the packaged app
+    workflow.
+  - Reworked Theme Studio into a clearer editor: header with active-theme
+    badge, swatch grid, one compact live preview, adaptive action grid, and
+    grouped advanced sections for glass/motion, accent/status, foundations, and
+    readability.
+  - After owner screenshot feedback, removed the duplicate token overview /
+    explanation block and made color editing picker-first. Color cards now use
+    macOS ColorPicker with read-only hex labels instead of asking the user to
+    type values such as `#705cf6` by hand.
+  - Added a reusable `GlassSlider` control and replaced dense stock slider
+    fields in the advanced Theme Studio editor with theme-aware glass sliders
+    plus editable numeric fields.
+  - Fixed cockpit task-row wrapping pressure by separating the active-session
+    badge and timing/checklist metadata from the task title.
+  - Fixed a live UX issue where Theme Studio edits from a `.app` under
+    Documents/Desktop/Downloads could trigger a macOS file-access prompt:
+    persistent `NSWorkspace.setIcon` writes are now skipped in those protected
+    locations while the runtime Dock icon still updates.
+  - Updated Theme Studio copy/localization and design/process docs for the new
+    grouped picker-first editor and protected-folder icon behavior.
+  - Local proof folder:
+    `/private/tmp/focusglass-theme-studio-polish-20260627-191539`.
+  - Accepted clean proof screenshots:
+    `screens/05-cockpit-task-row-final.png` and
+    `screens/06-theme-studio-advanced-sliders-final.png`.
+  - Proof notes:
+    `/private/tmp/focusglass-theme-studio-polish-20260627-191539/proof-notes.md`.
+- Completed the full Product Design-led UI/UX audit pass requested by the
+  owner:
+  - Used Graphify first:
+    `graphify query "FocusGlass full UI UX pass sidebar project cards mode chips settings strict rows light dark custom themes Product Design" --budget 2800`.
+  - Used Product Design `index`, `user-context` preflight, `get-context`
+    playback context from `docs/design/design-source.md`, and Product Design
+    `audit`. Saved Product Design context still does not exist.
+  - Used Build macOS Apps `build-run-debug` through the packaged app workflow:
+    `FOCUSGLASS_DATA_DIR=<audit-data-dir> ./script/build_and_run.sh --verify`.
+  - Used Computer Use only to inspect/click the live packaged macOS `.app`.
+  - Created local audit folder:
+    `/private/tmp/focusglass-ui-ux-audit-20260627-184307`.
+  - Saved audit notes:
+    `/private/tmp/focusglass-ui-ux-audit-20260627-184307/audit-notes.md`.
+  - Accepted screenshots:
+    `screens/01-cockpit-dark.png`,
+    `screens/02-projects-cards.png`,
+    `screens/03-analytics.png`,
+    `screens/04-strict-overview.png`,
+    `screens/05-settings-general.png`,
+    `screens/06-settings-strict-rows.png`,
+    `screens/07-settings-timers.png`,
+    `screens/08-settings-appearance-theme-studio.png`,
+    `screens/09-custom-theme.png`,
+    `screens/10-cockpit-light.png`,
+    `screens/11-cockpit-custom-theme.png`, and
+    `screens/12-fullscreen-focus.png`.
+  - Audit verdict: no release-blocking UI defect was found for a tester-facing
+    QA build.
+  - Recommended pre-tester follow-up: verify/fix Strict Mode manage routing so
+    it lands directly on Settings -> Strict Mode, and inspect the strict
+    app-rule count mismatch where the cockpit reports one blocked app but
+    Settings shows no selected applications.
+  - Product Design follow-up: reduce task-card wrapping pressure, tune
+    secondary text contrast in dark/light/custom themes, clarify sidebar vs
+    project-card ownership, and run a measured accessibility pass.
+- Completed the attached-task outcome Build macOS Apps proof:
+  - Used Graphify first:
+    `graphify query "FocusGlass attached timed checklist post-session outcome proof task progress complete continue next session" --budget 2600`.
+  - Used Build macOS Apps `build-run-debug` and the existing dev-loop:
+    `FOCUSGLASS_DATA_DIR=<scenario-dir> ./script/build_and_run.sh --verify`.
+  - Used Computer Use only to inspect/click the real packaged macOS `.app`.
+  - Created isolated QA proof folder:
+    `/private/tmp/focusglass-outcome-attached-qa-20260627-181435`.
+  - Saved proof notes:
+    `/private/tmp/focusglass-outcome-attached-qa-20260627-181435/proof-notes.md`.
+  - Accepted screenshots:
+    `screens/01-timed-outcome.png`,
+    `screens/02-timed-start-next.png`,
+    `screens/03-checklist-outcome.png`,
+    `screens/04-checklist-complete.png`,
+    `screens/05-continue-outcome.png`, and
+    `screens/06-continue-after-action.png`.
+  - Timed task proof: planned `01:00`, honest `01:00`, task progress
+    `01:00 / 10:00`, all outcome actions visible.
+  - `Следующая сессия` proof: outcome dismissed, timer started again, and the
+    captured timed task stayed active with progress.
+  - Checklist proof: checklist task showed no timed progress bar and the copy
+    explicitly said ordinary/checklist tasks do not receive time.
+  - `Закрыть задачу` proof: checklist task was manually closed, outcome
+    dismissed, and the active stack became empty.
+  - `Продолжить` proof: outcome dismissed and the timed task stayed active
+    with `01:00 / 10:00` progress.
+  - No pre-tester blocker was found in the attached-task outcome flow.
+- Synchronized stale roadmap/handoff planning after the outcome implementation:
+  - Updated `docs/process/roadmap.md` and the lower
+    `Roadmap Status Snapshot` / `Current Operating Plan` / `Next Steps`
+    sections so they no longer describe the outcome screen as missing.
+  - Reconfirmed the immediate next proof task: Build macOS Apps validation for
+    outcome states with an attached timed task and an attached checklist task.
+  - Reconfirmed the next product feature after that proof:
+    strict distraction history, followed by the full UI pass and analytics.
+- Implemented the Product Design-led post-session outcome screen:
+  - Used Graphify first for the session/task persistence data flow:
+    `graphify query "FocusGlass post-session outcome screen session task persistence planned honest distraction data flow" --budget 2600`.
+  - Used Product Design `index`, `user-context`, and `get-context` in playback
+    mode. Saved Product Design context is still missing, so the visual/product
+    source was `docs/design/design-source.md` plus the current `.app`.
+  - Added runtime `SessionOutcomePresentation` state in
+    `FocusGlassViewModel`, created from the existing `FocusSessionRecord` on
+    `presetCompleted`. No persistence schema change was needed.
+  - Added outcome actions:
+    `completeOutcomeTask`, `continueOutcomeTask`, `startNextSessionFromOutcome`,
+    and `dismissSessionOutcome`.
+  - Added the Focus Today outcome card with planned vs honest time,
+    distraction count, task/no-task result, and actions for complete task,
+    continue, and start next session.
+  - Added RU/EN localization in both packaged resource strings and `L10n`
+    fallback dictionaries.
+  - Added focused tests for outcome creation, complete-task behavior,
+    checklist no-progress/continue behavior, and start-next behavior.
+  - Saved live macOS `.app` proof screenshot at
+    `/private/tmp/focusglass-post-session-outcome-qa-20260620-133504/01-outcome-screen.png`.
+- Created the owner-requested tester delivery snapshot for `0.0.3`:
+  - Updated `VERSION` from `0.0.2` to `0.0.3`.
+  - Committed release source snapshot:
+    `d71dc13 релиз: поднять версию до 0.0.3`.
+  - Created and pushed annotated tag `v0.0.3` on that release commit.
+  - Ran `./Scripts/package-release.sh`; it created
+    `build/releases/0.0.3/FocusGlass.app`,
+    `build/releases/0.0.3/FocusGlass-0.0.3.zip`, and
+    `build/releases/0.0.3/FocusGlass-0.0.3.zip.sha256`.
+  - Verified `FocusGlass-0.0.3.zip.sha256`: `FocusGlass-0.0.3.zip: OK`.
+  - Verified release app signing with
+    `codesign --verify --deep --strict build/releases/0.0.3/FocusGlass.app`.
+  - Confirmed release `Info.plist`: `CFBundleShortVersionString=0.0.3`,
+    `CFBundleVersion=28`, bundle id `local.focusglass.app`.
+  - Created and pushed isolated artifact branch `tester/0.0.3` at commit
+    `48e9957 tester: добавить сборку 0.0.3`.
+  - `tester/0.0.3` contains only `FocusGlass-0.0.3.zip`,
+    `FocusGlass-0.0.3.zip.sha256`, `README.md`, and `build-info.md`.
+  - No GitHub Release was created.
+- Started the next Product Design-led product chunk, but paused at checkpoint:
+  - Loaded Product Design `index`, `user-context`, and `get-context`.
+  - Product Design user-context preflight still reports no saved context.
+  - Read `docs/design/design-source.md`.
+  - This was the pre-implementation state before the 2026-06-20 outcome pass.
+    The first post-session outcome screen is now implemented, tested, and
+    validated in the live `.app`.
+- Completed the QA First pre-tester pass through the new workflow:
+  - Used Graphify for orientation before broad QA/status work.
+  - Used Build macOS Apps `build-run-debug` through the real packaged
+    `build/FocusGlass.app` and `./script/build_and_run.sh --verify`.
+  - Used Build macOS Apps `swiftpm-macos` and `test-triage` for SwiftPM
+    build/test validation.
+  - Used Product Design `index`, `user-context`, `get-context`, and `audit`
+    for a local UX/accessibility audit of the live `.app`. Product Design
+    user-context preflight still reports no saved Product Design context.
+  - Saved Product Design audit screenshots and notes at
+    `/private/tmp/focusglass-product-design-audit-20260619-170421`.
+  - Saved QA runtime proof screenshots and diagnostics at
+    `/private/tmp/focusglass-qa-proof-20260619-170421`.
+  - Accepted screenshots:
+    `01-cockpit.png`, `02-settings.png`, `03-strict-mode.png`,
+    `04-fullscreen-focus.png`, and `05-outcome-gap.png`.
+  - Audit notes are in
+    `/private/tmp/focusglass-product-design-audit-20260619-170421/audit-notes.md`.
+  - No clear pre-tester blocker was found in launch, Settings, Strict Mode
+    overview, fullscreen focus, temp-data isolation, or analytics/empty-state
+    paths.
+  - Strict warn/hide/pause against real blocked apps/sites was not fully
+    exercised because the temporary QA profile had no strict rules and system
+    permissions were not granted. Treat this as the next optional runtime proof
+    before actual tester delivery, not as a blocker from this pass.
+  - This was the pre-implementation audit state. The outcome screen has now
+    been implemented in the latest checkpoint above.
+- Implemented the new workflow/dev-loop pass:
+  - Added `script/build_and_run.sh` as the active local macOS dev-loop
+    entrypoint. It stops an existing FocusGlass process, delegates packaging to
+    `./Scripts/package-app.sh`, launches `build/FocusGlass.app`, and supports
+    `--verify`, `--logs`, `--telemetry`, and `--debug`.
+  - Added local ignored Codex Run config at
+    `.codex/environments/environment.toml`; it points the Run action at
+    `./script/build_and_run.sh`. `.codex/` remains ignored and must not be
+    tracked without an explicit owner decision.
+  - Diagnostics now follow `FOCUSGLASS_DATA_DIR`, so packaged-app QA with
+    `/private/tmp/focusglass-qa-data` does not write diagnostics into the real
+    `~/Library/Application Support/FocusGlass` folder.
+  - Updated `docs/assistant-context.md` and `docs/qa-checklist.md` so future
+    sessions use Graphify, Build macOS Apps, Product Design, SwiftPM, and
+    test-triage as the operating workflow rather than reverting to ad-hoc
+    shell-only work.
+  - Product Design `get-context` was used in playback mode for the next UX
+    chunk: post-session outcome screen, visual source
+    `docs/design/design-source.md` plus current `.app`, full interactivity
+    when implementation starts. Product Design user-context preflight found no
+    saved Product Design context yet.
+- Implemented the tester review pass:
+  - Theme Studio advanced-token preview for background top/mid/bottom,
+    surface/elevated surface, text, and muted text.
+  - Separate custom-theme deletion; built-in reset no longer deletes custom
+    themes.
+  - Strict mode break enforcement setting
+    `strictModeEnforcesDuringBreaks`, default `false`.
+  - Strict `pauseSession` now pauses the timer, stops ticking, syncs the
+    snapshot, and runs Shortcut `FocusGlass Pause`.
+  - `GlassStepper` snap behavior for 5-minute grids plus manual minute input in
+    task estimate and timer segment editors.
+  - Segment duration editor was split so the manual minute field remains usable
+    in dense Settings layouts, including Flow segments such as `Разогрев`.
+  - Fullscreen skip-segment control.
+  - Unassigned quick tasks when no project is active.
+  - Scrollable active task lists instead of `.prefix(3)`.
+  - 44x44 project/task edit hit areas.
+  - Timed/checklist task modes and captured session-task progress.
+- Added persistence fields for `activeTaskID`, task `timingMode`,
+  `strictModeEnforcesDuringBreaks`, and session `taskID`/`taskTitle`.
+- Added `FOCUSGLASS_DATA_DIR` local QA override for packaged-app runs against a
+  temporary data directory.
+- Added unit coverage for legacy task decode, checklist persistence, unassigned
+  quick tasks, all active tasks, active task persistence/clearing, captured
+  task progress, checklist no-progress behavior, strict break gating, strict
+  pause action, exact preset-segment minute storage, and stepper snap math.
+- Added tester-facing `PATCH_NOTES.md` and
+  `docs/process/tester-report-template.md`.
+- Updated `CHANGELOG.md`, `docs/architecture.md`, `docs/process/roadmap.md`,
+  and `docs/qa-checklist.md` for the new behavior.
+
+Validated:
+
+- Used/validated with: Graphify, Build macOS Apps `build-run-debug`,
+  Build macOS Apps `swiftpm-macos`, Build macOS Apps `test-triage`, Product
+  Design `index`, Product Design `get-context`, Product Design `user-context`
+  preflight, Product Design `audit`, Computer Use for live macOS UI control,
+  and SwiftPM checks.
+- `bash -n script/build_and_run.sh` passed.
+- `swift build` passed.
+- `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+  passed: 53/53 tests.
+- Focused outcome tests also passed:
+  `completedSessionAppliesHonestFocusTimeToCapturedTimedTask`,
+  `completingOutcomeMarksCapturedTaskDone`,
+  `checklistTaskDoesNotReceiveSessionTimeProgress`,
+  `continuingOutcomeKeepsChecklistTaskActiveWithoutProgress`, and
+  `startNextSessionFromOutcomeKeepsCapturedTaskAndRunsTimer`.
+- Release snapshot validation before `v0.0.3` also passed:
+  `swift build`, `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`,
+  `git diff --check`, `./Scripts/package-release.sh`, checksum verification,
+  and release app `codesign --verify --deep --strict`.
+- `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`
+  passed and relaunched `build/FocusGlass.app` when run with GUI escalation.
+  The sandboxed attempt hit LaunchServices `kLSNoExecutableErr`, so future
+  live `.app` verification may need Build macOS Apps-style GUI permission.
+- `codesign --verify --deep --strict build/FocusGlass.app` passed.
+- Live `.app` validation after the outcome implementation confirmed the main
+  cockpit and post-session outcome card render in `build/FocusGlass.app`.
+  The accepted proof screenshot is
+  `/private/tmp/focusglass-post-session-outcome-qa-20260620-133504/01-outcome-screen.png`.
+- Temporary QA data was confirmed under `/private/tmp/focusglass-qa-data`:
+  `workspace.json`, `settings.json`, and `Logs/diagnostics.jsonl`.
+- `build/FocusGlass.app/Contents/Info.plist` reported version `0.0.3` /
+  build `29` during this live validation. No new release/version bump was made
+  in the outcome-screen checkpoint.
+- Product Design audit folder contains ordered screenshots plus notes:
+  `/private/tmp/focusglass-product-design-audit-20260619-170421`.
+- QA proof folder contains ordered screenshots plus copied diagnostics:
+  `/private/tmp/focusglass-qa-proof-20260619-170421`.
+- `git diff --check` passed.
+- `graphify update .` passed and rebuilt the code graph: 992 nodes, 2172
+  edges, 64 communities.
+- Current roadmap/handoff sync validation also passed:
+  `git diff --check`, stale-phrase search across `handoff.md` and
+  `docs/process/roadmap.md`, and `graphify update .`. No Swift build/test was
+  rerun for this docs-only checkpoint.
+- Attached-task outcome proof validation also passed:
+  `bash -n script/build_and_run.sh`, three
+  `FOCUSGLASS_DATA_DIR=... ./script/build_and_run.sh --verify` runs through
+  the real `build/FocusGlass.app`, visual screenshot inspection with Computer
+  Use, screenshot files under
+  `/private/tmp/focusglass-outcome-attached-qa-20260627-181435/screens`, and
+  persisted workspace checks confirming timed progress, checklist no-progress,
+  start-next, complete, and continue outcomes. No source code changed in this
+  proof pass.
+- Full SwiftPM tests after the attached outcome proof passed:
+  `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+  completed 53/53 tests. The output included non-fatal macOS Shortcut warnings
+  about missing shortcuts, but the test process exited successfully.
+- Full Product Design UI/UX audit validation also passed:
+  `FOCUSGLASS_DATA_DIR=... ./script/build_and_run.sh --verify` through the
+  real packaged `build/FocusGlass.app`, visual screenshot inspection with
+  Computer Use, `screencapture` proof files under
+  `/private/tmp/focusglass-ui-ux-audit-20260627-184307/screens`, and written
+  audit notes at
+  `/private/tmp/focusglass-ui-ux-audit-20260627-184307/audit-notes.md`.
+- Theme Studio/UI polish validation passed:
+  `bash -n script/build_and_run.sh`, `swift build`,
+  `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+  passed 54/54 tests,
+  `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-theme-studio-polish-20260627-191539/data ./script/build_and_run.sh --verify`
+  rebuilt, verified, and launched the packaged `build/FocusGlass.app`,
+  `codesign --verify --deep --strict build/FocusGlass.app` passed,
+  `git diff --check` passed, and `graphify update .` rebuilt the graph at
+  1017 nodes, 2237 edges, and 57 communities.
+- Next skill/workflow: use Build macOS Apps for any follow-up live `.app`
+  validation; use Product Design before changing outcome/strict/settings UX;
+  use Graphify before broad code navigation/status questions; use
+  SwiftPM/test-triage for build/test validation.
+
+Previous tester-fix validation still relevant:
+
+- `swift build` passed.
+- `git diff --check` passed.
+- `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+  passed: 48/48 tests.
+- `./Scripts/package-app.sh` passed and created `build/FocusGlass.app`.
+- `codesign --verify --deep --strict build/FocusGlass.app` passed.
+- Packaged-app QA was run with `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data`
+  so real Application Support data was not touched. The main window, version
+  badge, Settings, Timers tab, Flow preset selection, and `Разогрев` segment
+  path were checked; the owner then confirmed the visible behavior works and
+  asked to stop taking screenshots.
+- `graphify update .` passed and rebuilt the code graph.
+
+Remaining after the newest implementation checkpoint:
+
+- The requested compact, keyboard-focus, real `warn`, real `pauseSession`,
+  Safari site-rule, and safe `quitAfterOptIn` live-QA limits are closed. The
+  proof folder is `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
+- This was not a full VoiceOver audit and did not test every supported browser
+  or an external public site. Those are wider-distribution follow-ups, not
+  current tester blockers.
+- Deeper Product Design refinements for task-attached outcome states can still
+  be done later, but both no-task and attached-task outcome states now have
+  live `.app` proof.
+- GitHub Release was not created for `v0.0.4`.
+
+Next likely choices:
+
+- If tester feedback arrives: classify it with SwiftPM/test-triage, use Product
+  Design for UX findings, and validate fixes through Build macOS Apps.
+- If continuing UI polish: use Product Design first, then Build macOS Apps live
+  validation against real accumulated session/distraction data.
+- If moving product roadmap: decide whether analytics needs deeper task-level
+  views or whether timer custom-preset work has higher product value.
+- Optional later: create a GitHub Release for `v0.0.4` only if the owner asks.
+
+Active partial work:
+
+- Release/tag/tester branch work for `0.0.4` is complete. No code partial
+  remains in tester-fix, workflow/dev-loop, QA First, or tester delivery.
+- Post-session outcome first implementation is complete. No active partial code
+  work is intentionally left open in this checkpoint. Attached-task outcome
+  proof is complete.
+- Full UI/UX audit is complete as evidence/planning work. First UI polish code
+  has been implemented for Theme Studio, cockpit task-row wrapping, and the
+  protected-folder icon-persistence prompt. The compact navigation issue found
+  by the follow-up live pass is also fixed. Broader targeted UI polish remains
+  open.
+
+Resume instructions if a future plan/thread continues from here:
+
+- Start by loading/using these skills in this order:
+  1. Graphify for orientation: `graphify query "<current question>"`.
+  2. Build macOS Apps `build-run-debug` for `script/build_and_run.sh`, live
+     `.app` launch, logs, telemetry, and runtime proof.
+  3. Build macOS Apps `swiftpm-macos` and `test-triage` for SwiftPM build/test
+     checks.
+  4. Product Design `index` + `get-context` before outcome, strict, Settings,
+     onboarding, or other UX-flow changes; saved Product Design context is
+     currently missing, so use `docs/design/design-source.md` plus the current
+     `.app`.
+- If this checkpoint is seen before the commit lands, the intended tracked
+  source changes are the Theme Studio polish, reusable `GlassSlider`, cockpit
+  task-row wrapping fix, protected-folder icon-persistence skip, focused tests,
+  localization/docs updates, and this handoff update. Local audit/proof
+  artifacts live in `/private/tmp` and release artifacts live under ignored
+  `build/`. Do not stage `.codex/`, `graphify-out/`, `build/`, `.build/`, or
+  `.swiftpm/`.
+- Required final checks for this workflow pass:
+  `bash -n script/build_and_run.sh`,
+  `swift build`,
+  `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`,
+  `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`
+  through Build macOS Apps/live macOS permission when sandboxed LaunchServices
+  blocks GUI launch,
+  `codesign --verify --deep --strict build/FocusGlass.app`,
+  `git diff --check`, and `graphify update .`.
+- Intended commit message if not already committed:
+  `feat: улучшить Theme Studio` with commit body
+  `Ассистент: Codex`.
+- Do not create a GitHub Release until the owner explicitly asks for it.
+
+## Roadmap Status Snapshot
+
+Purpose: keep `docs/process/roadmap.md` visible in day-to-day handoff answers.
+When the owner asks what is next, what is in progress, or how the project is
+going, answer in this order: first the current operating plan / immediate
+working items, then a separate roadmap status block from this snapshot. Do not
+let release/tester work hide the product roadmap.
+
+Roadmap source of truth:
+
+- Full roadmap: `docs/process/roadmap.md`.
+- This snapshot is a short working memory view. If implementation changes a
+  roadmap item, update this snapshot and the detailed `Next Steps` item.
+
+Started or partially started roadmap items:
+
+- Timer system: partially started. Timer modes, default presets, mode
+  descriptions, preset editing, persisted task estimates, task timing modes,
+  manual minute entry, and timed-task progress from completed sessions exist.
+  The first outcome flow now uses planned vs honest time after session
+  completion. Still missing: a decision on whether built-in preset editing is
+  enough or whether true custom timer creation is needed.
+- Session outcome: first implementation pass is complete.
+  `FocusSessionRecord` stores project, planned seconds, honest focus seconds,
+  distraction count, optional task ID/title, and sessions are recorded on
+  preset completion. Timed tasks receive captured honest focus time. Focus
+  Today now shows the post-session review card with planned vs honest,
+  distraction count, task/no-task result, and complete/continue/start-next
+  actions. Attached timed/checklist states now have live Build macOS Apps proof.
+  Still missing: any Product Design polish that follows from future UX review.
+- Strict mode end-to-end: partially started. App/site rules, strict action
+  types, warn/hide messages, browser checks, return-to-FocusGlass behavior, and
+  hide/quit helpers exist. `pauseSession` is connected to the timer and strict
+  break enforcement is configurable. Direct Strict Settings routing, enabled
+  app/site count consistency, safe confirmed `quitAfterOptIn`, and persistent
+  session-linked distraction history are implemented. Real packaged-app proof
+  passed for TextEdit `warn`, `hide`, and `pauseSession`, plus a Safari
+  site-rule `hide` using the real Automation URL path against local
+  `127.0.0.1`. Safe cancellation of `quitAfterOptIn` is also proven.
+- UI interactive layer: first broad implementation pass is complete. Shared
+  hover, checkbox, select, stepper, segmented control, focus surfaces,
+  accessibility selected traits, expanded hit areas, responsive strict rows,
+  adaptive mode chips, keyboard-focusable project cards, and improved
+  secondary-text contrast exist. The centered-timer cockpit now removes its
+  extra context rail below 1680 pt. Compact proof below 980 pt, long RU/EN
+  titles, theme readability, and Tab traversal with visible focus are complete.
+  The newest evidence is at
+  `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
+- Analytics: first requested implementation pass is complete. Daily summary,
+  focus score, planned vs actual/effectiveness, recent sessions, mode
+  effectiveness, project summaries, and distraction analytics by project/mode
+  are visible. Remaining work is Product Design polish against richer real
+  history and a decision on deeper task-level views.
+
+Parked roadmap items for later:
+
+- Strict-rule presets.
+- Improved menu bar HUD.
+- Improved fullscreen task flow. Partially started with fullscreen skip and
+  active task selection.
+- Theme Studio readability pass. Partially started with advanced-token preview.
+- Signed/notarized distribution.
+
+## Current Operating Plan
+
+This is the practical order for the next work. Keep it simple and do not use
+new tools just to use them.
+
+When answering "how are things", "what is next", or similar status questions,
+show this current operating plan first. After the last current operating-plan
+item, also show "what is going on with the roadmap" from
+`Roadmap Status Snapshot`. If this plan later grows beyond seven items, keep
+using the full current operating plan first, then the roadmap block.
+
+1. Use Graphify before broad project/status/codebase questions and after code
+   changes: start with `graphify query "<question>"` when the graph exists, and
+   finish code changes with `graphify update .`.
+2. Baseline pre-tester QA is complete through the real `.app`: Build macOS
+   Apps verified launch, Settings, Strict Mode overview, fullscreen focus,
+   temp-data isolation, diagnostics, and Product Design audit proof. The later
+   full UI/UX audit is also complete at
+   `/private/tmp/focusglass-ui-ux-audit-20260627-184307`. The later compact,
+   keyboard-focus, real warn/pause, Safari site-rule, and safe quit proof is
+   complete at `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
+3. Cumulative tester delivery `0.0.4` is complete: `VERSION=0.0.4`, tag
+   `v0.0.4`, release zip/checksum under `build/releases/0.0.4`, and isolated
+   artifact branch `tester/0.0.4` pushed. The branch includes the full tester
+   checklist, rules, build info, and report template. GitHub Release is still
+   owner-controlled and was not created.
+4. Use `script/build_and_run.sh` or the local Codex Run action for the active
+   dev loop. Keep it a wrapper over `./Scripts/package-app.sh`; do not duplicate
+   packaging logic or change release semantics.
+5. Use Product Design when the problem is about UX: unclear screen, awkward
+   flow, weak readability, onboarding, permissions, Settings, strict-mode user
+   path, or post-session outcome. Use Build macOS Apps after Product Design to
+   validate the live `.app`.
+6. The requested cockpit/Strict Mode/history/UI/analytics implementation and
+   its focused compact/keyboard/Strict live-QA pass are complete. The next
+   product decision is targeted Product Design polish against real tester data,
+   deeper task-level analytics, or custom timer/strict-rule presets.
+7. Do not change the release process without a separate decision:
+   `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
+   remain explicit owner-controlled steps.
+8. Do not break the identity. Icon, menu bar glyph, launch animation, and visual
+   style changes must improve the existing FocusGlass direction, not create an
+   accidental rebrand.
+
 ## Current Goal
 
-Perform a serious implementation review before release:
+Keep the near-term tester release flow simple, explicit, and durable:
 
-- identify duplicate, generated, obsolete, or unused files;
-- do not delete anything during the first pass;
-- move confirmed removable files only after review into a separate quarantine/archive folder;
-- keep the app release-minded, not as an abandoned MVP;
+- owner builds locally with `./Scripts/package-release.sh`;
+- tester-visible versions use semantic numbers such as `0.0.2` or `0.1.1`;
+- public git tags such as `v0.0.2` mark exact build commits;
+- isolated `tester/<version>` branches may carry built artifacts when the owner
+  asks for branch-based tester delivery;
 - preserve context so work can continue after token limits, network issues, or device changes.
 
 ## Product Direction
@@ -43,8 +726,17 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - `build/` is generated by `Scripts/package-app.sh` and contains packaged `.app` output.
 - `build/` is ignored local generated output, not a source-of-truth release
   directory.
+- The root `VERSION` file stores the tester-facing semantic version without
+  `v`, for example `0.0.2`. Bump it before a tester build when the tester needs
+  a visibly distinct version.
+- Public git tags are part of the version story. Tag the exact build commit
+  with the matching public tag, for example `v0.0.2`; when the current commit
+  is exactly tagged, packaging scripts prefer the tag over `VERSION`.
 - `Scripts/package-release.sh` creates `build/releases/<version>/FocusGlass.app`,
   `FocusGlass-<version>.zip`, and `FocusGlass-<version>.zip.sha256`.
+- `Scripts/package-app.sh` writes the same visible version into
+  `CFBundleShortVersionString`; `CFBundleVersion` is a numeric build number
+  derived from git history unless overridden.
 - The owner builds release/tester artifacts locally with `./Scripts/package-release.sh`
   and decides how to hand the build to a tester. Codex must not turn this into
   mandatory release automation unless the owner explicitly asks.
@@ -57,7 +749,8 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
   the already-built zip, portable `.sha256`, README, and build-info; never merge
   or PR them into `main` or `codex/next`.
 - Tester artifact branch naming: `tester/<artifact-version>`, for example
-  `tester/dev-c9a78ff`.
+  `tester/0.0.2`. Do not use `dev-<commit>` for tester-facing builds when a
+  semantic version and public tag are available.
 - Safe first GitHub Release trial format: tag like `v0.0.2-test.1`, Draft or
   Pre-release enabled, Russian notes, attached `FocusGlass-<version>.zip` and
   matching `.sha256`.
@@ -72,21 +765,234 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 
 ## Project Rules
 
-- Prefer Xcode MCP tools for reading, diagnostics, and builds.
-- Use `BuildProject` for full validation when code changes are made.
-- Use `XcodeRefreshCodeIssuesInFile` for fast Swift diagnostics.
+- Use the macOS-focused build workflow for FocusGlass when it is available.
+  This project is a SwiftPM macOS app, not an iOS Simulator app.
+- Prefer `Build macOS Apps` skills for macOS build/run/debug, SwiftPM,
+  AppKit interop, window management, telemetry, signing, packaging, and test
+  triage. Use Xcode-aware tools only where they clearly fit the macOS task.
 - Use Graphify before broad codebase exploration or architecture answers when
   `graphify-out/graph.json` exists. Start with a scoped graph query, then read
   source files directly for exact code and line-level verification.
+- Handoff is the durable workflow source. After each substantial
+  implementation, QA, design, or release step, update `Latest Session
+  Checkpoint` with what changed, what was validated, what remains deferred, a
+  `Used/validated with:` line naming the actual skills/tools, and a
+  `Next skill/workflow:` line for the next agent.
 - Keep changes tightly scoped to the requested task.
 - Keep the tone and pace humane: careful, non-rushed, and collaborative.
 - UI rule: every piece of working information should have one primary home. Do not duplicate the same content across main surfaces and side/context panels unless the repeated appearance has a different role such as navigation, status, or editing.
+- Identity rule: FocusGlass already has its own visual identity and product
+  language. Do not replace it with a random new style, generic trend, or
+  unapproved rebrand. Improve the existing Mac Glass OS / timer / focus
+  direction from `docs/design/design-source.md`.
+- For UI/UX work, use `Product Design` and `Build macOS Apps` together when
+  useful: Product Design for user meaning, flow audit, screen variants, and
+  visual-target QA when applicable; Build macOS Apps for real macOS `.app`
+  validation, windows, menu bar behavior, AppKit/SwiftUI edges, logs,
+  screenshots, and runtime proof.
 - Update documentation when behavior, architecture, QA, packaging, permissions, visual language, or design rules change.
 - Never revert user changes or generated outputs without explicit approval.
 - GitHub process lives in `docs/process/github-workflow.md`; follow it for branches, Russian commit messages, Russian PRs, tags, releases, and issue handling.
 - Branching is intentionally simple for solo work: use `feature/next` as the default branch for new features and roadmap work; create short separate branches only for isolated fixes/docs/chore/release tasks.
 - Every assistant-made commit and assistant-created PR must include the signature line `Ассистент: Codex`.
 - Public roadmap lives in `docs/process/roadmap.md`.
+- Roadmap visibility rule: do not rely only on the numbered `Next Steps`.
+  Keep `Roadmap Status Snapshot` near the top updated whenever roadmap work is
+  started, finished, paused halfway, or deprioritized. When the owner asks
+  "what is next", "where did we stop", or "how are things going", answer with
+  the current operating plan first and the roadmap snapshot immediately after
+  it in the same response.
+
+## Build macOS Apps Workflow Integration
+
+The owner downloaded the `Build macOS Apps` Codex plugin/skill set on
+2026-06-09. It is a strong fit for FocusGlass because the project is a
+package-first native macOS SwiftUI/AppKit app:
+
+- `Package.swift` targets `.macOS(.v14)` and exposes executable `FocusGlass`
+  plus library `FocusGlassCore`.
+- The app shell uses SwiftUI scenes and AppKit bridges:
+  `NSStatusItem`, `NSPopover`, `NSWindow`, Settings, the main cockpit window,
+  and the fullscreen focus window.
+- Permissions QA must run from a real `.app` bundle, not only from
+  `swift run FocusGlass`.
+
+The owner specifically wants this skill set to make active development feel
+lighter inside Codex: the assistant should be able to rebuild, relaunch,
+inspect, and debug the app quickly while the owner watches the real macOS app
+change. This is not the same as an iOS Simulator mirror inside Codex. For
+FocusGlass, the useful loop is a real local macOS `.app` launch plus logs,
+telemetry, screenshots, and process verification.
+
+Use the macOS skill set as a development-loop accelerator, not as a replacement
+for the existing release process:
+
+- `swiftpm-macos`: inspect `Package.swift`, run focused `swift build` and
+  `swift test` commands, and understand target/product boundaries.
+- `build-run-debug`: use and maintain the project-local
+  `script/build_and_run.sh` and local ignored
+  `.codex/environments/environment.toml` Run action.
+- `appkit-interop`: handle `NSStatusItem`, `NSPopover`, `NSWindow`,
+  activation, AppKit representables, and responder-chain/window behavior.
+- `swiftui-patterns` and `view-refactor`: keep macOS SwiftUI scenes, Settings,
+  menu bar UI, cockpit layout, and reusable controls desktop-native.
+- `window-management`: tune main/focus/settings window behavior, restoration,
+  activation, fullscreen, and borderless/hidden-titlebar details.
+- `telemetry`: use unified logs for runtime evidence around windows, menu bar
+  actions, permissions, strict mode, and theme/icon side effects.
+- `test-triage`: narrow SwiftPM test failures and separate test setup issues
+  from regressions.
+- `signing-entitlements` and `packaging-notarization`: diagnose ad-hoc signing,
+  permissions, hardened runtime, Gatekeeper, and later notarization/distribution
+  work.
+
+FocusGlass-specific use cases to remember:
+
+- Use `build-run-debug` through `./script/build_and_run.sh` for the local
+  development loop: build the real `.app`, relaunch it, verify the process,
+  inspect logs, and capture screenshots while iterating with the owner. This
+  should replace one-off manual build/open command chains during active UI and
+  runtime work.
+- Use `swiftpm-macos` whenever the task is about package shape, target/product
+  boundaries, focused `swift build`, or `swift test` in this package-first repo.
+- Use `appkit-interop` for the menu bar extra, `NSStatusItem`, `NSPopover`,
+  `NSWindow`, activation/foreground behavior, responder-chain behavior,
+  permission-related AppKit edges, and any narrow bridge SwiftUI cannot express
+  cleanly.
+- Use `swiftui-patterns` when changing scenes, Settings, menu bar UI, main
+  cockpit layout, commands, keyboard shortcuts, sidebars, split/detail
+  structure, or other desktop-native SwiftUI behavior.
+- Use `view-refactor` when a view file or scene becomes too broad before adding
+  more behavior. In particular, keep watching `ContentView.swift`: split only
+  when it reduces real complexity or protects future work, not as a cosmetic
+  churn task.
+- Use `window-management` for main window, Settings, fullscreen focus window,
+  launch presentation, restoration, activation, placement, titlebar/chrome, and
+  borderless or hidden-titlebar behavior. Check deployment target compatibility
+  because some newer SwiftUI window APIs require macOS 15+ while FocusGlass
+  currently targets macOS 14.
+- Use `telemetry` when behavior needs runtime proof: window open/close, menu bar
+  actions, sidebar/route changes, timer transitions, strict mode events,
+  Automation/Shortcuts checks, permission flows, theme/icon side effects, and
+  unexpected fallback paths. Prefer `OSLog.Logger`; avoid permanent noisy logs
+  and never log sensitive user content.
+- Use `test-triage` when SwiftPM tests fail or when a focused test command is
+  needed. Classify build failures, assertions, crashes, async flakes, setup
+  issues, and entitlement/host-app assumptions separately.
+- Use `signing-entitlements` when launch, permissions, Automation, Gatekeeper,
+  sandbox, ad-hoc signing, or missing entitlement behavior smells like a signing
+  problem rather than a Swift compile problem.
+- Use `packaging-notarization` later for distribution readiness, notarization,
+  Developer ID signing, hardened runtime, archive validation, or tester reports
+  that only reproduce after downloading/unzipping the app. Do not treat
+  notarization as required for ordinary local development.
+- Use `liquid-glass` only when intentionally reviewing or modernizing visual
+  treatment around macOS system materials, toolbars, sidebars, sheets, and
+  custom glass surfaces. Treat it as a design/audit guide for now, not a reason
+  to adopt APIs that conflict with the current macOS 14 target.
+
+Safe integration shape:
+
+1. Start broad work with a plan and the relevant skill context. When the owner
+   says to implement, make the smallest scoped change and keep the handoff
+   current.
+2. Keep `Scripts/package-app.sh` as the source of truth for creating
+   `build/FocusGlass.app`; keep `Scripts/package-release.sh` as the source of
+   truth for tester/release zip artifacts.
+3. Keep `script/build_and_run.sh` only as a thin Codex run-loop entrypoint:
+   stop any running `FocusGlass` process, call `./Scripts/package-app.sh`,
+   launch `build/FocusGlass.app` with `/usr/bin/open -n`, and support
+   `--verify`, `--logs`, `--telemetry`, and `--debug`.
+4. Do not duplicate the full packaging logic inside the new run script unless
+   there is a clear reason. Reuse existing packaging so icons, resources,
+   version/build metadata, xattr cleanup, and ad-hoc signing stay consistent.
+5. `.codex/environments/environment.toml` currently remains a local ignored
+   Codex config. Tracking it as project workflow requires a deliberate
+   `.gitignore` exception and owner approval.
+6. The new Codex Run action must not become mandatory for ordinary SwiftPM
+   builds, tester artifacts, or future contributors. It should improve the
+   assistant/owner loop without changing release semantics.
+7. After implementation, update `README.md`, `docs/assistant-context.md`,
+   `docs/qa-checklist.md`, and this handoff if the build/run/QA process changes.
+8. Validate with the smallest useful chain: shell syntax check for the script,
+   `./script/build_and_run.sh --verify`, relevant Swift tests, and logs or
+   telemetry only when diagnosing runtime behavior.
+
+Future-session mental model:
+
+- Dev loop: code change -> `./script/build_and_run.sh` or Codex Run action ->
+  `./Scripts/package-app.sh` creates `build/FocusGlass.app` -> `/usr/bin/open -n`
+  relaunches the app -> Codex verifies with `--verify`, screenshots, logs, or
+  telemetry as needed.
+- Tester/release loop: explicit owner decision -> bump `VERSION` if needed ->
+  commit/tag exact source -> `./Scripts/package-release.sh` creates zip and
+  `.sha256` -> optional tester branch or GitHub Release. The Codex Run action
+  must never silently do this.
+- If a future assistant sees "симулятор" in this context, interpret the owner's
+  intent as "make the running app visible and easy to inspect during Codex work",
+  not as "use iOS Simulator tooling".
+- Do not create a second app-staging implementation in `script/build_and_run.sh`.
+  The whole point is to reuse the existing app packaging path so dev builds and
+  tester builds agree on bundle shape, Info.plist keys, resources, icon,
+  versions, xattr cleanup, and ad-hoc signing.
+- `.codex/environments/environment.toml` exists only to expose a local Codex Run
+  button. Because `.codex/` is ignored today, ask the owner before tracking it
+  or adding `.gitignore` exceptions.
+
+Important distinction:
+
+- `Build macOS Apps` is for local macOS app development, launch, debug, logs,
+  telemetry, window/AppKit work, and packaging/signing diagnosis.
+- It must not automatically create tester branches, public tags, GitHub
+  Releases, release zips, or notarization flows. Those remain explicit owner
+  decisions under the existing GitHub/tester handoff process.
+
+## Product Design And Creative Production
+
+Product Design should work alongside `Build macOS Apps` whenever FocusGlass work
+touches UI, UX, visual clarity, or tester-reported usability problems.
+
+Use this combined workflow:
+
+- Product Design owns the user-facing question: is the screen understandable,
+  is the flow comfortable, where can a user stumble, which screen variants are
+  worth considering, and what should the UX audit check?
+- Build macOS Apps owns the native proof: build and relaunch the real `.app`,
+  inspect the actual main window, Settings, menu bar, fullscreen focus, AppKit
+  behavior, logs, screenshots, strict-mode behavior, and runtime state.
+- For UI/UX changes, future assistants should not only ask "how do I implement
+  this in SwiftUI?" They should also ask "will this be clear to the user, what
+  would a tester complain about, and how can I verify it in the live macOS app?"
+- Product Design `audit` is the default Product Design tool for tester
+  feedback, screen clarity, onboarding/permissions, Settings, session-review,
+  and strict-mode user flows.
+- Product Design `design-qa` is narrower: use it only when there is a selected
+  source visual or design target and a running implementation to compare
+  against it.
+
+Creative Production is not part of the default FocusGlass development workflow
+right now. Keep it in reserve for later external packaging:
+
+- final public-facing presentation of what FocusGlass gives users;
+- promo, launch, release, social, or Product Hunt visuals;
+- broader brand or visual-territory exploration when the owner explicitly asks.
+
+Logo and identity exception:
+
+- `Creative Production` `logo-explorer` may be useful only for an explicit
+  identity exploration: app icon, launcher/Dock/Finder icon direction, logo
+  route, wordmark, or broader visual identity route.
+- Do not use `logo-explorer` as the default answer for ordinary UX, SwiftUI,
+  or menu bar implementation tasks.
+- The menu bar glyph is primarily a macOS template-glyph problem: it must be
+  compact, monochrome, tintable by AppKit, readable in light/dark/translucent
+  and selected menu bar states, and checked in the real menu bar. Creative
+  Production may inspire a direction, but Product Design plus Build macOS Apps
+  should validate the final behavior.
+- App icon, Dock/Finder icon, menu bar glyph, and launch animation are identity
+  surfaces. Treat them as part of the existing FocusGlass identity, not as
+  disposable decoration. Improve the current Mac Glass OS / timer / focus
+  direction; do not replace it unless the owner explicitly decides to rebrand.
 
 ## End-of-Task Checkpoint
 
@@ -97,6 +1003,17 @@ durable checkpoint instead of relying on chat history:
   packaging, permissions, visual direction, roadmap state, blockers, or next
   steps. For tiny no-op/read-only answers, explicitly say no handoff update was
   needed.
+- Update `Latest Session Checkpoint` at the top after substantial work, and
+  especially when stopping with a partial implementation, unresolved blocker, or
+  deferred decision. It must say what is done, what was validated, what is not
+  done, and what should happen next.
+- In `Latest Session Checkpoint`, include `Used/validated with:` for the
+  actual skills/tools used and `Next skill/workflow:` for the next step. Future
+  agents should follow those instructions before falling back to ad-hoc
+  shell-only work.
+- Update `Roadmap Status Snapshot` when a roadmap item changes state. This is
+  the visible day-to-day memory for partially started roadmap work, while
+  `docs/process/roadmap.md` remains the source-of-truth roadmap document.
 - Record what changed, what was validated, what remains blocked or deferred,
   and the next concrete step.
 - Keep generated artifacts out of git: no `.app`, `.zip`, `.sha256`, `.build/`,
@@ -128,8 +1045,8 @@ Current graph state:
   `ANTHROPIC_API_KEY`.
 - Focused corpus excludes `archive/`, `.agents/`, `.codex/`, `graphify-out/`,
   and generated build/IDE directories via `.graphifyignore`.
-- Current clean graph stats after the latest code-graph update: 867 nodes,
-  1942 links, 0 hyperedges, 50 communities.
+- Current clean graph stats after the latest code-graph update: 979 nodes,
+  2131 links, 0 hyperedges, 62 communities.
 - Diagnostics: `graphify diagnose multigraph --json` reported 0 dangling
   endpoints, 0 duplicate edges, and 0 same-endpoint collapsed edges.
 - Benchmark: `graphify benchmark graphify-out/graph.json` reported about 4.0x
@@ -304,18 +1221,108 @@ Completed:
     `FocusGlass-dev-c9a78ff.zip`, not the local absolute path.
   - source branch `codex/next` remains free of build artifacts; `build/` and
     `graphify-out/` stay ignored.
+- Tester artifact branch instruction update:
+  - translated `tester/dev-c9a78ff` README and `build-info.txt` to Russian.
+  - pushed tester branch update `9a743c1 доки: перевести инструкцию тестера`
+    to `Release/tester/dev-c9a78ff`.
+  - rechecked `shasum -a 256 -c FocusGlass-dev-c9a78ff.zip.sha256` in the
+    artifact branch; result: `FocusGlass-dev-c9a78ff.zip: OK`.
+  - GitHub banner `tester/dev-c9a78ff had recent pushes` is expected after
+    pushing a branch. It is GitHub's prompt to compare/open a PR, not a required
+    request for this tester branch. Do not open/merge a PR from tester artifact
+    branches into source branches.
+  - Git remote PR refs were checked; no PR ref pointed to the tester artifact
+    branch commit at the time of inspection.
+- Explicit tester versioning:
+  - added root `VERSION` with visible version `0.0.2`;
+  - updated `Scripts/package-release.sh` to resolve version from
+    `FOCUSGLASS_RELEASE_VERSION`, then an exact public tag like `v0.0.2`, then
+    `VERSION`, with `dev-<commit>` only as fallback;
+  - updated `Scripts/package-app.sh` so `CFBundleShortVersionString` uses the
+    same visible semantic version and `CFBundleVersion` uses a numeric git build
+    count unless overridden;
+  - checksum files are now portable: `FocusGlass-0.0.2.zip.sha256` contains
+    `FocusGlass-0.0.2.zip`, not an absolute local path;
+  - source commit for versioning change:
+    `2385cc2159d0fdabc102d8f13fda1fcc8336fe81`
+    (`2385cc2 сборка: ввести явную версию тестовых сборок`);
+  - public tag `v0.0.2` was created and pushed to `Release`; exact-tag
+    packaging check confirmed `git describe --tags --exact-match HEAD` returned
+    `v0.0.2` before the later handoff checkpoint commit.
+- Tester artifact branch `tester/0.0.2`:
+  - built from source commit `2385cc2159d0fdabc102d8f13fda1fcc8336fe81` tagged
+    `v0.0.2`;
+  - `./Scripts/package-release.sh` created
+    `build/releases/0.0.2/FocusGlass.app`,
+    `build/releases/0.0.2/FocusGlass-0.0.2.zip`, and
+    `build/releases/0.0.2/FocusGlass-0.0.2.zip.sha256`;
+  - checksum verified: `FocusGlass-0.0.2.zip: OK`;
+  - `Info.plist` check: `CFBundleShortVersionString` is `0.0.2`,
+    `CFBundleVersion` is `22`;
+  - artifact branch commit:
+    `94efae480b9540bea6e12d43ab49ddcaeb8188b6`
+    (`94efae4 релиз: добавить тестовую сборку 0.0.2`);
+  - remote verification:
+    `94efae480b9540bea6e12d43ab49ddcaeb8188b6 refs/heads/tester/0.0.2`;
+  - branch contains only `FocusGlass-0.0.2.zip`,
+    `FocusGlass-0.0.2.zip.sha256`, Russian `README.md`, and Russian
+    `build-info.txt`;
+  - GitHub again displayed the standard "Create a pull request" prompt after
+    pushing the tester branch. Do not open/merge PRs from tester artifact
+    branches into source branches.
+- Graphify memory for explicit tester versioning:
+  - saved with question
+    `How should FocusGlass tester versions be named and packaged?`;
+  - memory file:
+    `graphify-out/memory/query_20260604_105206_how_should_focusglass_tester_versions_be_named_and.md`;
+  - `graphify update .` rebuilt the code graph after script changes;
+  - `graphify query "FocusGlass tester VERSION public tag tester/0.0.2 FocusGlass-0.0.2.zip" --budget 3000 --dfs`
+    currently surfaces the updated README/build docs; direct memory search
+    confirms the saved answer includes `VERSION`, public tag `v0.0.2`,
+    `tester/0.0.2`, and `FocusGlass-0.0.2.zip`.
+- Main-window version/build badge:
+  - user requested the app version and build number in the lower-right app UI,
+    only in the main window, not in menu bar or fullscreen focus mode;
+  - added `MainWindowBuildBadge` inside `ContentView`, which is used only by
+    `WindowGroup("FocusGlass", id: "main")`;
+  - did not modify `MenuBarPanel.swift` or `FullscreenFocusView.swift`, so the
+    badge is not present in those surfaces;
+  - badge text is localized through `app.version` and `app.build` in RU/EN
+    localization and reads from `Bundle.main` Info.plist keys
+    `CFBundleShortVersionString` and `CFBundleVersion`;
+  - local packaged app verification showed `Версия 0.0.2 / билд 23` in the
+    main window bottom-right corner;
+  - visual screenshot saved locally at `/private/tmp/focusglass-main.png`;
+  - `Scripts/package-app.sh` now clears extended attributes from the generated
+    `.app` before ad-hoc signing, after `codesign` initially failed on local
+    resource-fork/Finder metadata detritus in generated output.
 - Validation for release artifact work:
   - `bash -n Scripts/package-app.sh` passed;
   - `bash -n Scripts/package-release.sh` passed;
   - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test` passed with 37/37 tests;
   - `FOCUSGLASS_RELEASE_VERSION=dev-sandbox-check FOCUSGLASS_RELEASE_DIR=/private/tmp/focusglass-release-sandbox-check ./Scripts/package-release.sh` created `FocusGlass.app`, `FocusGlass-dev-sandbox-check.zip`, and `FocusGlass-dev-sandbox-check.zip.sha256`.
+  - `./Scripts/package-release.sh` on exact tag `v0.0.2` created the
+    `0.0.2` release folder and zip;
+  - `shasum -a 256 -c FocusGlass-0.0.2.zip.sha256` passed;
+  - `git diff --check` passed before the first versioning commit.
+- Validation for main-window version/build badge:
+  - `swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test`
+    passed with 37/37 tests;
+  - `./Scripts/package-app.sh` passed after the generated-app xattr cleanup fix;
+  - `codesign --verify --deep --strict build/FocusGlass.app` passed;
+  - `./Scripts/package-release.sh` passed;
+  - `shasum -a 256 -c build/releases/0.0.2/FocusGlass-0.0.2.zip.sha256`
+    passed;
+  - packaged `Info.plist` checks returned `CFBundleShortVersionString=0.0.2`
+    and `CFBundleVersion=23`;
+  - screenshot inspection confirmed the badge in the main window bottom-right
+    corner. Menu bar and fullscreen code paths were not touched.
 - Branch protection and CI are deferred. They can be useful later to protect
   `main` and automatically test PRs, but they are not near-term tasks while the
   project is still using a simple local build -> commit -> push flow.
-- CI automation remains blocked until work happens from an environment with
-  GitHub `workflow` scope. The current shell also does not have `gh` installed,
-  so PR, release, and branch-protection setup cannot be automated here through
-  GitHub CLI.
+- GitHub CLI is now installed. PR creation can be automated after verifying
+  `gh auth status`; GitHub Actions still requires the appropriate workflow
+  permissions and remains a separate owner decision.
 
 Skills research:
 
@@ -326,22 +1333,79 @@ Skills research:
 
 ## Next Steps
 
-1. Current tester branch is `tester/dev-c9a78ff`. It contains the test zip,
-   portable `.sha256`, README, and build-info for tester download.
-2. For future tester builds, rerun `./Scripts/package-release.sh` on the exact
-   source commit, then create/push a new isolated `tester/<artifact-version>`
-   branch only if the owner asks.
-3. If the owner wants to try GitHub Release, use a Draft/Pre-release tied to an
-   explicit test tag like `v0.0.2-test.1`, attach the already-built zip and
-   `.sha256`, and write Russian release notes. Do not create tags/releases
-   automatically without a direct request.
-4. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
+1. For broad status, planning, or codebase questions, start with Graphify:
+   `graphify query "<question>"`, then read exact source/docs as needed.
+2. Cumulative tester delivery `0.0.4` is complete. The isolated
+   `tester/0.0.4` branch includes zip, checksum, README, full checklist, tester
+   rules, build info, and `tester-report-template.md`. Tester feedback may be
+   triaged when it arrives, but current product work is not blocked on it. Do
+   not create a GitHub Release or another tester version without a separate
+   owner command.
+3. The honest live-QA limits are closed through Product Design plus Build
+   macOS Apps: compact cockpit below 980 pt, long RU/EN titles, theme
+   readability, visible keyboard focus during Tab traversal, real `warn`,
+   `pauseSession`, Safari site-rule enforcement, and safe quit confirmation.
+   Proof: `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
+4. Before the next tester delivery, repeat Build macOS Apps packaged-app QA:
+   `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
+   then check the main window, Settings, fullscreen, strict mode, logs,
+   screenshots, and runtime proof against `docs/qa-checklist.md`.
+5. Use `./script/build_and_run.sh` or the Codex Run action for active dev-loop
+   work. Improve the script only if verification exposes a real gap; keep
+   `Scripts/package-app.sh` as the source of truth.
+6. Attached timed/checklist outcome proof is complete. Proof path:
+   `/private/tmp/focusglass-outcome-attached-qa-20260627-181435`.
+7. Strict distraction history, the first broad UI/accessibility implementation
+   pass, and the requested analytics surfaces are now implemented. Follow-up
+   product work is targeted Product Design polish against real tester/history
+   data, not rebuilding those features from scratch.
+8. Do not break the existing FocusGlass identity. App icon, Dock/Finder icon,
+   menu bar glyph, launch animation, and visual style changes must improve the
+   current FocusGlass Mac Glass OS / timer / focus direction, not create an
+   accidental rebrand.
+9. Product roadmap memory from `docs/process/roadmap.md`: keep these visible
+   after the immediate tester/release work so they are not forgotten.
+   - Timer system is partially started. Done or started: all planned timer modes
+     exist, default presets cover all modes, mode descriptions are in Settings,
+     presets can be edited with segments/duration/phase/auto-start, and task
+     estimates persist with clamped progress. The first outcome flow uses
+     planned vs honest session data. Still needed: decide whether editing
+     built-in presets is enough or true custom preset creation is needed.
+   - Session outcome first pass is built. Started/done: `FocusSessionRecord`
+     stores project, planned seconds, honest focus seconds, distraction count,
+     and sessions are inserted when a preset completes. Done: actual
+     post-session review UI, task-level result, planned vs honest comparison,
+     distraction summary, actions such as complete task, continue, or start
+     next block, and live attached timed/checklist outcome proof.
+   - Strict mode end-to-end is substantially implemented. App/site rules,
+     `warn`, `hide`, `pauseSession`, and `quitAfterOptIn` action types, warn/hide
+     messages, return-to-FocusGlass behavior, browser URL checks, and hide/quit
+     helpers exist. Direct Strict Settings routing, enabled-rule counts, safe
+     destructive quit opt-in, and persistent session-linked distraction
+     history are complete. Packaged-app proof now covers real warn/pause and a
+     Safari site rule through the real Automation URL path.
+   - UI interactive layer has a first broad implementation pass:
+     `glassHover`,
+     `GlassCheckboxToggleStyle`, `GlassSelect`, `GlassStepper`,
+     `GlassSegmentedControl`, visible focus surfaces, selected accessibility
+     traits, keyboard project cards, responsive strict rows, adaptive chips,
+     and measured muted-text improvements. Compact live proof and keyboard Tab
+     traversal with visible focus are complete.
+   - Analytics first pass is complete: daily summary, focus score, planned vs
+     actual/effectiveness, recent sessions, mode effectiveness, project
+     summaries, unassigned handling, and distraction grouping by project/mode.
+     Later work is richer-data polish and optional task-level depth.
+   - Later roadmap items remain parked: strict-rule presets, improved menu bar
+     HUD, improved fullscreen task flow, Theme Studio readability pass, and
+     signed/notarized distribution.
+10. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
    not make them near-term work.
-5. Keep product roadmap work remembered but parked until the owner explicitly
-   asks to resume it.
-6. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
-7. Inspect useful skills from `openai/skills` before installing anything.
-8. Keep `handoff.md` updated after each substantial audit or implementation step.
+11. Decide whether to set upstream locally later with
+    `git branch --set-upstream-to=Release/main main` after fixing
+    `.git/config` permissions.
+12. Inspect useful skills from `openai/skills` before installing anything.
+13. Keep `handoff.md` updated after each substantial audit or implementation
+    step.
 
 ## Open Questions
 

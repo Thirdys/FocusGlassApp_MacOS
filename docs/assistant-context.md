@@ -1,6 +1,6 @@
 # FocusGlass Assistant Context
 
-Last reviewed: 2026-05-29.
+Last reviewed: 2026-07-23.
 
 Read this file first when returning to the project. It is intentionally written
 as implementation context for future assistant sessions, not as marketing copy.
@@ -49,6 +49,49 @@ not display the FocusGlass git state there.
 Assistant work should use the `codex/next` branch. The owner may use other
 branches, but assistant-created work is expected to be easy to distinguish by
 the `codex/` branch prefix and the `Ассистент: Codex` signature in commits/PRs.
+
+## Skill workflow and run loop
+
+Treat `handoff.md` as the source of workflow truth. After every substantial
+implementation, QA, design, or release step, update it with what was done, what
+was checked, what was intentionally not done, the next step, and the skill or
+tool that should lead that next step.
+
+Use this order by default:
+
+- Graphify for broad project navigation, status, and codebase questions. Start
+  with `graphify query "<question>"` when `graphify-out/graph.json` exists, and
+  run `graphify update .` after code changes.
+- Build macOS Apps for live validation in the real packaged `.app`: windows,
+  Settings, fullscreen, strict mode, logs, screenshots, and runtime proof.
+- Product Design for UX questions: unclear flows, Settings, strict-mode user
+  paths, onboarding, permissions, readability, and the post-session outcome
+  screen.
+- SwiftPM and test-triage for builds, tests, failing assertions, and separating
+  test setup from product regressions.
+
+The active local dev-loop entrypoint is `./script/build_and_run.sh`. It remains
+a thin wrapper over `./Scripts/package-app.sh`, stops an existing FocusGlass
+process, launches `build/FocusGlass.app`, and supports `--verify`, `--logs`,
+`--telemetry`, and `--debug`. For isolated packaged-app QA, launch with
+`FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data`; workspace/settings and
+diagnostics then stay under that temporary directory. The script forwards the
+path as a launch argument and does not mutate the generated app bundle; release
+packaging remains owned by `Scripts/package-app.sh`.
+
+Product Design saved context is not set up yet. Until the owner saves Product
+Design context, use `docs/design/design-source.md`, the current packaged `.app`,
+and local concept screenshots as the visual/product sources. For the
+post-session outcome screen, Product Design context is already known at a brief
+level: planned vs honest, distraction summary, task result, and actions for
+complete, continue, and start next.
+
+`.codex/environments/environment.toml` is an ignored local Codex Run button
+config pointing at `./script/build_and_run.sh`. Do not track `.codex/` unless
+the owner makes a separate decision.
+
+Release delivery remains explicit. Do not create public tags, release zips,
+tester branches, or GitHub Releases unless the owner asks for tester delivery.
 
 ## Current product shape
 
@@ -119,6 +162,7 @@ Current persistent files live in:
 - projects;
 - tasks;
 - strict distraction rules;
+- strict distraction history;
 - recent session records.
 
 `settings.json` stores app preferences:
@@ -131,7 +175,7 @@ Current persistent files live in:
 - permissions onboarding flag.
 
 Legacy `state.json` is still decoded for migration and is not deleted. New saves
-write schema v4 split files. If `workspace.json` cannot decode, the store backs
+write schema v5 split files. If `workspace.json` cannot decode, the store backs
 it up as `workspace.invalid-YYYYMMDD-HHMMSS.json`, blocks automatic saves, logs
 the issue, and avoids replacing user data with defaults. If `settings.json`
 cannot decode, it is backed up and defaults are used while workspace still
@@ -157,8 +201,8 @@ project.
 
 Notes:
 
-- `sanitizedStarterState` returns a schema v3 migrated state marker, while the
-  actual current split saves write schema v4.
+- `sanitizedStarterState` returns a migrated state marker, while the actual
+  current split saves write schema v5.
 - `activeTasks` is intentionally scoped to `activeProjectID` and does not fall
   back to all tasks when a selected project is missing.
 - Project rename does not cascade into task/session strings. Display and
@@ -170,19 +214,23 @@ Notes:
 
 Main cockpit:
 
-- `FocusTodayView` has quick preset chips, intention input, project selector on
-  the left, circular timer in the center, and project tasks on the right.
-- `ActiveProjectCard` is for project selection/edit/add and does not list
-  tasks.
-- `FocusStackCard` lists active tasks for the current project and opens task
-  editing sheets.
+- `FocusTodayView` has quick preset chips, project selector plus collapsible
+  project notes on the left, circular timer in the center, and active/task cards
+  on the right.
+- Keep the timer as the center anchor on wide layouts. Do not move it to the
+  left just to make a larger task panel.
+- Project edit/add stays in the Projects screen and project editor sheet, not as
+  persistent cockpit chrome. Cockpit project context is selection plus notes.
+- Task rows are one visual card with a small completion control and compact
+  trailing edit affordance. Do not return to checkbox + narrow card + separate
+  edit-button columns.
 - Every piece of working information needs one primary home. Avoid duplicating
   the same project, task, timer, analytics, permission, or strict-mode content in
   multiple visible areas unless the repeated appearance has a clearly different
   role such as navigation, status, or editing.
 - `FocusContextRailView` must not duplicate working content from the main area.
   It should stay contextual: timer state and strict-mode status only. Project
-  tasks belong in `FocusStackCard` next to the timer.
+  tasks belong in the task panel next to the timer.
 
 Settings:
 
@@ -193,10 +241,17 @@ Settings:
 - Timers use `GlassSelect` for preset mode and phase, `GlassStepper` for
   segment minutes, and a per-preset reset.
 - Strict Mode uses app and site rule editors with `GlassSelect` for actions.
+- The cockpit Strict Mode manage action sets `selectedSettingsTab` to
+  `.strictMode` before routing to Settings. App and site counts are derived
+  from enabled rules and remain separate.
+- Strict Mode shows persisted distraction history with rule/action and captured
+  session/project/task/mode context.
 - Permissions rows share `FocusPermissionStatus` and show calm states instead
   of false red warnings.
 - Appearance exposes built-in themes first and keeps Theme Studio advanced
-  controls in a disclosure group.
+  controls in a disclosure group. Theme Studio uses one compact live preview,
+  ColorPicker-backed color token cards, and glass sliders for numeric tokens;
+  hex strings are display/export details, not the primary editing path.
 
 Reusable controls live in `Views/Components.swift`:
 
@@ -213,8 +268,9 @@ Known visual caveats to remember:
 
 - The main active project selector uses `GlassSelect` so the cockpit matches
   Settings controls instead of showing a stock SwiftUI `Menu`.
-- Advanced Theme Studio still uses SwiftUI `Slider`; build a `GlassSlider` if
-  the goal becomes "no stock controls anywhere".
+- Theme Studio color editing should stay picker-first. Do not return to manual
+  hex text entry as the main interaction unless there is a separate expert-mode
+  decision.
 
 ## Fullscreen focus
 
@@ -265,7 +321,13 @@ Strict rules:
 - Default app/site rule action is hide.
 - When a rule triggers, FocusGlass warns, hides or controls the target based on
   action, activates FocusGlass, and records the distraction count for the
-  session.
+  session plus a persistent `DistractionEventRecord`.
+- `quitAfterOptIn` requires explicit destructive confirmation. Its persisted
+  `allowsQuitAfterOptIn` flag defaults to false, and an unconfirmed rule uses
+  `hide` as its effective action.
+- Browser-rule QA can use a local `127.0.0.1` page to exercise the real Safari
+  Apple Events URL probe without relying on an external website. This proves
+  the Automation path and selected action, but not every supported browser.
 
 ## Theme, appearance, and icons
 
@@ -291,8 +353,10 @@ Theme switching is intentionally animated, split, and batched:
   `updateSystemAppearanceAnimated`.
 - Runtime Dock icon drawing is deferred by about 120 ms so AppKit icon drawing
   does not block the selection click or light/dark switch.
-- Settings persistence and `NSWorkspace.setIcon` custom app-icon persistence
-  are debounced by about 700 ms.
+- Settings persistence and best-effort `NSWorkspace.setIcon` custom app-icon
+  persistence are debounced by about 700 ms. Persistent icon writes are skipped
+  when the running `.app` lives under the user's Documents, Desktop, or
+  Downloads folder so Theme Studio edits do not trigger macOS privacy prompts.
 - Built-in theme edits are batched into one custom-theme mutation instead of
   creating several theme side-effect schedules.
 - `isThemeSideEffectPending` is only published when it actually changes, so
@@ -306,7 +370,8 @@ Finder `.icns` is static and generated from the same geometry as the runtime
 icon. `Scripts/package-app.sh` regenerates the static icon before packaging so
 the bundled app stays aligned with `FocusGlassRuntimeIcon`. Runtime/custom app
 icon persistence is best-effort; macOS may reject `NSWorkspace.setIcon` for
-local bundles.
+local bundles, and FocusGlass skips persistent writes in user-protected folders
+to avoid permission prompts during theme editing.
 
 `L10n` must not directly call SwiftPM's generated `Bundle.module` accessor. For
 local `.app` bundles, resources live under `Contents/Resources`, while the
@@ -341,9 +406,19 @@ use the `--disable-sandbox` variants above for verification.
 and checksums out of git. For tester handoff, the owner builds locally with
 `Scripts/package-release.sh`, which packages `FocusGlass.app` into
 `build/releases/<version>/FocusGlass-<version>.zip` and writes a SHA-256 file
-next to it. Do not turn this into mandatory release automation. If the owner
-wants GitHub Release, treat it as a manual distribution page for the already
-built zip/checksum tied to a tag and commit.
+next to it. The tester-facing version is explicit: update the root `VERSION`
+file, then use a matching public tag such as `v0.0.2` on the exact build commit.
+On an exact tag, packaging scripts prefer the tag; otherwise they use `VERSION`.
+Tester artifact branches should use the same visible number, for example
+`tester/0.0.2`. Do not turn this into mandatory release automation. If the
+owner wants GitHub Release, treat it as a manual distribution page for the
+already built zip/checksum tied to a tag and commit.
+
+The main window shows a quiet bottom-right app version/build badge sourced from
+the packaged app `Info.plist`. Do not add this badge to `MenuBarPanel` or
+`FullscreenFocusView`. `Scripts/package-app.sh` clears extended attributes from
+the generated `.app` before ad-hoc signing so local resource forks do not break
+`codesign`.
 
 The current test suite covers timer transitions, analytics, permission status
 helpers, rule decoding/matching, migration from legacy project names, split
@@ -362,4 +437,9 @@ clamping, project-scoped task lists, and debounced theme side effects.
   `NSWorkspace.setIcon` back into immediate slider/change handlers.
 - Localization: RU is default and must be checked for clipping in compact
   layouts.
+- Compact navigation labels keep their intrinsic horizontal width inside the
+  scrollable navigation rail; do not let labels compress or overlap to force
+  every route into one fixed-width row.
+- Keyboard QA may temporarily enable macOS Keyboard Navigation for full Tab
+  traversal, but the original system setting must be restored after the run.
 - Documentation: update docs whenever implementation behavior changes.

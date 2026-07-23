@@ -58,6 +58,7 @@ public struct DistractionRuleSpec: Identifiable, Codable, Equatable, Sendable {
     public var sitePattern: String?
     public var action: DistractionAction
     public var isEnabled: Bool
+    public var allowsQuitAfterOptIn: Bool
 
     public init(
         id: UUID = UUID(),
@@ -67,7 +68,8 @@ public struct DistractionRuleSpec: Identifiable, Codable, Equatable, Sendable {
         bundleIdentifier: String? = nil,
         sitePattern: String? = nil,
         action: DistractionAction = .warn,
-        isEnabled: Bool = true
+        isEnabled: Bool = true,
+        allowsQuitAfterOptIn: Bool = false
     ) {
         self.id = id
         self.targetKind = targetKind
@@ -77,6 +79,7 @@ public struct DistractionRuleSpec: Identifiable, Codable, Equatable, Sendable {
         self.sitePattern = sitePattern
         self.action = action
         self.isEnabled = isEnabled
+        self.allowsQuitAfterOptIn = allowsQuitAfterOptIn
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -88,6 +91,7 @@ public struct DistractionRuleSpec: Identifiable, Codable, Equatable, Sendable {
         case sitePattern
         case action
         case isEnabled
+        case allowsQuitAfterOptIn
     }
 
     public init(from decoder: Decoder) throws {
@@ -105,6 +109,7 @@ public struct DistractionRuleSpec: Identifiable, Codable, Equatable, Sendable {
         sitePattern = decodedSitePattern ?? (targetKind == .site ? matchValue : nil)
         action = try container.decodeIfPresent(DistractionAction.self, forKey: .action) ?? .warn
         isEnabled = try container.decodeIfPresent(Bool.self, forKey: .isEnabled) ?? true
+        allowsQuitAfterOptIn = try container.decodeIfPresent(Bool.self, forKey: .allowsQuitAfterOptIn) ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -117,6 +122,11 @@ public struct DistractionRuleSpec: Identifiable, Codable, Equatable, Sendable {
         try container.encodeIfPresent(sitePattern, forKey: .sitePattern)
         try container.encode(action, forKey: .action)
         try container.encode(isEnabled, forKey: .isEnabled)
+        try container.encode(allowsQuitAfterOptIn, forKey: .allowsQuitAfterOptIn)
+    }
+
+    public var effectiveAction: DistractionAction {
+        action == .quitAfterOptIn && !allowsQuitAfterOptIn ? .hide : action
     }
 
     public var normalizedSitePattern: String? {
@@ -163,5 +173,51 @@ public struct DistractionRuleSpec: Identifiable, Codable, Equatable, Sendable {
         }
         let normalizedHost = host.lowercased()
         return normalizedHost.hasPrefix("www.") ? String(normalizedHost.dropFirst(4)) : normalizedHost
+    }
+}
+
+public struct DistractionEventRecord: Identifiable, Codable, Equatable, Sendable {
+    public let id: UUID
+    public var occurredAt: Date
+    public var ruleID: UUID
+    public var targetKind: DistractionTargetKind
+    public var targetLabel: String
+    public var matchValue: String
+    public var action: DistractionAction
+    public var sessionID: UUID?
+    public var projectID: UUID?
+    public var projectName: String
+    public var taskID: UUID?
+    public var taskTitle: String?
+    public var mode: TimerMode
+
+    public init(
+        id: UUID = UUID(),
+        occurredAt: Date = .now,
+        ruleID: UUID,
+        targetKind: DistractionTargetKind,
+        targetLabel: String,
+        matchValue: String,
+        action: DistractionAction,
+        sessionID: UUID? = nil,
+        projectID: UUID? = nil,
+        projectName: String = "",
+        taskID: UUID? = nil,
+        taskTitle: String? = nil,
+        mode: TimerMode
+    ) {
+        self.id = id
+        self.occurredAt = occurredAt
+        self.ruleID = ruleID
+        self.targetKind = targetKind
+        self.targetLabel = targetLabel
+        self.matchValue = matchValue
+        self.action = action
+        self.sessionID = sessionID
+        self.projectID = projectID
+        self.projectName = projectName
+        self.taskID = taskID
+        self.taskTitle = taskTitle
+        self.mode = mode
     }
 }

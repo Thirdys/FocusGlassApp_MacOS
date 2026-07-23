@@ -291,6 +291,7 @@ struct LiquidGlassButtonStyle: ButtonStyle {
         let variant: Variant
 
         @State private var isHovering = false
+        @Environment(\.isFocused) private var isFocused
 
         var body: some View {
             let pressed = configuration.isPressed
@@ -326,11 +327,14 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(stroke(isPressed: pressed, isHovering: isHovering), lineWidth: 1)
+                    .stroke(
+                        isFocused ? theme.primary.opacity(0.92) : stroke(isPressed: pressed, isHovering: isHovering),
+                        lineWidth: isFocused ? 2 : 1
+                    )
             }
             .shadow(
-                color: shadow(isPressed: pressed, isHovering: isHovering),
-                radius: pressed ? 5 : (variant == .primary ? (isHovering ? 22 : 18) : (isHovering ? 13 : 10)),
+                color: isFocused ? theme.primary.opacity(0.30) : shadow(isPressed: pressed, isHovering: isHovering),
+                radius: isFocused ? 14 : (pressed ? 5 : (variant == .primary ? (isHovering ? 22 : 18) : (isHovering ? 13 : 10))),
                 x: 0,
                 y: pressed ? 3 : (isHovering ? 9 : 8)
             )
@@ -445,6 +449,7 @@ struct GlassHoverHighlight: ViewModifier {
     var isActive = false
 
     @State private var isHovering = false
+    @Environment(\.isFocused) private var isFocused
 
     func body(content: Content) -> some View {
         content
@@ -464,7 +469,7 @@ struct GlassHoverHighlight: ViewModifier {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .stroke(stroke, lineWidth: 1)
             }
-            .shadow(color: shadow, radius: isHovering ? 10 : 0, x: 0, y: isHovering ? 5 : 0)
+            .shadow(color: shadow, radius: isFocused ? 12 : (isHovering ? 10 : 0), x: 0, y: isFocused || isHovering ? 5 : 0)
             .brightness(isHovering ? 0.024 : 0)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -501,18 +506,21 @@ struct GlassHoverHighlight: ViewModifier {
     }
 
     private var fillStrength: Double {
-        if isHovering {
+        if isHovering || isFocused {
             return 1
         }
         return isActive ? 0.92 : 0
     }
 
     private var topHighlightOpacity: Double {
-        guard isHovering || isActive else { return 0 }
-        return isHovering ? max(0.22, theme.specularOpacity * 0.72) : theme.specularOpacity * 0.34
+        guard isHovering || isFocused || isActive else { return 0 }
+        return isHovering || isFocused ? max(0.22, theme.specularOpacity * 0.72) : theme.specularOpacity * 0.34
     }
 
     private var shadow: Color {
+        if isFocused {
+            return theme.primary.opacity(0.30)
+        }
         guard isHovering else { return .clear }
         return theme.glow.opacity(0.14)
     }
@@ -600,6 +608,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                         if let symbolName = symbol(option) {
                             Image(systemName: symbolName)
                                 .font(.system(size: 11, weight: .bold))
+                                .accessibilityHidden(true)
                         }
                         Text(title(option))
                             .font(.system(size: 12, weight: .bold))
@@ -620,6 +629,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                 .frame(maxWidth: .infinity)
                 .glassHover(theme: model.theme, radius: 11, isActive: isSelected)
                 .help(title(option))
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
         .padding(5)
@@ -669,6 +679,7 @@ struct GlassSelect<Value: Equatable>: View {
     let title: (Value) -> String
     var symbol: (Value) -> String? = { _ in nil }
     var minWidth: CGFloat = 220
+    var lineLimit = 1
 
     @State private var isPresented = false
     @State private var isHovering = false
@@ -683,11 +694,13 @@ struct GlassSelect<Value: Equatable>: View {
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(model.theme.mutedText)
                         .frame(width: 17)
+                        .accessibilityHidden(true)
                 }
                 Text(title(selection))
                     .font(.system(size: 13, weight: .bold))
-                    .lineLimit(1)
+                    .lineLimit(lineLimit)
                     .minimumScaleFactor(0.68)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(model.theme.text)
                 Spacer(minLength: 10)
                 Image(systemName: "chevron.up.chevron.down")
@@ -752,6 +765,7 @@ struct GlassSelect<Value: Equatable>: View {
                             if let symbolName = symbol(option) {
                                 Image(systemName: symbolName)
                                     .frame(width: 18)
+                                    .accessibilityHidden(true)
                             }
                             Text(title(option))
                                 .font(.system(size: 13, weight: .semibold))
@@ -762,6 +776,7 @@ struct GlassSelect<Value: Equatable>: View {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundStyle(model.theme.primary)
+                                    .accessibilityHidden(true)
                             }
                         }
                         .padding(.horizontal, 11)
@@ -775,6 +790,7 @@ struct GlassSelect<Value: Equatable>: View {
                     }
                     .buttonStyle(.plain)
                     .help(title(option))
+                    .accessibilityAddTraits(option == selection ? .isSelected : [])
                 }
             }
             .padding(8)
@@ -796,7 +812,7 @@ struct GlassStepper: View {
     var body: some View {
         HStack(spacing: 8) {
             Button {
-                value = max(range.lowerBound, value - step)
+                value = decrementedValue
             } label: {
                 Image(systemName: "minus")
                     .frame(width: 24, height: 24)
@@ -831,7 +847,7 @@ struct GlassStepper: View {
                 }
 
             Button {
-                value = min(range.upperBound, value + step)
+                value = incrementedValue
             } label: {
                 Image(systemName: "plus")
                     .frame(width: 24, height: 24)
@@ -840,6 +856,203 @@ struct GlassStepper: View {
             .disabled(value >= range.upperBound)
             .help("+\(step)")
         }
+    }
+
+    private var incrementedValue: Int {
+        GlassStepperMath.increment(value: value, range: range, step: step)
+    }
+
+    private var decrementedValue: Int {
+        GlassStepperMath.decrement(value: value, range: range, step: step)
+    }
+}
+
+struct GlassSlider: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double = 0.01
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = max(CGFloat(1), proxy.size.width)
+            let fillWidth = max(CGFloat(12), width * CGFloat(fraction))
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18),
+                                model.theme.surface.opacity(model.theme.surfaceAlpha * 0.92),
+                                Color.black.opacity(model.theme.shadowDepth * 0.12)
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .background(.thinMaterial, in: Capsule())
+                    .overlay {
+                        Capsule()
+                            .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.88), lineWidth: 1)
+                    }
+                    .frame(height: 12)
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                model.theme.primary,
+                                model.theme.glow.opacity(0.92),
+                                model.theme.secondary
+                            ],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: fillWidth, height: 12)
+                    .shadow(color: model.theme.glow.opacity(0.20), radius: 8, x: 0, y: 2)
+
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                model.theme.highlight.opacity(0.92),
+                                model.theme.primary,
+                                model.theme.secondary
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 22, height: 22)
+                    .overlay {
+                        Circle()
+                            .stroke(model.theme.highlight.opacity(max(0.34, model.theme.specularOpacity)), lineWidth: 1)
+                    }
+                    .shadow(color: model.theme.glow.opacity(0.26), radius: 10, x: 0, y: 4)
+                    .offset(x: min(width - 22, max(0, fillWidth - 11)))
+            }
+            .frame(height: 26)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { drag in
+                        updateValue(locationX: Double(drag.location.x), width: Double(width))
+                    }
+            )
+        }
+        .frame(height: 26)
+        .accessibilityValue(Text(String(format: "%.2f", value)))
+    }
+
+    private var fraction: Double {
+        guard range.upperBound > range.lowerBound else { return 0 }
+        let clamped = min(range.upperBound, max(range.lowerBound, value))
+        return (clamped - range.lowerBound) / (range.upperBound - range.lowerBound)
+    }
+
+    private func updateValue(locationX: Double, width: Double) {
+        let rawFraction = min(1, max(0, locationX / max(1, width)))
+        let rawValue = range.lowerBound + rawFraction * (range.upperBound - range.lowerBound)
+        let stepped = step > 0 ? (rawValue / step).rounded() * step : rawValue
+        value = min(range.upperBound, max(range.lowerBound, stepped))
+    }
+}
+
+enum GlassStepperMath {
+    static func increment(value: Int, range: ClosedRange<Int>, step: Int) -> Int {
+        guard step > 1 else { return min(range.upperBound, value + step) }
+        let next = ((value / step) + 1) * step
+        return min(range.upperBound, max(range.lowerBound, next))
+    }
+
+    static func decrement(value: Int, range: ClosedRange<Int>, step: Int) -> Int {
+        guard step > 1 else { return max(range.lowerBound, value - step) }
+        let previous = ((value - 1) / step) * step
+        return max(range.lowerBound, min(range.upperBound, previous))
+    }
+}
+
+struct GlassMinuteInputField: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    @State private var draftText = ""
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            TextField(model.t("tasks.minutes"), text: $draftText)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12, weight: .bold, design: .rounded))
+                .foregroundStyle(model.theme.text)
+                .multilineTextAlignment(.center)
+                .focused($isFocused)
+                .frame(width: 72)
+                .onSubmit {
+                    commitDraft(draftText)
+                    syncDraft()
+                }
+                .onChange(of: draftText) { _, newValue in
+                    commitDraft(newValue)
+                }
+                .onChange(of: value) { _, newValue in
+                    guard !isFocused else { return }
+                    draftText = "\(newValue)"
+                }
+                .onChange(of: isFocused) { _, focused in
+                    if focused {
+                        draftText = "\(value)"
+                    } else {
+                        commitDraft(draftText)
+                        syncDraft()
+                    }
+                }
+                .onAppear {
+                    syncDraft()
+                }
+            Text(model.t("tasks.minutes"))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(model.theme.mutedText)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            LinearGradient(
+                colors: [
+                    model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18),
+                    model.theme.surface.opacity(model.theme.surfaceAlpha * 0.90),
+                    Color.black.opacity(model.theme.shadowDepth * 0.08)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+        )
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.86), lineWidth: 1)
+        }
+        .help(model.t("help.manualMinutes"))
+        .accessibilityLabel(model.t("help.manualMinutes"))
+    }
+
+    private func syncDraft() {
+        draftText = "\(value)"
+    }
+
+    private func commitDraft(_ text: String) {
+        let filtered = text.filter(\.isNumber)
+        if filtered != text {
+            draftText = filtered
+            return
+        }
+        guard let parsed = Int(filtered) else { return }
+        value = min(range.upperBound, max(range.lowerBound, parsed))
     }
 }
 
@@ -1018,6 +1231,7 @@ struct ModeChip: View {
         }
         .buttonStyle(.plain)
         .glassHover(theme: model.theme, radius: 12, isActive: isSelected)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var chipFillColors: [Color] {

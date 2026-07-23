@@ -29,16 +29,8 @@ struct FullscreenFocusView: View {
                 Spacer(minLength: 18)
 
                 HStack(alignment: .center, spacing: 48) {
-                    if !model.intention.isEmpty || !model.activeTasks.isEmpty {
-                        VStack(alignment: .leading, spacing: 20) {
-                            if !model.intention.isEmpty {
-                                Text(model.intention)
-                                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                                    .lineLimit(3)
-                                    .frame(maxWidth: 460, alignment: .leading)
-                            }
-                            taskRail
-                        }
+                    if !model.activeTasks.isEmpty {
+                        taskRail
                     }
 
                     CircularTimerView(
@@ -122,6 +114,17 @@ struct FullscreenFocusView: View {
                     .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .danger))
 
                     Button {
+                        model.skipSegment()
+                    } label: {
+                        Image(systemName: "forward.end.fill")
+                            .frame(width: 38, height: 38)
+                    }
+                    .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
+                    .disabled(!model.canSkipSegment)
+                    .opacity(model.canSkipSegment ? 1 : 0.42)
+                    .help(model.t("help.timerSkip"))
+
+                    Button {
                         dismissWindow(id: "focus-mode")
                     } label: {
                         Image(systemName: "xmark")
@@ -158,32 +161,44 @@ struct FullscreenFocusView: View {
                     detail: model.t("fullscreen.empty.detail")
                 )
             } else {
-                ForEach(model.activeTasks) { task in
-                    Button {
-                        model.toggleTask(task)
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(task.isDone ? model.theme.primary : model.theme.mutedText)
-                            Text(task.title)
-                                .font(.system(size: 15, weight: .bold))
-                                .lineLimit(1)
-                            Spacer()
-                            Text(task.estimate.focusClock)
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundStyle(model.theme.mutedText)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 13)
-                        .background(model.theme.surface.opacity(0.42), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .stroke(.white.opacity(model.theme.borderOpacity), lineWidth: 1)
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(model.activeTasks) { task in
+                            Button {
+                                model.selectTaskForSession(task)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: model.activeTaskID == task.id ? "target" : "circle")
+                                        .foregroundStyle(model.activeTaskID == task.id ? model.theme.primary : model.theme.mutedText)
+                                    Text(task.title)
+                                        .font(.system(size: 15, weight: .bold))
+                                        .lineLimit(1)
+                                    Spacer()
+                                    if task.timingMode == .timed {
+                                        Text(task.estimate.focusClock)
+                                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                                            .foregroundStyle(model.theme.mutedText)
+                                    } else {
+                                        Text(model.t("tasks.checklist"))
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundStyle(model.theme.mutedText)
+                                    }
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 13)
+                                .background(model.theme.surface.opacity(model.activeTaskID == task.id ? 0.58 : 0.42), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke((model.activeTaskID == task.id ? model.theme.primary : .white).opacity(model.theme.borderOpacity), lineWidth: 1)
+                                }
+                            }
+                            .buttonStyle(.plain)
+                            .glassHover(theme: model.theme, radius: 14, isActive: model.activeTaskID == task.id)
                         }
                     }
-                    .buttonStyle(.plain)
-                    .glassHover(theme: model.theme, radius: 14)
+                    .padding(.trailing, 2)
                 }
+                .frame(maxHeight: 260)
             }
         }
         .frame(width: 440, alignment: .leading)

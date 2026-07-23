@@ -1,3 +1,6 @@
+"app.version" = "Version";
+"app.build" = "build";
+
 "focus.today" = "Focus Today";
 "focus.subtitle" = "Plan the next session, protect attention, and keep honest focus visible.";
 "focus.fullscreen" = "Focus Mode";
@@ -15,6 +18,19 @@
 
 "session.intention" = "Intention";
 "session.intention.placeholder" = "What must be finished in this session?";
+"session.outcome.title" = "Session review";
+"session.outcome.subtitle" = "Compare the plan with honest focus and decide what happens to the task.";
+"session.outcome.planned" = "Planned";
+"session.outcome.honest" = "Honest";
+"session.outcome.distractions" = "Distractions";
+"session.outcome.noTask" = "No task attached";
+"session.outcome.noTask.detail" = "This session still counts toward analytics, but no task will be completed from here.";
+"session.outcome.checklist.detail" = "Checklist tasks do not receive time progress; complete it when the result is real.";
+"session.outcome.taskProgress" = "Task progress";
+"session.outcome.completeTask" = "Complete task";
+"session.outcome.continueTask" = "Continue";
+"session.outcome.startNext" = "Start next";
+"session.outcome.dismiss" = "Dismiss review";
 
 "timer.start" = "Start";
 "timer.pause" = "Pause";
@@ -27,6 +43,18 @@
 
 "tasks.focusStack" = "Focus stack";
 "tasks.projectTasks" = "Project tasks";
+"tasks.minutes" = "min";
+"tasks.type" = "Task type";
+"tasks.timed" = "Timed";
+"tasks.checklist" = "Checklist";
+"tasks.checklist.detail" = "Checklist tasks do not receive session time and are completed manually.";
+"tasks.activeForSession" = "Active session task";
+"tasks.selectForSession" = "Select for session";
+"tasks.noActiveTask" = "No task selected";
+"projects.unassigned.detail" = "Tasks without a project live here. Use them as a quick personal list.";
+"projects.notes" = "Project notes";
+"projects.notes.placeholder" = "Context, decisions, links, or the thought to keep for the next session.";
+"projects.notes.empty" = "No notes yet";
 
 "analytics.honestFocus" = "Honest focus";
 "analytics.honestFocusDetail" = "Only active focus time";
@@ -135,6 +163,8 @@
 
 "strict.rules" = "Distraction rules";
 "strict.fullscreenOnly" = "While the timer runs, rules return you to FocusGlass. Fullscreen keeps the warning next to the timer.";
+"strict.enforceDuringBreaks" = "Strict mode during breaks";
+"strict.enforceDuringBreaks.detail" = "Breaks are free by default. Turn this on if rules should run outside the focus phase.";
 "strict.apps" = "Apps";
 "strict.sites" = "Sites";
 "strict.apps.empty.title" = "No apps selected";
@@ -147,23 +177,64 @@
 "strict.addApp" = "Add App";
 "strict.site.placeholder" = "youtube.com or *.reddit.com";
 "strict.addSite" = "Add Site";
+"strict.quit.message" = "%@ was closed by a confirmed Strict Mode rule.";
+"strict.quit.confirm.title" = "Allow FocusGlass to quit this app?";
+"strict.quit.confirm.detail" = "This is a destructive action. FocusGlass will terminate the matching app while a focus session is protected.";
+"strict.quit.confirm.action" = "Allow Quit";
+"strict.history" = "Distraction history";
+"strict.history.clear" = "Clear history";
+"strict.history.empty" = "No distractions recorded";
+"strict.history.empty.detail" = "Matched rules will appear here with their action, time, session, project, and mode.";
+
+"analytics.plannedVsActual" = "Planned vs actual";
+"analytics.planned" = "Planned";
+"analytics.actual" = "Actual";
+"analytics.effectiveness" = "Effectiveness";
+"analytics.modeEffectiveness" = "Mode effectiveness";
+"analytics.sessionsShort" = "sessions";
+"analytics.distractionsShort" = "distractions";
+"analytics.recentSessions" = "Recent sessions";
+"analytics.distractionBreakdown" = "Distractions by context";
+"analytics.noDistractionHistory" = "No strict-mode history yet";
+"analytics.noDistractionHistory.detail" = "Project and mode breakdowns appear after a distraction rule is triggered.";
+"analytics.byMode" = "By mode";
 
 "menu.blockedCount" = "Enabled rules";
 "menu.openApp" = "Open App";
 
 "theme.title" = "Theme Studio";
-"theme.subtitle" = "Choose a ready theme. Detailed color controls live in advanced settings.";
-"theme.advancedColors" = "Advanced colors and glass";
+"theme.subtitle" = "Choose a theme, then tune glass, colors, and readability with pickers and sliders.";
+"theme.activeTheme" = "Active theme";
+"theme.builtIn" = "Built-in";
+"theme.customTheme" = "Custom";
+"theme.livePreviewDetail" = "Checks the cockpit, timer, and secondary labels against the current tokens.";
+"theme.group.accent" = "Accent and state";
+"theme.group.accent.detail" = "Buttons, timer ring, strict state, and glow accents.";
+"theme.group.foundation" = "Background and surfaces";
+"theme.group.foundation.detail" = "Window gradient, glass layers, elevated cards, and highlight color.";
+"theme.group.readability" = "Readability";
+"theme.group.readability.detail" = "Primary text, muted labels, heatmap, and secondary data contrast.";
+"theme.group.glass" = "Glass and motion";
+"theme.group.glass.detail" = "Opacity, blur, borders, shadow, density, and motion.";
+"theme.advancedColors" = "Theme controls";
 "theme.highlightColor" = "Highlight color";
 "theme.saving" = "Saving theme...";
+"theme.delete" = "Delete theme";
+"theme.previewTokens" = "What changes";
+"theme.previewBackground" = "Background top / mid / bottom";
+"theme.previewMutedText" = "Muted text and secondary labels";
+"theme.deleted" = "Custom theme deleted";
 "presets.resetHint" = "Reset affects only the selected mode and leaves other presets unchanged.";
 "help.language" = "Changes the app UI, notifications, and FocusGlass guidance language.";
 "help.appearance" = "System follows macOS; light and dark pin the app appearance.";
 "help.fullscreen" = "Opens fullscreen focus mode with the timer and strict mode.";
 "help.strictMode" = "Strict mode watches rules while the timer runs and returns you to FocusGlass after a distraction.";
+"help.strictBreaks" = "When enabled, strict mode also checks rules during breaks.";
 "help.timerReset" = "Resets the current session to the beginning of the selected mode.";
 "help.timerSkip" = "Moves to the next segment when the current mode has more than one segment.";
 "help.presetReset" = "Restores only the selected mode to its built-in defaults.";
+"help.manualMinutes" = "Enter an exact number of minutes from the keyboard.";
+"help.taskTimingMode" = "Timed tasks receive session progress; checklist tasks are completed manually.";
 "help.notifications" = "Requests system notifications for phase reminders and completed sessions.";
 "help.accessibility" = "Requests Accessibility so strict mode can identify active apps.";
 "help.automation" = "Requests Automation to inspect browser tabs and run Shortcuts.";
@@ -172,7 +243,8 @@
 "help.strictApps" = "Adds an app to the strict mode distraction list.";
 "help.strictSites" = "Adds a site or domain pattern to the strict mode distraction list.";
 "help.themeDuplicate" = "Creates an editable copy of a built-in theme.";
-"help.themeReset" = "Resets a built-in theme or removes a custom copy.";
+"help.themeReset" = "Resets a built-in theme to its original values.";
+"help.themeDelete" = "Deletes only the selected custom theme. Built-in themes cannot be deleted.";
 "help.themeExport" = "Copies the current theme to the clipboard as JSON.";
 "help.themeImport" = "Imports a theme from clipboard JSON.";
 "help.themePerformance" = "Theme switch profile: UI updates first, saving and icon persistence run later.";
