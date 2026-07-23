@@ -46,27 +46,42 @@ FocusGlass развивается без смены идеи проекта. Э�
 
 ### 3. Strict mode end-to-end
 
-- Полностью проверить действия `warn`, `hide`, `pauseSession`, `quitAfterOptIn`.
-- Убедиться, что `warn` не скрывает приложение, но возвращает пользователя к FocusGlass.
-- Убедиться, что `hide` скрывает приложение и показывает понятное сообщение.
+- Готово: кнопка управления из cockpit открывает сразу
+  Settings -> Strict Mode; счётчики приложений и сайтов используют одинаковые
+  enabled-правила в cockpit и Settings.
+- Готово: `quitAfterOptIn` требует отдельного опасного подтверждения. Старое
+  правило без сохранённого opt-in безопасно выполняется как `hide`.
+- Готово: история отвлечений сохраняет цель, время, правило, действие,
+  сессию, проект, задачу и режим; Strict Mode показывает историю и позволяет
+  очистить её.
+- Готово: live `.app` proof для `hide`. Логика `warn`, `hide` и
+  `pauseSession` покрыта SwiftPM/service-тестами.
+- Осталось: повторить реальный packaged-app QA для `warn`, `pauseSession` и
+  browser-site rules после выдачи необходимых macOS permissions.
 - Готово: реально связать `pauseSession` с таймером.
 - Готово: добавить настройку strict-mode enforcement во время перерывов.
-- Добавить историю отвлечений.
 
 ### 4. UI interactive layer
 
-- Единый hover/pressed/selected/focus state.
-- Частично готово: увеличен hit area для project/task edit-кнопок. Осталось
-  пройти sidebar, project cards, mode chips, settings tabs и strict rows.
-- Единый визуальный checkbox/toggle.
-- Проверка light/dark и пользовательских тем.
+- Готово в первом полном implementation pass: единые
+  hover/pressed/selected/focus states, увеличенные hit areas, keyboard-focusable
+  project cards, responsive strict rows, адаптивные mode chips и
+  accessibility selected traits.
+- Готово: новый cockpit сохраняет таймер в центре, скрывает контекстный rail на
+  medium-layout и возвращает его только при ширине от 1680 pt.
+- Готово: усилен контраст вторичного текста в light/dark/custom themes;
+  проверены light и dark Theme Studio состояния.
+- Осталось: live compact-layout proof ниже 980 pt и полный Tab traversal после
+  включения macOS Full Keyboard Access, затем точечный Product Design polish
+  по результатам.
 
 ### 5. Аналитика
 
-- Planned vs actual по сессиям, задачам и проектам.
-- История последних сессий.
-- Эффективность режимов.
-- Отвлечения по проектам и режимам.
+- Готов первый implementation pass: planned vs actual/effectiveness,
+  последние сессии, эффективность режимов, сводка по проектам и отвлечения по
+  проектам/режимам.
+- Осталось: Product Design polish на реальных накопленных данных и решение,
+  нужны ли отдельные task-level срезы сверх текущих session/project summaries.
 
 ## Позже
 

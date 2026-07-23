@@ -16,7 +16,6 @@ struct SettingsView: View {
 
 struct SettingsContentView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
-    @State private var selectedTab: SettingsTab = .general
     var showsHeader = true
 
     var body: some View {
@@ -32,15 +31,15 @@ struct SettingsContentView: View {
             }
 
             GlassSegmentedControl(
-                selection: $selectedTab,
+                selection: $model.selectedSettingsTab,
                 options: SettingsTab.allCases,
                 title: { model.t($0.titleKey) },
                 symbol: { $0.symbolName }
             )
 
-            SettingsTabSummary(tab: selectedTab)
+            SettingsTabSummary(tab: model.selectedSettingsTab)
 
-            switch selectedTab {
+            switch model.selectedSettingsTab {
             case .general:
                 GeneralSettingsSection()
             case .timers:
@@ -56,7 +55,7 @@ struct SettingsContentView: View {
     }
 }
 
-private enum SettingsTab: String, CaseIterable, Identifiable {
+enum SettingsTab: String, CaseIterable, Identifiable {
     case general
     case timers
     case strictMode
@@ -723,13 +722,49 @@ private struct StrictRuleGroup: View {
 
 private struct StrictRuleRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var asksQuitConfirmation = false
     let rule: DistractionRuleSpec
 
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                ruleIdentity
+                Spacer(minLength: 12)
+                actionControls
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                ruleIdentity
+                HStack(spacing: 10) {
+                    actionControls
+                }
+            }
+        }
+        .padding(12)
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .confirmationDialog(
+            model.t("strict.quit.confirm.title"),
+            isPresented: $asksQuitConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(model.t("strict.quit.confirm.action"), role: .destructive) {
+                var updated = model.distractionRules.first(where: { $0.id == rule.id }) ?? rule
+                updated.action = .quitAfterOptIn
+                updated.allowsQuitAfterOptIn = true
+                model.updateRule(updated)
+            }
+            Button(model.t("common.cancel"), role: .cancel) {}
+        } message: {
+            Text(model.t("strict.quit.confirm.detail"))
+        }
+    }
+
+    private var ruleIdentity: some View {
         HStack(spacing: 10) {
             Toggle("", isOn: enabledBinding)
                 .toggleStyle(GlassCheckboxToggleStyle(theme: model.theme))
                 .labelsHidden()
+                .accessibilityLabel(rule.label)
 
             Image(systemName: rule.targetKind == .app ? "app.badge" : "globe")
                 .frame(width: 22)
@@ -738,21 +773,24 @@ private struct StrictRuleRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(rule.label)
                     .font(.system(size: 13, weight: .bold))
-                    .lineLimit(1)
+                    .lineLimit(2)
                 Text(rule.matchValue)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(model.theme.mutedText)
                     .lineLimit(1)
             }
+            .layoutPriority(1)
+        }
+    }
 
-            Spacer()
-
+    private var actionControls: some View {
+        HStack(spacing: 10) {
             GlassSelect(
                 selection: actionBinding,
                 options: DistractionAction.allCases,
                 title: model.actionTitle,
                 symbol: actionSymbol,
-                minWidth: 230
+                minWidth: 210
             )
             .help(model.t("help.strictRuleAction"))
 
@@ -763,9 +801,8 @@ private struct StrictRuleRow: View {
                     .frame(width: 24, height: 24)
             }
             .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
+            .accessibilityLabel(model.t("common.delete"))
         }
-        .padding(12)
-        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var enabledBinding: Binding<Bool> {
@@ -783,8 +820,13 @@ private struct StrictRuleRow: View {
         Binding(
             get: { rule.action },
             set: { newValue in
+                if newValue == .quitAfterOptIn {
+                    asksQuitConfirmation = true
+                    return
+                }
                 var updated = rule
                 updated.action = newValue
+                updated.allowsQuitAfterOptIn = false
                 model.updateRule(updated)
             }
         )

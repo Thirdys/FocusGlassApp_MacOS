@@ -410,7 +410,7 @@ extension ThemeProfile {
             profile.surfaceHex = "#ffffff"
             profile.elevatedSurfaceHex = "#f7faff"
             profile.textHex = "#172033"
-            profile.mutedTextHex = "#5f6d82"
+            profile.mutedTextHex = "#46566d"
             profile.glassOpacity = max(profile.glassOpacity, 0.50)
             profile.menuGlassOpacity = max(profile.menuGlassOpacity, 0.60)
             profile.surfaceAlpha = max(profile.surfaceAlpha, 0.30)
@@ -425,7 +425,7 @@ extension ThemeProfile {
             profile.surfaceHex = "#151217"
             profile.elevatedSurfaceHex = "#21191f"
             profile.textHex = "#f6f8ff"
-            profile.mutedTextHex = "#aab3c7"
+            profile.mutedTextHex = "#b7c0d2"
             profile.glassOpacity = min(profile.glassOpacity, 0.44)
             profile.menuGlassOpacity = min(profile.menuGlassOpacity, 0.58)
             profile.surfaceAlpha = min(profile.surfaceAlpha, 0.28)

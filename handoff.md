@@ -19,6 +19,52 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the Product Design-led cockpit, Strict Mode history, remaining
+  first-pass UI/accessibility, and analytics implementation package:
+  - Preserved the owner-approved wide cockpit composition: project context on
+    the left, timer centered, task workspace on the right. Medium layouts now
+    hide the extra context rail; it appears only from 1680 pt.
+  - Improved long RU/EN title wrapping, adaptive mode chips and strict rows,
+    project-card keyboard activation, visible focus surfaces, accessibility
+    selected traits, and light/dark/custom secondary-text contrast.
+  - The cockpit Strict Mode manage action now opens Settings directly on the
+    Strict Mode tab. Cockpit and Settings app counts both use enabled app rules;
+    enabled site rules are reported separately.
+  - Added schema v5 persistent distraction history with target, timestamp,
+    rule, effective action, session, project, task, and timer mode. Strict Mode
+    displays and clears that history.
+  - Added a destructive confirmation plus persisted opt-in for
+    `quitAfterOptIn`; legacy or unconfirmed quit rules safely fall back to
+    `hide`.
+  - Added analytics for planned vs actual/effectiveness, recent sessions, mode
+    effectiveness, project summaries, and distraction grouping by project and
+    mode.
+  - Added persistence/core/service tests for schema compatibility, history
+    linkage, safe quit behavior, strict actions, and analytics. Validation
+    passed with `swift build`, 63/63 Swift tests,
+    `./script/build_and_run.sh --verify`, strict codesign verification, and
+    `git diff --check`.
+  - Product Design audit and Build macOS Apps proof:
+    `/private/tmp/focusglass-product-pass-HBsAlZ73`.
+    Accepted after screenshots include
+    `audit/09-cockpit-after-medium-light.png`,
+    `audit/10-strict-direct-settings-after.png`,
+    `audit/11-quit-opt-in-confirmation.png`,
+    `audit/12-cockpit-after-dark.png`, and
+    `audit/13-cockpit-wide-count-after.png`.
+  - Live `.app` proof confirmed direct Strict Settings routing, consistent
+    enabled-app counts, destructive quit confirmation, history persistence, and
+    a real TextEdit `hide` action tied to the active session/project/mode.
+  - Honest remaining QA limits: real `warn`, `pauseSession`, and browser-site
+    enforcement still need a packaged-app run with the required macOS
+    permissions; compact below 980 pt and complete Tab traversal still need
+    live proof with macOS Full Keyboard Access enabled.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage, and Computer Use.
+  - Next skill/workflow: Product Design plus Build macOS Apps to close the
+    compact/keyboard and real warn/pause/site QA limits, then triage tester
+    feedback or continue targeted UI polish. Do not create another release,
+    tag, or tester branch without an owner command.
 - Synchronized the durable handoff with the completed cumulative tester
   delivery `0.0.4`:
   - Source release commit
@@ -48,10 +94,9 @@ Last done:
   - Used/validated with: Graphify for current-state orientation and handoff
     synchronization; existing release proof from SwiftPM tests, packaging,
     checksum, and codesign validation.
-  - Next skill/workflow: accept and triage the tester report through
-    SwiftPM/test-triage. If product work continues before feedback, use Product
-    Design first and Build macOS Apps second for the remaining Strict Mode
-    routing/count issues, then start strict distraction history.
+  - The Product Design plus Build macOS Apps follow-up named here is now
+    complete in the newest checkpoint above. Tester feedback still enters
+    through SwiftPM/test-triage when it arrives.
 - Implemented Cockpit First UI/UX polish with the owner-requested timer-center
   correction:
   - Used Graphify first:
@@ -100,9 +145,8 @@ Last done:
     `codex/next` history. GitHub HTTPS credentials were repaired with the
     repo-local Xcode keychain helper, and the later `0.0.4` source release plus
     tester branch were pushed and verified.
-  - Next skill/workflow: run Product Design + Build macOS Apps for a narrower
-    responsive/keyboard pass on the new cockpit, then continue roadmap with
-    strict distraction history unless the owner prioritizes another UI issue.
+  - The responsive/keyboard, Strict history, UI, and analytics follow-up named
+    here is now implemented in the newest checkpoint above.
 - Implemented the first Product Design-led UI polish pass after the full UI/UX
   audit. This is not the end of the full UI roadmap item; it closes the most
   visible pre-tester Theme Studio/display issues from the audit:
@@ -434,18 +478,13 @@ Previous tester-fix validation still relevant:
   asked to stop taking screenshots.
 - `graphify update .` passed and rebuilt the code graph.
 
-Not started yet:
+Remaining after the newest implementation checkpoint:
 
-- A deeper manual QA pass for strict warn/hide/pause against real blocked
-  apps/sites can still be done before the next tester build or in response to
-  the `0.0.4` tester report. The baseline QA First pass is no longer blocked on
-  screenshots or Settings/fullscreen verification.
-- The full UI/UX audit pass is complete, and the first implementation polish
-  pass is complete for Theme Studio plus cockpit task-row wrapping. The broader
-  UI pass is still open: Strict Mode settings routing/count consistency,
-  secondary text contrast, sidebar vs project-card ownership, strict rows,
-  project-card hierarchy, and measured accessibility checks still need Product
-  Design-led work.
+- A deeper packaged-app QA pass for real `warn`, `pauseSession`, and blocked
+  browser sites remains. Real TextEdit `hide` is proven; automated tests cover
+  all three non-destructive action paths.
+- The broad UI implementation pass is complete. Compact layout below 980 pt
+  and full Tab traversal with macOS Full Keyboard Access still need live proof.
 - Deeper Product Design refinements for task-attached outcome states can still
   be done later, but both no-task and attached-task outcome states now have
   live `.app` proof.
@@ -453,19 +492,13 @@ Not started yet:
 
 Next likely choices:
 
-- If addressing tester risk before the next build: inspect/fix the two
-  strict-mode audit findings, then optionally run strict warn/hide/pause
-  against real blocked apps/sites once system permissions are granted.
+- If addressing tester risk before the next build: run the remaining live
+  strict/compact/keyboard scenarios once system permissions and Full Keyboard
+  Access are available.
 - If continuing UI polish: use Product Design first, then Build macOS Apps live
-  validation. Next likely UI targets are Settings routing/count consistency,
-  strict rows, sidebar/project-card hierarchy, and contrast/readability across
-  light/dark/custom themes.
-- If moving product roadmap: strict distraction history is still the next
-  feature chunk. The full UI pass now has Product Design audit evidence, but
-  its implementation polish remains after strict history unless the owner
-  reorders it.
-- After that: analytics for planned vs actual, recent sessions, mode
-  effectiveness, and distraction analytics by project/mode.
+  validation against real accumulated session/distraction data.
+- If moving product roadmap: decide whether analytics needs deeper task-level
+  views or whether timer custom-preset work has higher product value.
 - Optional later: create a GitHub Release for `v0.0.4` only if the owner asks.
 
 Active partial work:
@@ -545,26 +578,25 @@ Started or partially started roadmap items:
 - Strict mode end-to-end: partially started. App/site rules, strict action
   types, warn/hide messages, browser checks, return-to-FocusGlass behavior, and
   hide/quit helpers exist. `pauseSession` is connected to the timer and strict
-  break enforcement is configurable. Still missing: packaged-app QA for
-  warn/hide/pause, guard/confirmation for `quitAfterOptIn`, and distraction
-  history.
-- UI interactive layer: partially started. Shared hover, checkbox, select,
-  stepper, segmented control, expanded hit areas, and theme-aware interaction
-  pieces exist. Project/task edit hit areas, fullscreen skip, scrollable task
-  lists, and Theme Studio token preview were improved in the tester pass. Full
-  Product Design audit evidence now exists for sidebar, project cards, mode
-  chips, settings tabs, strict rows, light/dark, custom themes, and fullscreen
-  focus at `/private/tmp/focusglass-ui-ux-audit-20260627-184307`. The first
-  implementation polish pass improved Theme Studio advanced editing and cockpit
-  task-row wrapping, with proof at
-  `/private/tmp/focusglass-theme-studio-polish-20260627-191539`. Still missing:
-  broader implementation polish for sidebar/project-card hierarchy, strict
-  rows, Settings routing/count consistency, and measured contrast/readability.
-- Analytics: partially started. Daily summary, focus score, completed sessions,
-  honest focus time, project grouping, unassigned session handling, and mini
-  heatmap UI exist. Still missing: planned vs actual by sessions/tasks/projects,
-  recent session history, mode effectiveness, and distraction analytics by
-  project and mode.
+  break enforcement is configurable. Direct Strict Settings routing, enabled
+  app/site count consistency, safe confirmed `quitAfterOptIn`, and persistent
+  session-linked distraction history are implemented. Real TextEdit `hide`
+  packaged-app proof passed. Still missing: packaged-app proof for real
+  `warn`, `pauseSession`, and browser-site enforcement with macOS permissions.
+- UI interactive layer: first broad implementation pass is complete. Shared
+  hover, checkbox, select, stepper, segmented control, focus surfaces,
+  accessibility selected traits, expanded hit areas, responsive strict rows,
+  adaptive mode chips, keyboard-focusable project cards, and improved
+  secondary-text contrast exist. The centered-timer cockpit now removes its
+  extra context rail below 1680 pt. Product Design and Build macOS Apps proof
+  is at `/private/tmp/focusglass-product-pass-HBsAlZ73`. Still missing:
+  compact live proof below 980 pt and full Tab traversal with macOS Full
+  Keyboard Access enabled.
+- Analytics: first requested implementation pass is complete. Daily summary,
+  focus score, planned vs actual/effectiveness, recent sessions, mode
+  effectiveness, project summaries, and distraction analytics by project/mode
+  are visible. Remaining work is Product Design polish against richer real
+  history and a decision on deeper task-level views.
 
 Parked roadmap items for later:
 
@@ -608,14 +640,11 @@ using the full current operating plan first, then the roadmap block.
    flow, weak readability, onboarding, permissions, Settings, strict-mode user
    path, or post-session outcome. Use Build macOS Apps after Product Design to
    validate the live `.app`.
-6. Attached-task outcome QA proof is complete through Build macOS Apps: timed
-   task progress, checklist no-progress, and complete/continue/start-next
-   actions were validated in the live `.app`. The next pre-tester code target,
-   if the owner wants polish before tester handoff, is either the remaining
-   UI/audit work or the strict-mode audit finding: direct Settings -> Strict
-   Mode routing and strict app-rule count consistency. Theme Studio first-pass
-   polish is already implemented and verified. The next roadmap product chunk
-   remains strict distraction history.
+6. The requested cockpit/Strict Mode/history/UI/analytics implementation pass is
+   complete. Product Design and live Build macOS Apps proof is under
+   `/private/tmp/focusglass-product-pass-HBsAlZ73`. The next focused QA pass is
+   real `warn`, `pauseSession`, and browser-site enforcement with macOS
+   permissions, plus compact layout and Full Keyboard Access traversal.
 7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
    remain explicit owner-controlled steps.
@@ -1271,24 +1300,28 @@ Skills research:
    `graphify query "<question>"`, then read exact source/docs as needed.
 2. Cumulative tester delivery `0.0.4` is complete. The isolated
    `tester/0.0.4` branch includes zip, checksum, README, full checklist, tester
-   rules, build info, and `tester-report-template.md`. Wait for and triage the
-   external tester report; do not create a GitHub Release or another tester
-   version without a separate owner command.
-3. Before the next tester delivery, repeat Build macOS Apps packaged-app QA:
+   rules, build info, and `tester-report-template.md`. Tester feedback may be
+   triaged when it arrives, but current product work is not blocked on it. Do
+   not create a GitHub Release or another tester version without a separate
+   owner command.
+3. Close the honest live-QA limits through Product Design plus Build macOS
+   Apps: compact cockpit below 980 pt, full Tab traversal with macOS Full
+   Keyboard Access, and real `warn`, `pauseSession`, and browser-site rules
+   with required permissions. Unit/service coverage already passes; do not
+   describe it as live OS proof.
+4. Before the next tester delivery, repeat Build macOS Apps packaged-app QA:
    `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
    then check the main window, Settings, fullscreen, strict mode, logs,
    screenshots, and runtime proof against `docs/qa-checklist.md`.
-4. Use `./script/build_and_run.sh` or the Codex Run action for active dev-loop
+5. Use `./script/build_and_run.sh` or the Codex Run action for active dev-loop
    work. Improve the script only if verification exposes a real gap; keep
    `Scripts/package-app.sh` as the source of truth.
-5. Attached timed/checklist outcome proof is complete. Proof path:
+6. Attached timed/checklist outcome proof is complete. Proof path:
    `/private/tmp/focusglass-outcome-attached-qa-20260627-181435`.
-6. Next product feature: strict distraction history. Track
-   what distracted, when it happened, which rule/action fired
-   (`warn`/`hide`/`pauseSession`), and which session it belonged to.
-7. After that, roadmap order is full UI pass over sidebar/cards/settings/strict
-   rows, then analytics for planned vs actual, recent sessions, mode
-   effectiveness, and distraction analytics by project/mode.
+7. Strict distraction history, the first broad UI/accessibility implementation
+   pass, and the requested analytics surfaces are now implemented. Follow-up
+   product work is targeted Product Design polish against real tester/history
+   data, not rebuilding those features from scratch.
 8. Do not break the existing FocusGlass identity. App icon, Dock/Finder icon,
    menu bar glyph, launch animation, and visual style changes must improve the
    current FocusGlass Mac Glass OS / timer / focus direction, not create an
@@ -1307,31 +1340,35 @@ Skills research:
      post-session review UI, task-level result, planned vs honest comparison,
      distraction summary, actions such as complete task, continue, or start
      next block, and live attached timed/checklist outcome proof.
-   - Strict mode end-to-end is partially started. Started: app/site rules,
+   - Strict mode end-to-end is substantially implemented. App/site rules,
      `warn`, `hide`, `pauseSession`, and `quitAfterOptIn` action types, warn/hide
      messages, return-to-FocusGlass behavior, browser URL checks, and hide/quit
-     helpers. `pauseSession` is already connected to the timer, and strict
-     break enforcement is configurable. Still needed: full packaged-app QA for
-     warn/hide/pause against real blocked apps/sites, confirm/guard
-     `quitAfterOptIn`, and add distraction history.
-   - UI interactive layer is partially started. Started: `glassHover`,
+     helpers exist. Direct Strict Settings routing, enabled-rule counts, safe
+     destructive quit opt-in, and persistent session-linked distraction
+     history are complete. Still needed: full packaged-app proof for real
+     warn/pause and blocked browser sites.
+   - UI interactive layer has a first broad implementation pass:
+     `glassHover`,
      `GlassCheckboxToggleStyle`, `GlassSelect`, `GlassStepper`,
-     `GlassSegmentedControl`, many expanded hit areas, and theme-aware hover
-     treatments. Still needed: one complete pass over sidebar, project cards,
-     mode chips, settings tabs, strict rows, light/dark, and custom themes.
-   - Analytics is partially started. Started: daily summary, focus score,
-     sessions completed, honest focus time, project grouping, unassigned session
-     handling, and mini heatmap UI. Still needed: planned vs actual by sessions,
-     tasks, and projects; recent session history; mode effectiveness; and
-     distraction analytics by project and mode.
+     `GlassSegmentedControl`, visible focus surfaces, selected accessibility
+     traits, keyboard project cards, responsive strict rows, adaptive chips,
+     and measured muted-text improvements. Still needed: compact live proof and
+     Full Keyboard Access traversal.
+   - Analytics first pass is complete: daily summary, focus score, planned vs
+     actual/effectiveness, recent sessions, mode effectiveness, project
+     summaries, unassigned handling, and distraction grouping by project/mode.
+     Later work is richer-data polish and optional task-level depth.
    - Later roadmap items remain parked: strict-rule presets, improved menu bar
      HUD, improved fullscreen task flow, Theme Studio readability pass, and
      signed/notarized distribution.
-9. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
+10. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
    not make them near-term work.
-10. Decide whether to set upstream locally later with `git branch --set-upstream-to=Release/main main` after fixing `.git/config` permissions.
-11. Inspect useful skills from `openai/skills` before installing anything.
-12. Keep `handoff.md` updated after each substantial audit or implementation step.
+11. Decide whether to set upstream locally later with
+    `git branch --set-upstream-to=Release/main main` after fixing
+    `.git/config` permissions.
+12. Inspect useful skills from `openai/skills` before installing anything.
+13. Keep `handoff.md` updated after each substantial audit or implementation
+    step.
 
 ## Open Questions
 

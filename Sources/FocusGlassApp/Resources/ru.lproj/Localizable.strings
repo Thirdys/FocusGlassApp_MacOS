@@ -177,6 +177,27 @@
 "strict.addApp" = "Добавить приложение";
 "strict.site.placeholder" = "youtube.com или *.reddit.com";
 "strict.addSite" = "Добавить сайт";
+"strict.quit.message" = "%@ закрыто подтвержденным правилом строгого режима.";
+"strict.quit.confirm.title" = "Разрешить FocusGlass закрывать это приложение?";
+"strict.quit.confirm.detail" = "Это опасное действие. FocusGlass завершит работу совпавшего приложения во время защищенной фокус-сессии.";
+"strict.quit.confirm.action" = "Разрешить закрытие";
+"strict.history" = "История отвлечений";
+"strict.history.clear" = "Очистить историю";
+"strict.history.empty" = "Отвлечений пока нет";
+"strict.history.empty.detail" = "Здесь появятся совпавшие правила, действие, время, сессия, проект и режим.";
+
+"analytics.plannedVsActual" = "План и факт";
+"analytics.planned" = "План";
+"analytics.actual" = "Факт";
+"analytics.effectiveness" = "Эффективность";
+"analytics.modeEffectiveness" = "Эффективность режимов";
+"analytics.sessionsShort" = "сессий";
+"analytics.distractionsShort" = "отвлечений";
+"analytics.recentSessions" = "Последние сессии";
+"analytics.distractionBreakdown" = "Отвлечения по контексту";
+"analytics.noDistractionHistory" = "Истории строгого режима пока нет";
+"analytics.noDistractionHistory.detail" = "Разбивка по проектам и режимам появится после срабатывания правила.";
+"analytics.byMode" = "По режимам";
 
 "menu.blockedCount" = "Активные правила";
 "menu.openApp" = "Открыть приложение";

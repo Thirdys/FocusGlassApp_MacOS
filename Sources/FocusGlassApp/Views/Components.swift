@@ -291,6 +291,7 @@ struct LiquidGlassButtonStyle: ButtonStyle {
         let variant: Variant
 
         @State private var isHovering = false
+        @Environment(\.isFocused) private var isFocused
 
         var body: some View {
             let pressed = configuration.isPressed
@@ -326,11 +327,14 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             }
             .overlay {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .stroke(stroke(isPressed: pressed, isHovering: isHovering), lineWidth: 1)
+                    .stroke(
+                        isFocused ? theme.primary.opacity(0.92) : stroke(isPressed: pressed, isHovering: isHovering),
+                        lineWidth: isFocused ? 2 : 1
+                    )
             }
             .shadow(
-                color: shadow(isPressed: pressed, isHovering: isHovering),
-                radius: pressed ? 5 : (variant == .primary ? (isHovering ? 22 : 18) : (isHovering ? 13 : 10)),
+                color: isFocused ? theme.primary.opacity(0.30) : shadow(isPressed: pressed, isHovering: isHovering),
+                radius: isFocused ? 14 : (pressed ? 5 : (variant == .primary ? (isHovering ? 22 : 18) : (isHovering ? 13 : 10))),
                 x: 0,
                 y: pressed ? 3 : (isHovering ? 9 : 8)
             )
@@ -445,6 +449,7 @@ struct GlassHoverHighlight: ViewModifier {
     var isActive = false
 
     @State private var isHovering = false
+    @Environment(\.isFocused) private var isFocused
 
     func body(content: Content) -> some View {
         content
@@ -464,7 +469,7 @@ struct GlassHoverHighlight: ViewModifier {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .stroke(stroke, lineWidth: 1)
             }
-            .shadow(color: shadow, radius: isHovering ? 10 : 0, x: 0, y: isHovering ? 5 : 0)
+            .shadow(color: shadow, radius: isFocused ? 12 : (isHovering ? 10 : 0), x: 0, y: isFocused || isHovering ? 5 : 0)
             .brightness(isHovering ? 0.024 : 0)
             .onHover { hovering in
                 withAnimation(.easeInOut(duration: 0.15)) {
@@ -501,18 +506,21 @@ struct GlassHoverHighlight: ViewModifier {
     }
 
     private var fillStrength: Double {
-        if isHovering {
+        if isHovering || isFocused {
             return 1
         }
         return isActive ? 0.92 : 0
     }
 
     private var topHighlightOpacity: Double {
-        guard isHovering || isActive else { return 0 }
-        return isHovering ? max(0.22, theme.specularOpacity * 0.72) : theme.specularOpacity * 0.34
+        guard isHovering || isFocused || isActive else { return 0 }
+        return isHovering || isFocused ? max(0.22, theme.specularOpacity * 0.72) : theme.specularOpacity * 0.34
     }
 
     private var shadow: Color {
+        if isFocused {
+            return theme.primary.opacity(0.30)
+        }
         guard isHovering else { return .clear }
         return theme.glow.opacity(0.14)
     }
@@ -600,6 +608,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                         if let symbolName = symbol(option) {
                             Image(systemName: symbolName)
                                 .font(.system(size: 11, weight: .bold))
+                                .accessibilityHidden(true)
                         }
                         Text(title(option))
                             .font(.system(size: 12, weight: .bold))
@@ -620,6 +629,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                 .frame(maxWidth: .infinity)
                 .glassHover(theme: model.theme, radius: 11, isActive: isSelected)
                 .help(title(option))
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
         .padding(5)
@@ -669,6 +679,7 @@ struct GlassSelect<Value: Equatable>: View {
     let title: (Value) -> String
     var symbol: (Value) -> String? = { _ in nil }
     var minWidth: CGFloat = 220
+    var lineLimit = 1
 
     @State private var isPresented = false
     @State private var isHovering = false
@@ -683,11 +694,13 @@ struct GlassSelect<Value: Equatable>: View {
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(model.theme.mutedText)
                         .frame(width: 17)
+                        .accessibilityHidden(true)
                 }
                 Text(title(selection))
                     .font(.system(size: 13, weight: .bold))
-                    .lineLimit(1)
+                    .lineLimit(lineLimit)
                     .minimumScaleFactor(0.68)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(model.theme.text)
                 Spacer(minLength: 10)
                 Image(systemName: "chevron.up.chevron.down")
@@ -752,6 +765,7 @@ struct GlassSelect<Value: Equatable>: View {
                             if let symbolName = symbol(option) {
                                 Image(systemName: symbolName)
                                     .frame(width: 18)
+                                    .accessibilityHidden(true)
                             }
                             Text(title(option))
                                 .font(.system(size: 13, weight: .semibold))
@@ -762,6 +776,7 @@ struct GlassSelect<Value: Equatable>: View {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 11, weight: .bold))
                                     .foregroundStyle(model.theme.primary)
+                                    .accessibilityHidden(true)
                             }
                         }
                         .padding(.horizontal, 11)
@@ -775,6 +790,7 @@ struct GlassSelect<Value: Equatable>: View {
                     }
                     .buttonStyle(.plain)
                     .help(title(option))
+                    .accessibilityAddTraits(option == selection ? .isSelected : [])
                 }
             }
             .padding(8)
@@ -1215,6 +1231,7 @@ struct ModeChip: View {
         }
         .buttonStyle(.plain)
         .glassHover(theme: model.theme, radius: 12, isActive: isSelected)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var chipFillColors: [Color] {

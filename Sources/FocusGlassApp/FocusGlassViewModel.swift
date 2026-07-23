@@ -161,6 +161,7 @@ final class FocusGlassViewModel: ObservableObject {
     @Published var activeProjectID: UUID? = nil { didSet { syncActiveProjectName(); syncActiveTaskSelection(); persist() } }
     @Published var activeTaskID: UUID? = nil { didSet { persist() } }
     @Published var selectedSidebarItem = SidebarItem.focusToday
+    @Published var selectedSettingsTab = SettingsTab.general
     @Published var focusGuard = FocusGuardService()
     @Published var lastThemeMessage: String?
     @Published private(set) var storageWarnings: [String] = []
@@ -176,6 +177,7 @@ final class FocusGlassViewModel: ObservableObject {
     @Published var projects: [FocusProject] = [] { didSet { persist() } }
     @Published var tasks: [FocusTask] = [] { didSet { syncActiveTaskSelection(); persist() } }
     @Published var distractionRules: [DistractionRuleSpec] = [] { didSet { persist() } }
+    @Published var distractionHistory: [DistractionEventRecord] = [] { didSet { persist() } }
     @Published var recentSessions: [FocusSessionRecord] = [] { didSet { persist() } }
     @Published private(set) var pendingSessionOutcome: SessionOutcomePresentation?
 
@@ -184,6 +186,10 @@ final class FocusGlassViewModel: ObservableObject {
     private let store: FocusGlassStore
     private var isHydrating = true
     private var currentDistractionCount = 0
+    private var currentSessionID: UUID?
+    private var sessionProjectID: UUID?
+    private var sessionProjectName = ""
+    private var sessionMode: TimerMode?
     private var sessionTaskID: UUID?
     private var focusGuardObservation: AnyCancellable?
     private var appearanceObservation: NSObjectProtocol?
@@ -225,6 +231,7 @@ final class FocusGlassViewModel: ObservableObject {
             projects = cleanState.projects
             tasks = cleanState.tasks
             distractionRules = cleanState.distractionRules
+            distractionHistory = cleanState.distractionHistory
             recentSessions = cleanState.recentSessions
         }
 
@@ -337,6 +344,14 @@ final class FocusGlassViewModel: ObservableObject {
 
     var dailySummary: DailyFocusSummary {
         AnalyticsEngine.summarize(recentSessions)
+    }
+
+    var modeEffectivenessSummaries: [ModeEffectivenessSummary] {
+        AnalyticsEngine.summarizeByMode(recentSessions)
+    }
+
+    var projectFocusSummaries: [ProjectFocusSummary] {
+        AnalyticsEngine.summarizeByProject(recentSessions)
     }
 
     var activeProjectName: String {
@@ -711,9 +726,7 @@ final class FocusGlassViewModel: ObservableObject {
     func toggleTimer() {
         switch engineSnapshot.status {
         case .idle, .completed:
-            currentDistractionCount = 0
-            syncActiveTaskSelection()
-            sessionTaskID = selectedActiveTask?.id
+            prepareSessionContext()
             engine.start()
             focusGuard.runShortcut(named: "FocusGlass Start")
             scheduleTick()
@@ -731,7 +744,7 @@ final class FocusGlassViewModel: ObservableObject {
 
     func resetTimer() {
         engine.reset()
-        sessionTaskID = nil
+        clearSessionContext()
         stopTick()
         syncSnapshot()
     }
@@ -783,9 +796,7 @@ final class FocusGlassViewModel: ObservableObject {
         pendingSessionOutcome = nil
         guard engineSnapshot.status != .running else { return }
 
-        currentDistractionCount = 0
-        syncActiveTaskSelection()
-        sessionTaskID = selectedActiveTask?.id
+        prepareSessionContext()
         engine.start()
         focusGuard.runShortcut(named: "FocusGlass Start")
         scheduleTick()
@@ -806,12 +817,24 @@ final class FocusGlassViewModel: ObservableObject {
         distractionRules.removeAll { $0.id == rule.id }
     }
 
+    func clearDistractionHistory() {
+        distractionHistory.removeAll()
+    }
+
     var appRules: [DistractionRuleSpec] {
         distractionRules.filter { $0.targetKind == .app }
     }
 
     var siteRules: [DistractionRuleSpec] {
         distractionRules.filter { $0.targetKind == .site }
+    }
+
+    var enabledAppRuleCount: Int {
+        appRules.filter(\.isEnabled).count
+    }
+
+    var enabledSiteRuleCount: Int {
+        siteRules.filter(\.isEnabled).count
     }
 
     var availableDistractionApps: [RunningApplicationOption] {
@@ -1052,9 +1075,7 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     func startTimerForTesting() {
-        currentDistractionCount = 0
-        syncActiveTaskSelection()
-        sessionTaskID = selectedActiveTask?.id
+        prepareSessionContext()
         engine.start()
         syncSnapshot()
     }
@@ -1108,10 +1129,30 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     private func applyHandledDistractionResponse(_ rule: DistractionRuleSpec) {
-        if rule.action == .pauseSession {
+        let effectiveAction = rule.effectiveAction
+        if effectiveAction == .pauseSession {
             pauseTimerAfterDistraction()
         }
         currentDistractionCount += 1
+        distractionHistory.insert(
+            DistractionEventRecord(
+                ruleID: rule.id,
+                targetKind: rule.targetKind,
+                targetLabel: rule.label,
+                matchValue: rule.matchValue,
+                action: effectiveAction,
+                sessionID: currentSessionID,
+                projectID: sessionProjectID ?? activeProjectID,
+                projectName: sessionProjectName.isEmpty ? activeProjectName : sessionProjectName,
+                taskID: sessionTaskID,
+                taskTitle: sessionTaskID.flatMap(taskTitle(for:)),
+                mode: sessionMode ?? selectedPreset.mode
+            ),
+            at: 0
+        )
+        if distractionHistory.count > 500 {
+            distractionHistory.removeLast(distractionHistory.count - 500)
+        }
         focusAfterDistraction()
     }
 
@@ -1158,11 +1199,12 @@ final class FocusGlassViewModel: ObservableObject {
             )
             let capturedTaskID = sessionTaskID
             let sessionRecord = FocusSessionRecord(
-                projectID: activeProjectID,
-                projectName: activeProjectName,
+                id: currentSessionID ?? UUID(),
+                projectID: sessionProjectID,
+                projectName: sessionProjectName,
                 taskID: capturedTaskID,
                 taskTitle: capturedTaskID.flatMap(taskTitle(for:)),
-                mode: selectedPreset.mode,
+                mode: sessionMode ?? selectedPreset.mode,
                 startedAt: .now.addingTimeInterval(-finalSnapshot.elapsed),
                 endedAt: .now,
                 plannedSeconds: max(1, selectedPreset.totalDuration),
@@ -1176,7 +1218,7 @@ final class FocusGlassViewModel: ObservableObject {
                 task: capturedTaskID.flatMap(task(for:))
             )
             selectedSidebarItem = .focusToday
-            sessionTaskID = nil
+            clearSessionContext()
         }
     }
 
@@ -1199,7 +1241,7 @@ final class FocusGlassViewModel: ObservableObject {
 
         store.save(
             workspace: FocusGlassWorkspaceState(
-                schemaVersion: 4,
+                schemaVersion: 5,
                 intention: intention,
                 activeProjectID: activeProjectID,
                 activeTaskID: activeTaskID,
@@ -1207,10 +1249,11 @@ final class FocusGlassViewModel: ObservableObject {
                 projects: projects,
                 tasks: tasks,
                 distractionRules: distractionRules,
+                distractionHistory: distractionHistory,
                 recentSessions: recentSessions
             ),
             settings: FocusGlassSettingsState(
-                schemaVersion: 4,
+                schemaVersion: 5,
                 selectedThemeID: selectedThemeID,
                 themeProfiles: themeProfiles,
                 selectedPresetID: selectedPresetID,
@@ -1223,6 +1266,24 @@ final class FocusGlassViewModel: ObservableObject {
             )
         )
         lastStorageStatus = store.lastSaveStatus
+    }
+
+    private func prepareSessionContext() {
+        currentDistractionCount = 0
+        syncActiveTaskSelection()
+        currentSessionID = UUID()
+        sessionProjectID = activeProjectID
+        sessionProjectName = activeProjectName
+        sessionMode = selectedPreset.mode
+        sessionTaskID = selectedActiveTask?.id
+    }
+
+    private func clearSessionContext() {
+        currentSessionID = nil
+        sessionProjectID = nil
+        sessionProjectName = ""
+        sessionMode = nil
+        sessionTaskID = nil
     }
 
     private func performThemeMutation(reason: String, _ mutate: () -> Void) {
@@ -1556,7 +1617,7 @@ final class FocusGlassViewModel: ObservableObject {
         }
 
         return FocusGlassPersistedState(
-            schemaVersion: 4,
+            schemaVersion: 5,
             selectedThemeID: persisted.selectedThemeID,
             themeProfiles: persisted.themeProfiles,
             selectedPresetID: persisted.selectedPresetID,
@@ -1573,6 +1634,7 @@ final class FocusGlassViewModel: ObservableObject {
             projects: projects,
             tasks: tasks,
             distractionRules: distractionRules,
+            distractionHistory: persisted.distractionHistory,
             recentSessions: sessions
         )
     }

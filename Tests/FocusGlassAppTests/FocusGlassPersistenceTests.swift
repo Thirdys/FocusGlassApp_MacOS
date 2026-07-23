@@ -621,6 +621,71 @@ struct FocusGlassPersistenceTests {
         model.applyDistractionResponseForTesting(action: .pauseSession)
 
         #expect(model.engineSnapshot.status == .paused)
+        #expect(model.distractionHistory.first?.action == .pauseSession)
+    }
+
+    @Test
+    @MainActor
+    func distractionHistoryPersistsContextAndLinksCompletedSession() throws {
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        let model = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let project = model.addProject()
+        let task = model.addQuickTask()
+        model.selectPreset(
+            TimerPreset(
+                name: "Two seconds",
+                mode: .countdown,
+                segments: [TimerSegment(title: "Focus", duration: 2, phase: .focus)]
+            )
+        )
+
+        model.startTimerForTesting()
+        model.applyDistractionResponseForTesting(action: .warn)
+        model.advanceTimerForTesting(by: 2)
+
+        let event = try #require(model.distractionHistory.first)
+        let session = try #require(model.recentSessions.first)
+        #expect(event.action == .warn)
+        #expect(event.sessionID == session.id)
+        #expect(event.projectID == project.id)
+        #expect(event.projectName == project.name)
+        #expect(event.taskID == task.id)
+        #expect(event.mode == .countdown)
+
+        let reloaded = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        #expect(reloaded.distractionHistory.first?.id == event.id)
+        #expect(reloaded.distractionHistory.first?.sessionID == event.sessionID)
+        #expect(reloaded.distractionHistory.first?.projectID == event.projectID)
+        #expect(reloaded.distractionHistory.first?.action == event.action)
+    }
+
+    @Test
+    @MainActor
+    func unconfirmedQuitRuleIsRecordedAsSafeHide() {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        model.startTimerForTesting()
+
+        model.applyDistractionResponseForTesting(action: .quitAfterOptIn)
+
+        #expect(model.distractionHistory.first?.action == .hide)
+    }
+
+    @Test
+    @MainActor
+    func focusGuardHandlesWarnHideAndPauseRulePaths() {
+        let service = FocusGuardService()
+        let actions: [DistractionAction] = [.warn, .hide, .pauseSession]
+
+        for action in actions {
+            let rule = DistractionRuleSpec(
+                label: "QA \(action.rawValue)",
+                bundleIdentifier: "local.focusglass.tests.\(action.rawValue)",
+                action: action
+            )
+
+            #expect(service.handleDistraction(rule: rule))
+            #expect(service.lastDistractionMessage != nil)
+        }
     }
 
     @Test

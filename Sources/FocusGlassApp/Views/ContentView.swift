@@ -43,7 +43,7 @@ struct ContentView: View {
 
                         Divider().opacity(0.16)
 
-                        contentScroll(horizontalPadding: 28, verticalPadding: 26, showsContextRail: true)
+                        contentScroll(horizontalPadding: 24, verticalPadding: 24, showsContextRail: false)
                     }
                 case .wide:
                     HStack(spacing: 0) {
@@ -155,7 +155,7 @@ private struct MainWindowBuildBadge: View {
             .font(.system(size: 11, weight: .semibold, design: .rounded))
             .lineLimit(1)
             .minimumScaleFactor(0.82)
-            .foregroundStyle(model.theme.mutedText.opacity(0.78))
+            .foregroundStyle(model.theme.mutedText)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(model.theme.elevatedSurface.opacity(0.42), in: Capsule())
@@ -429,7 +429,7 @@ private enum AppShellLayout {
     case compact
 
     init(width: CGFloat) {
-        if width >= 1320 {
+        if width >= 1680 {
             self = .wide
         } else if width >= 980 {
             self = .medium
@@ -492,40 +492,58 @@ private struct HeaderView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        HStack(alignment: .top, spacing: 18) {
-            VStack(alignment: .leading, spacing: 7) {
-                Text(title)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                Text(subtitle)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(model.theme.mutedText)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 18) {
+                titleBlock
+                Spacer()
+                headerControls
             }
 
-            Spacer()
-
-            HStack(spacing: 12) {
-                Image(systemName: model.strictModeEnabled ? "shield.checkered" : "shield")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(model.strictModeEnabled ? model.theme.strict : model.theme.mutedText)
-                Toggle("", isOn: $model.strictModeEnabled)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .help(model.t("help.strictMode"))
-
-                Button {
-                    openWindow(id: "focus-mode")
-                    model.openFocusModeFullscreen()
-                } label: {
-                    Label(model.t("focus.fullscreen"), systemImage: "arrow.up.left.and.arrow.down.right")
-                        .font(.system(size: 13, weight: .bold))
-                }
-                .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .primary))
-                .help(model.t("help.fullscreen"))
+            VStack(alignment: .leading, spacing: 14) {
+                titleBlock
+                headerControls
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .padding(10)
-            .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(title)
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+            Text(subtitle)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(model.theme.mutedText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var headerControls: some View {
+        HStack(spacing: 12) {
+            Image(systemName: model.strictModeEnabled ? "shield.checkered" : "shield")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(model.strictModeEnabled ? model.theme.strict : model.theme.mutedText)
+            Toggle("", isOn: $model.strictModeEnabled)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .help(model.t("help.strictMode"))
+                .accessibilityLabel(model.t("strict.mode"))
+
+            Button {
+                openWindow(id: "focus-mode")
+                model.openFocusModeFullscreen()
+            } label: {
+                Label(model.t("focus.fullscreen"), systemImage: "arrow.up.left.and.arrow.down.right")
+                    .font(.system(size: 13, weight: .bold))
+            }
+            .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .primary))
+            .help(model.t("help.fullscreen"))
+        }
+        .padding(10)
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 
     private var title: String {
@@ -586,6 +604,7 @@ private struct CompactNavBar: View {
                     }
                     .buttonStyle(.plain)
                     .glassHover(theme: model.theme, radius: 14, isActive: model.selectedSidebarItem == item)
+                    .accessibilityAddTraits(model.selectedSidebarItem == item ? .isSelected : [])
                 }
             }
             .padding(.horizontal, 14)
@@ -646,6 +665,7 @@ private struct SidebarView: View {
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity)
                     .glassHover(theme: model.theme, radius: 11, isActive: model.selectedSidebarItem == item)
+                    .accessibilityAddTraits(model.selectedSidebarItem == item ? .isSelected : [])
                 }
             }
             .padding(.horizontal, 10)
@@ -671,10 +691,12 @@ private struct SidebarView: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(project.name)
                                     .font(.system(size: 13, weight: .bold))
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Text(project.detail)
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundStyle(model.theme.mutedText)
-                                    .lineLimit(1)
+                                    .lineLimit(2)
                             }
                             Spacer()
                         }
@@ -686,6 +708,8 @@ private struct SidebarView: View {
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity)
                     .glassHover(theme: model.theme, radius: 11, isActive: project.id == model.activeProjectID)
+                    .accessibilityAddTraits(project.id == model.activeProjectID ? .isSelected : [])
+                    .help("\(project.name)\n\(project.detail)")
                 }
             }
             .padding(.horizontal, 18)
@@ -783,19 +807,15 @@ private struct QuickModeRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
 
     var body: some View {
-        GeometryReader { proxy in
-            let compact = proxy.size.width < 760
-            let columns = [
-                GridItem(.adaptive(minimum: compact ? 150 : 170, maximum: 230), spacing: 10)
-            ]
-
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
-                ForEach(model.presets) { preset in
-                    modeChip(for: preset)
-                }
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 150, maximum: 230), spacing: 10)],
+            alignment: .leading,
+            spacing: 10
+        ) {
+            ForEach(model.presets) { preset in
+                modeChip(for: preset)
             }
         }
-        .frame(minHeight: 92)
     }
 
     private func modeChip(for preset: TimerPreset) -> some View {
@@ -843,7 +863,8 @@ private struct FocusProjectPanel: View {
                         options: [nil] + model.projects.map(\.id),
                         title: projectTitle,
                         symbol: { $0 == nil ? "tray" : "folder" },
-                        minWidth: 260
+                        minWidth: 180,
+                        lineLimit: 2
                     )
                     .help(model.t("focus.activeProject"))
                 }
@@ -1132,7 +1153,9 @@ private struct FocusTaskCardRow: View {
                     .foregroundStyle(task.isDone ? model.theme.primary : model.theme.mutedText)
             }
             .buttonStyle(.plain)
+            .glassHover(theme: model.theme, radius: 8)
             .help(model.t("tasks.done"))
+            .accessibilityLabel("\(model.t("tasks.done")): \(task.title)")
 
             Button {
                 model.selectTaskForSession(task)
@@ -1162,7 +1185,9 @@ private struct FocusTaskCardRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(.plain)
+            .glassHover(theme: model.theme, radius: 12, isActive: isSelected)
             .help(model.t("tasks.selectForSession"))
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
 
             Button {
                 onEdit()
@@ -1528,7 +1553,7 @@ private struct FocusContextRailView: View {
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(model.theme.mutedText)
                         Spacer()
-                        Text("\(model.distractionRules.filter(\.isEnabled).count)")
+                        Text("\(model.enabledAppRuleCount)")
                             .font(.system(size: 18, weight: .bold, design: .rounded))
                     }
                 }
@@ -1776,45 +1801,57 @@ private struct ProjectsScreen: View {
                 } else {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 14)], spacing: 14) {
                         ForEach(model.projects) { project in
-                            VStack(alignment: .leading, spacing: 13) {
-                                HStack {
-                                    Circle()
-                                        .fill(project.id == model.activeProjectID ? model.theme.primary : model.theme.secondary)
-                                        .frame(width: 10, height: 10)
-                                    Spacer()
-                                    if project.id == model.activeProjectID {
-                                        Text(model.t("projects.selected"))
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundStyle(model.theme.primary)
+                            HStack(alignment: .top, spacing: 10) {
+                                Button {
+                                    model.selectProject(project)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        HStack {
+                                            Circle()
+                                                .fill(project.id == model.activeProjectID ? model.theme.primary : model.theme.secondary)
+                                                .frame(width: 10, height: 10)
+                                            if project.id == model.activeProjectID {
+                                                Text(model.t("projects.selected"))
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundStyle(model.theme.primary)
+                                            }
+                                            Spacer()
+                                        }
+
+                                        Text(project.name)
+                                            .font(.system(size: 19, weight: .bold, design: .rounded))
+                                            .lineLimit(2)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                        Text(project.detail)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundStyle(model.theme.mutedText)
+                                            .lineLimit(3)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                        Text("\(model.tasks(for: project).count) \(model.t("projects.tasks"))")
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundStyle(model.theme.mutedText)
                                     }
-                                    Button {
-                                        editingProject = project
-                                    } label: {
-                                        Image(systemName: "pencil")
-                                            .font(.system(size: 11, weight: .bold))
-                                    }
-                                    .buttonStyle(.plain)
-                                    .foregroundStyle(model.theme.mutedText)
-                                    .glassHover(theme: model.theme, radius: 10)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())
                                 }
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(project.name)
-                                        .font(.system(size: 19, weight: .bold, design: .rounded))
-                                    Text(project.detail)
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundStyle(model.theme.mutedText)
-                                    Text("\(model.tasks(for: project).count) \(model.t("projects.tasks"))")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundStyle(model.theme.mutedText)
+                                .buttonStyle(.plain)
+                                .glassHover(theme: model.theme, radius: 12, isActive: project.id == model.activeProjectID)
+                                .accessibilityAddTraits(project.id == model.activeProjectID ? .isSelected : [])
+
+                                Button {
+                                    editingProject = project
+                                } label: {
+                                    Image(systemName: "pencil")
+                                        .frame(width: 28, height: 28)
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .buttonStyle(.plain)
+                                .foregroundStyle(model.theme.mutedText)
+                                .glassHover(theme: model.theme, radius: 9)
+                                .help(model.t("projects.edit"))
+                                .accessibilityLabel("\(model.t("projects.edit")): \(project.name)")
                             }
                             .padding(16)
                             .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .glassHover(theme: model.theme, radius: 16, isActive: project.id == model.activeProjectID)
-                            .onTapGesture {
-                                model.selectProject(project)
-                            }
                         }
                     }
                 }
@@ -1839,62 +1876,281 @@ private struct AnalyticsScreen: View {
     var body: some View {
         VStack(spacing: 18) {
             AnalyticsStripView()
-            LiquidGlassPanel(radius: 22) {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(model.t("analytics.byProject"))
-                        .font(.system(size: 15, weight: .bold))
-                    if model.projects.isEmpty {
-                        EmptyInlineState(
-                            symbol: "chart.xyaxis.line",
-                            title: model.t("analytics.empty.title"),
-                            detail: model.t("analytics.empty.detail")
+
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 18) {
+                    plannedActualCard
+                    modeEffectivenessCard
+                }
+
+                VStack(spacing: 18) {
+                    plannedActualCard
+                    modeEffectivenessCard
+                }
+            }
+
+            projectBreakdownCard
+            recentSessionsCard
+            distractionBreakdownCard
+        }
+    }
+
+    private var plannedActualCard: some View {
+        LiquidGlassPanel(radius: 20) {
+            VStack(alignment: .leading, spacing: 14) {
+                Label(model.t("analytics.plannedVsActual"), systemImage: "chart.bar.xaxis")
+                    .font(.system(size: 15, weight: .bold))
+
+                HStack(spacing: 24) {
+                    analyticsValue(model.t("analytics.planned"), value: model.dailySummary.plannedSeconds.focusClock)
+                    analyticsValue(model.t("analytics.actual"), value: model.dailySummary.honestFocusSeconds.focusClock)
+                    analyticsValue(model.t("analytics.effectiveness"), value: effectivenessText(model.dailySummary))
+                }
+
+                ProgressView(
+                    value: model.dailySummary.honestFocusSeconds,
+                    total: max(1, model.dailySummary.plannedSeconds)
+                )
+                .tint(model.theme.primary)
+            }
+        }
+    }
+
+    private var modeEffectivenessCard: some View {
+        LiquidGlassPanel(radius: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(model.t("analytics.modeEffectiveness"), systemImage: "dial.medium")
+                    .font(.system(size: 15, weight: .bold))
+
+                if model.modeEffectivenessSummaries.isEmpty {
+                    EmptyInlineState(
+                        symbol: "timer",
+                        title: model.t("analytics.empty.title"),
+                        detail: model.t("analytics.empty.detail")
+                    )
+                } else {
+                    ForEach(model.modeEffectivenessSummaries) { summary in
+                        analyticsBreakdownRow(
+                            title: model.timerModeTitle(summary.mode),
+                            detail: "\(summary.sessionsCompleted) \(model.t("analytics.sessionsShort")) · \(summary.distractionCount) \(model.t("analytics.distractionsShort"))",
+                            value: summary.honestFocusSeconds.focusClock,
+                            progress: summary.effectiveness
                         )
-                    }
-
-                    ForEach(model.projects) { project in
-                        let seconds = model.sessions(for: project).reduce(0) { $0 + $1.honestFocusSeconds }
-                        HStack {
-                            Text(project.name)
-                                .font(.system(size: 13, weight: .bold))
-                            Spacer()
-                            Text(seconds.focusClock)
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundStyle(model.theme.primary)
-                        }
-                        ProgressView(value: seconds, total: max(1, model.dailySummary.honestFocusSeconds))
-                            .tint(model.theme.primary)
-                    }
-
-                    let unassignedSeconds = model.unassignedSessions
-                        .reduce(0) { $0 + $1.honestFocusSeconds }
-                    if unassignedSeconds > 0 {
-                        HStack {
-                            Text(model.t("projects.unassigned"))
-                                .font(.system(size: 13, weight: .bold))
-                            Spacer()
-                            Text(unassignedSeconds.focusClock)
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundStyle(model.theme.primary)
-                        }
-                        ProgressView(value: unassignedSeconds, total: max(1, model.dailySummary.honestFocusSeconds))
-                            .tint(model.theme.primary)
                     }
                 }
             }
         }
     }
+
+    private var projectBreakdownCard: some View {
+        LiquidGlassPanel(radius: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(model.t("analytics.byProject"), systemImage: "folder.badge.gearshape")
+                    .font(.system(size: 15, weight: .bold))
+
+                if model.projectFocusSummaries.isEmpty {
+                    EmptyInlineState(
+                        symbol: "chart.xyaxis.line",
+                        title: model.t("analytics.empty.title"),
+                        detail: model.t("analytics.empty.detail")
+                    )
+                } else {
+                    ForEach(model.projectFocusSummaries) { summary in
+                        analyticsBreakdownRow(
+                            title: summary.projectName.isEmpty ? model.t("projects.unassigned") : summary.projectName,
+                            detail: "\(model.t("analytics.planned")) \(summary.plannedSeconds.focusClock) · \(summary.sessionsCompleted) \(model.t("analytics.sessionsShort"))",
+                            value: summary.honestFocusSeconds.focusClock,
+                            progress: summary.effectiveness
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private var recentSessionsCard: some View {
+        LiquidGlassPanel(radius: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(model.t("analytics.recentSessions"), systemImage: "clock.arrow.circlepath")
+                    .font(.system(size: 15, weight: .bold))
+
+                if model.recentSessions.isEmpty {
+                    EmptyInlineState(
+                        symbol: "clock.badge.questionmark",
+                        title: model.t("analytics.empty.title"),
+                        detail: model.t("analytics.empty.detail")
+                    )
+                } else {
+                    ForEach(Array(model.recentSessions.prefix(8))) { session in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: session.mode.symbolName)
+                                .foregroundStyle(model.theme.primary)
+                                .frame(width: 28, height: 28)
+                                .background(model.theme.primary.opacity(0.13), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(session.taskTitle ?? (session.projectName.isEmpty ? model.t("projects.unassigned") : session.projectName))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .lineLimit(2)
+                                Text("\(session.startedAt.formatted(date: .abbreviated, time: .shortened)) · \(model.timerModeTitle(session.mode))")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundStyle(model.theme.mutedText)
+                            }
+
+                            Spacer(minLength: 12)
+
+                            VStack(alignment: .trailing, spacing: 3) {
+                                Text(session.honestFocusSeconds.focusClock)
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .foregroundStyle(model.theme.primary)
+                                Text("\(model.t("analytics.planned")) \(session.plannedSeconds.focusClock)")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundStyle(model.theme.mutedText)
+                            }
+                        }
+                        .padding(11)
+                        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                }
+            }
+        }
+    }
+
+    private var distractionBreakdownCard: some View {
+        LiquidGlassPanel(radius: 20) {
+            VStack(alignment: .leading, spacing: 14) {
+                Label(model.t("analytics.distractionBreakdown"), systemImage: "shield.lefthalf.filled.badge.checkmark")
+                    .font(.system(size: 15, weight: .bold))
+
+                if model.distractionHistory.isEmpty {
+                    EmptyInlineState(
+                        symbol: "shield.slash",
+                        title: model.t("analytics.noDistractionHistory"),
+                        detail: model.t("analytics.noDistractionHistory.detail")
+                    )
+                } else {
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 18) {
+                            countList(title: model.t("analytics.byProject"), rows: distractionProjectRows)
+                            countList(title: model.t("analytics.byMode"), rows: distractionModeRows)
+                        }
+
+                        VStack(spacing: 18) {
+                            countList(title: model.t("analytics.byProject"), rows: distractionProjectRows)
+                            countList(title: model.t("analytics.byMode"), rows: distractionModeRows)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func analyticsValue(_ title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(model.theme.mutedText)
+            Text(value)
+                .font(.system(size: 24, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func analyticsBreakdownRow(title: String, detail: String, value: String, progress: Double) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 13, weight: .bold))
+                        .lineLimit(2)
+                    Text(detail)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(model.theme.mutedText)
+                }
+                Spacer(minLength: 12)
+                Text(value)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .foregroundStyle(model.theme.primary)
+            }
+            ProgressView(value: progress)
+                .tint(model.theme.primary)
+        }
+        .padding(10)
+        .background(.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+    }
+
+    private func countList(title: String, rows: [AnalyticsCountRow]) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(model.theme.mutedText)
+            ForEach(rows) { row in
+                HStack {
+                    Text(row.title)
+                        .font(.system(size: 12, weight: .semibold))
+                        .lineLimit(2)
+                    Spacer(minLength: 10)
+                    Text("\(row.count)")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundStyle(model.theme.strict)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var distractionProjectRows: [AnalyticsCountRow] {
+        let grouped = Dictionary(grouping: model.distractionHistory) { event in
+            event.projectID?.uuidString ?? "unassigned"
+        }
+        return grouped.map { key, events in
+            AnalyticsCountRow(
+                id: key,
+                title: events.first?.projectName.isEmpty == false ? events[0].projectName : model.t("projects.unassigned"),
+                count: events.count
+            )
+        }
+        .sorted { $0.count == $1.count ? $0.title < $1.title : $0.count > $1.count }
+    }
+
+    private var distractionModeRows: [AnalyticsCountRow] {
+        Dictionary(grouping: model.distractionHistory, by: \.mode)
+            .map { mode, events in
+                AnalyticsCountRow(id: mode.rawValue, title: model.timerModeTitle(mode), count: events.count)
+            }
+            .sorted { $0.count == $1.count ? $0.title < $1.title : $0.count > $1.count }
+    }
+
+    private func effectivenessText(_ summary: DailyFocusSummary) -> String {
+        guard summary.plannedSeconds > 0 else { return "0%" }
+        let percentage = Int((min(1, summary.honestFocusSeconds / summary.plannedSeconds) * 100).rounded())
+        return "\(percentage)%"
+    }
+}
+
+private struct AnalyticsCountRow: Identifiable {
+    let id: String
+    let title: String
+    let count: Int
 }
 
 private struct StrictModeScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            content
-            VStack(alignment: .leading, spacing: 18) {
-                strictStatusCard
-                strictSummaryCard
+        VStack(spacing: 18) {
+            ViewThatFits(in: .horizontal) {
+                content
+                VStack(alignment: .leading, spacing: 18) {
+                    strictStatusCard
+                    strictSummaryCard
+                }
             }
+
+            strictHistoryCard
         }
     }
 
@@ -1958,20 +2214,100 @@ private struct StrictModeScreen: View {
                     )
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
-                        Label("\(model.appRules.count) \(model.t("strict.apps"))", systemImage: "app.badge")
-                        Label("\(model.siteRules.count) \(model.t("strict.sites"))", systemImage: "globe")
+                        Label("\(model.enabledAppRuleCount) \(model.t("strict.apps"))", systemImage: "app.badge")
+                        Label("\(model.enabledSiteRuleCount) \(model.t("strict.sites"))", systemImage: "globe")
                     }
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(model.theme.mutedText)
                 }
 
                 Button {
+                    model.selectedSettingsTab = .strictMode
                     model.selectedSidebarItem = .settings
                 } label: {
                     Label(model.t("strict.manage"), systemImage: "lock.shield.fill")
                 }
                 .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
             }
+        }
+    }
+
+    private var strictHistoryCard: some View {
+        LiquidGlassPanel(radius: 22) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
+                    Label(model.t("strict.history"), systemImage: "clock.arrow.circlepath")
+                        .font(.system(size: 15, weight: .bold))
+                    Spacer()
+                    if !model.distractionHistory.isEmpty {
+                        Button(model.t("strict.history.clear"), role: .destructive) {
+                            model.clearDistractionHistory()
+                        }
+                        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
+                    }
+                }
+
+                if model.distractionHistory.isEmpty {
+                    EmptyInlineState(
+                        symbol: "shield.slash",
+                        title: model.t("strict.history.empty"),
+                        detail: model.t("strict.history.empty.detail")
+                    )
+                } else {
+                    ForEach(Array(model.distractionHistory.prefix(12))) { event in
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: actionSymbol(event.action))
+                                .foregroundStyle(actionColor(event.action))
+                                .frame(width: 30, height: 30)
+                                .background(actionColor(event.action).opacity(0.13), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(event.targetLabel)
+                                    .font(.system(size: 13, weight: .bold))
+                                    .lineLimit(2)
+                                Text("\(model.actionTitle(event.action)) · \(event.occurredAt.formatted(date: .abbreviated, time: .shortened))")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(model.theme.mutedText)
+                                Text(historyContext(event))
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundStyle(model.theme.mutedText)
+                                    .lineLimit(2)
+                            }
+
+                            Spacer(minLength: 12)
+
+                            Image(systemName: event.targetKind == .app ? "app.badge" : "globe")
+                                .foregroundStyle(model.theme.mutedText)
+                                .accessibilityLabel(event.targetKind == .app ? model.t("strict.apps") : model.t("strict.sites"))
+                        }
+                        .padding(11)
+                        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                }
+            }
+        }
+    }
+
+    private func historyContext(_ event: DistractionEventRecord) -> String {
+        let project = event.projectName.isEmpty ? model.t("projects.unassigned") : event.projectName
+        let task = event.taskTitle.map { " · \($0)" } ?? ""
+        return "\(project) · \(model.timerModeTitle(event.mode))\(task)"
+    }
+
+    private func actionSymbol(_ action: DistractionAction) -> String {
+        switch action {
+        case .warn: "exclamationmark.triangle"
+        case .hide: "eye.slash"
+        case .pauseSession: "pause.circle"
+        case .quitAfterOptIn: "xmark.circle"
+        }
+    }
+
+    private func actionColor(_ action: DistractionAction) -> Color {
+        switch action {
+        case .warn: model.theme.secondary
+        case .hide: model.theme.primary
+        case .pauseSession, .quitAfterOptIn: model.theme.strict
         }
     }
 }

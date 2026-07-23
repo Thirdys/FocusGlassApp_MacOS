@@ -22,6 +22,7 @@ struct FocusGuardTypesTests {
         #expect(rule.matchValue == "com.hnc.Discord")
         #expect(rule.bundleIdentifier == "com.hnc.Discord")
         #expect(rule.matches(bundleIdentifier: "com.hnc.Discord"))
+        #expect(rule.allowsQuitAfterOptIn == false)
     }
 
     @Test
@@ -58,6 +59,24 @@ struct FocusGuardTypesTests {
         )
 
         #expect(!rule.matches(bundleIdentifier: "com.valvesoftware.steam"))
+    }
+
+    @Test
+    func quitActionRequiresExplicitPersistedOptIn() {
+        let guardedRule = DistractionRuleSpec(
+            label: "TextEdit",
+            bundleIdentifier: "com.apple.TextEdit",
+            action: .quitAfterOptIn
+        )
+        let confirmedRule = DistractionRuleSpec(
+            label: "TextEdit",
+            bundleIdentifier: "com.apple.TextEdit",
+            action: .quitAfterOptIn,
+            allowsQuitAfterOptIn: true
+        )
+
+        #expect(guardedRule.effectiveAction == .hide)
+        #expect(confirmedRule.effectiveAction == .quitAfterOptIn)
     }
 
     @Test

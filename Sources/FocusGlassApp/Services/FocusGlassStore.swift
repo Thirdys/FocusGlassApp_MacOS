@@ -20,6 +20,7 @@ struct FocusGlassPersistedState: Codable {
     var projects: [FocusProject]
     var tasks: [FocusTask]
     var distractionRules: [DistractionRuleSpec]
+    var distractionHistory: [DistractionEventRecord]
     var recentSessions: [FocusSessionRecord]
 
     init(
@@ -40,6 +41,7 @@ struct FocusGlassPersistedState: Codable {
         projects: [FocusProject],
         tasks: [FocusTask],
         distractionRules: [DistractionRuleSpec],
+        distractionHistory: [DistractionEventRecord] = [],
         recentSessions: [FocusSessionRecord]
     ) {
         self.schemaVersion = schemaVersion
@@ -59,12 +61,13 @@ struct FocusGlassPersistedState: Codable {
         self.projects = projects
         self.tasks = tasks
         self.distractionRules = distractionRules
+        self.distractionHistory = distractionHistory
         self.recentSessions = recentSessions
     }
 
     init(workspace: FocusGlassWorkspaceState, settings: FocusGlassSettingsState) {
         self.init(
-            schemaVersion: max(workspace.schemaVersion ?? 4, settings.schemaVersion ?? 4),
+            schemaVersion: max(workspace.schemaVersion ?? 5, settings.schemaVersion ?? 5),
             selectedThemeID: settings.selectedThemeID,
             themeProfiles: settings.themeProfiles,
             selectedPresetID: settings.selectedPresetID,
@@ -81,6 +84,7 @@ struct FocusGlassPersistedState: Codable {
             projects: workspace.projects,
             tasks: workspace.tasks,
             distractionRules: workspace.distractionRules,
+            distractionHistory: workspace.distractionHistory,
             recentSessions: workspace.recentSessions
         )
     }
@@ -103,6 +107,7 @@ struct FocusGlassPersistedState: Codable {
         case projects
         case tasks
         case distractionRules
+        case distractionHistory
         case recentSessions
     }
 
@@ -125,6 +130,7 @@ struct FocusGlassPersistedState: Codable {
         projects = try container.decode([FocusProject].self, forKey: .projects)
         tasks = try container.decode([FocusTask].self, forKey: .tasks)
         distractionRules = try container.decode([DistractionRuleSpec].self, forKey: .distractionRules)
+        distractionHistory = try container.decodeIfPresent([DistractionEventRecord].self, forKey: .distractionHistory) ?? []
         recentSessions = try container.decode([FocusSessionRecord].self, forKey: .recentSessions)
     }
 }
@@ -138,10 +144,11 @@ struct FocusGlassWorkspaceState: Codable, Equatable {
     var projects: [FocusProject]
     var tasks: [FocusTask]
     var distractionRules: [DistractionRuleSpec]
+    var distractionHistory: [DistractionEventRecord]
     var recentSessions: [FocusSessionRecord]
 
     init(
-        schemaVersion: Int? = 4,
+        schemaVersion: Int? = 5,
         intention: String = "",
         activeProjectID: UUID? = nil,
         activeTaskID: UUID? = nil,
@@ -149,6 +156,7 @@ struct FocusGlassWorkspaceState: Codable, Equatable {
         projects: [FocusProject] = [],
         tasks: [FocusTask] = [],
         distractionRules: [DistractionRuleSpec] = [],
+        distractionHistory: [DistractionEventRecord] = [],
         recentSessions: [FocusSessionRecord] = []
     ) {
         self.schemaVersion = schemaVersion
@@ -159,12 +167,13 @@ struct FocusGlassWorkspaceState: Codable, Equatable {
         self.projects = projects
         self.tasks = tasks
         self.distractionRules = distractionRules
+        self.distractionHistory = distractionHistory
         self.recentSessions = recentSessions
     }
 
     init(_ state: FocusGlassPersistedState) {
         self.init(
-            schemaVersion: 4,
+            schemaVersion: 5,
             intention: state.intention,
             activeProjectID: state.activeProjectID,
             activeTaskID: state.activeTaskID,
@@ -172,8 +181,36 @@ struct FocusGlassWorkspaceState: Codable, Equatable {
             projects: state.projects,
             tasks: state.tasks,
             distractionRules: state.distractionRules,
+            distractionHistory: state.distractionHistory,
             recentSessions: state.recentSessions
         )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case schemaVersion
+        case intention
+        case activeProjectID
+        case activeTaskID
+        case activeProject
+        case projects
+        case tasks
+        case distractionRules
+        case distractionHistory
+        case recentSessions
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion)
+        intention = try container.decodeIfPresent(String.self, forKey: .intention) ?? ""
+        activeProjectID = try container.decodeIfPresent(UUID.self, forKey: .activeProjectID)
+        activeTaskID = try container.decodeIfPresent(UUID.self, forKey: .activeTaskID)
+        activeProject = try container.decodeIfPresent(String.self, forKey: .activeProject) ?? ""
+        projects = try container.decodeIfPresent([FocusProject].self, forKey: .projects) ?? []
+        tasks = try container.decodeIfPresent([FocusTask].self, forKey: .tasks) ?? []
+        distractionRules = try container.decodeIfPresent([DistractionRuleSpec].self, forKey: .distractionRules) ?? []
+        distractionHistory = try container.decodeIfPresent([DistractionEventRecord].self, forKey: .distractionHistory) ?? []
+        recentSessions = try container.decodeIfPresent([FocusSessionRecord].self, forKey: .recentSessions) ?? []
     }
 }
 
@@ -190,7 +227,7 @@ struct FocusGlassSettingsState: Codable, Equatable {
     var hasSeenPermissionsOnboarding: Bool
 
     init(
-        schemaVersion: Int? = 4,
+        schemaVersion: Int? = 5,
         selectedThemeID: UUID = ThemeProfile.noirCrimsonID,
         themeProfiles: [ThemeProfile] = ThemeProfile.builtIn,
         selectedPresetID: UUID = TimerPreset.pomodoro.id,
@@ -215,7 +252,7 @@ struct FocusGlassSettingsState: Codable, Equatable {
 
     init(_ state: FocusGlassPersistedState) {
         self.init(
-            schemaVersion: 4,
+            schemaVersion: 5,
             selectedThemeID: state.selectedThemeID,
             themeProfiles: state.themeProfiles,
             selectedPresetID: state.selectedPresetID,

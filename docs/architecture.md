@@ -55,14 +55,15 @@ SwiftData migration target:
 - `FocusEvent`
 - `DailyInsight`
 
-### JSON schema v4
+### JSON schema v5
 
 User data and app preferences are deliberately split so a settings decode issue
 does not erase projects/tasks:
 
 - `FocusGlassWorkspaceState` writes `workspace.json`: `intention`,
   `activeProjectID`, `activeTaskID`, legacy readable `activeProject`,
-  `projects`, `tasks`, `distractionRules`, and `recentSessions`.
+  `projects`, `tasks`, `distractionRules`, `distractionHistory`, and
+  `recentSessions`.
 - `FocusGlassSettingsState` writes `settings.json`: `selectedThemeID`,
   `themeProfiles`, `appearanceMode`, `selectedPresetID`, `timerPresets`,
   `language`, `strictModeEnabled`, `strictModeEnforcesDuringBreaks`, and
@@ -92,9 +93,14 @@ The state is local-only and currently includes:
 - `recentSessions`: `FocusSessionRecord` values keyed to projects only by
   optional `projectID` and optionally to a task by `taskID`/`taskTitle`, with
   `projectName` retained only as a legacy/readable string.
-- `distractionRules`: strict focus rule specs.
+- `distractionRules`: strict focus rule specs. A `quitAfterOptIn` rule carries
+  `allowsQuitAfterOptIn`; missing or false consent makes its effective action
+  `hide`.
+- `distractionHistory`: bounded recent `DistractionEventRecord` values with
+  target, time, rule/action, and optional session/project/task context plus
+  timer mode.
 
-### Legacy migration and v4 split
+### Legacy migration and v5 split
 
 On load, `FocusGlassViewModel.sanitizedStarterState` migrates persisted state
 before the app starts writing current split files:
@@ -114,8 +120,9 @@ before the app starts writing current split files:
 - A non-starter legacy `intention` migrates once into the active project's
   `notes` when that project has empty notes, then the persisted intention is
   cleared for the current UI.
-- `sanitizedStarterState` returns a schema v4 migrated state marker for legacy
-  cleanup, then new saves write split `schemaVersion: 4` files. Legacy
+- `sanitizedStarterState` returns a migrated state marker for legacy cleanup,
+  then new saves write split `schemaVersion: 5` files. Missing distraction
+  history and quit consent fields decode to safe defaults. Legacy
   `state.json` is kept in place and not deleted.
 - If `workspace.json` cannot decode, FocusGlass copies it to
   `workspace.invalid-YYYYMMDD-HHMMSS.json`, blocks automatic saves, and logs the
@@ -237,6 +244,13 @@ The first implementation uses a layered strict focus model:
 - The `pauseSession` strict action pauses the timer engine, stops the scheduled
   tick, syncs the engine snapshot, runs Shortcut `FocusGlass Pause`, and then
   returns the user to FocusGlass.
+- Every matched rule stores a `DistractionEventRecord` using the effective
+  action. The active session ID and captured project/task/mode context are
+  recorded at session start, so history remains linked to the final
+  `FocusSessionRecord` even if the user changes the current selection while the
+  timer is running.
+- `quitAfterOptIn` is destructive and requires persisted user confirmation.
+  Rules decoded without confirmation use `hide`, never process termination.
 
 The focus window fullscreen transition is implemented by
 `FullscreenWindowAccessor` inside `FullscreenFocusView`. The view model method

@@ -162,6 +162,7 @@ Current persistent files live in:
 - projects;
 - tasks;
 - strict distraction rules;
+- strict distraction history;
 - recent session records.
 
 `settings.json` stores app preferences:
@@ -174,7 +175,7 @@ Current persistent files live in:
 - permissions onboarding flag.
 
 Legacy `state.json` is still decoded for migration and is not deleted. New saves
-write schema v4 split files. If `workspace.json` cannot decode, the store backs
+write schema v5 split files. If `workspace.json` cannot decode, the store backs
 it up as `workspace.invalid-YYYYMMDD-HHMMSS.json`, blocks automatic saves, logs
 the issue, and avoids replacing user data with defaults. If `settings.json`
 cannot decode, it is backed up and defaults are used while workspace still
@@ -200,8 +201,8 @@ project.
 
 Notes:
 
-- `sanitizedStarterState` returns a schema v3 migrated state marker, while the
-  actual current split saves write schema v4.
+- `sanitizedStarterState` returns a migrated state marker, while the actual
+  current split saves write schema v5.
 - `activeTasks` is intentionally scoped to `activeProjectID` and does not fall
   back to all tasks when a selected project is missing.
 - Project rename does not cascade into task/session strings. Display and
@@ -240,6 +241,11 @@ Settings:
 - Timers use `GlassSelect` for preset mode and phase, `GlassStepper` for
   segment minutes, and a per-preset reset.
 - Strict Mode uses app and site rule editors with `GlassSelect` for actions.
+- The cockpit Strict Mode manage action sets `selectedSettingsTab` to
+  `.strictMode` before routing to Settings. App and site counts are derived
+  from enabled rules and remain separate.
+- Strict Mode shows persisted distraction history with rule/action and captured
+  session/project/task/mode context.
 - Permissions rows share `FocusPermissionStatus` and show calm states instead
   of false red warnings.
 - Appearance exposes built-in themes first and keeps Theme Studio advanced
@@ -315,7 +321,10 @@ Strict rules:
 - Default app/site rule action is hide.
 - When a rule triggers, FocusGlass warns, hides or controls the target based on
   action, activates FocusGlass, and records the distraction count for the
-  session.
+  session plus a persistent `DistractionEventRecord`.
+- `quitAfterOptIn` requires explicit destructive confirmation. Its persisted
+  `allowsQuitAfterOptIn` flag defaults to false, and an unconfirmed rule uses
+  `hide` as its effective action.
 
 ## Theme, appearance, and icons
 

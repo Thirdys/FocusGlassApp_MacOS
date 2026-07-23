@@ -323,7 +323,7 @@ final class FocusGuardService: NSObject, ObservableObject, UNUserNotificationCen
         lastDistractionSignature = signature
         lastDistractionAt = .now
 
-        switch rule.action {
+        switch rule.effectiveAction {
         case .warn:
             lastDistractionMessage = String(format: localized("strict.warning.message"), rule.label)
             sendSessionNotification(
@@ -344,6 +344,7 @@ final class FocusGuardService: NSObject, ObservableObject, UNUserNotificationCen
                 body: String(format: localized("strict.notification.paused.body"), rule.label)
             )
         case .quitAfterOptIn:
+            lastDistractionMessage = String(format: localized("strict.quit.message"), rule.label)
             terminate(rule: rule)
         }
 

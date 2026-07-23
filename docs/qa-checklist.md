@@ -64,6 +64,11 @@
 
 ## Strict mode rules
 
+- From the cockpit Strict Mode summary, click the manage action and verify
+  Settings opens directly on the Strict Mode tab.
+- Verify the cockpit blocked-app count matches the number of enabled app rules
+  in Settings. Site rules must be reported separately and must not inflate the
+  app count.
 - Add an app rule from running applications.
 - Add an app rule manually by bundle id.
 - Add a site rule such as `youtube.com`.
@@ -90,6 +95,16 @@
   the timer.
 - Verify the fullscreen warning uses localized text, for example
   "`youtube.com заблокирован. Возвращаю к таймеру.`" in RU.
+- Select `quitAfterOptIn` and verify FocusGlass shows a destructive
+  confirmation before saving the opt-in. Cancel it and verify the rule keeps
+  its previous safe action.
+- Load or construct a legacy `quitAfterOptIn` rule without the persisted opt-in
+  and verify it falls back to `hide` instead of terminating the target app.
+- Trigger rules during an active session and verify Strict Mode history records
+  the target, timestamp, rule/action, session, project, task when present, and
+  timer mode.
+- Relaunch with the same `FOCUSGLASS_DATA_DIR` and verify distraction history
+  persists. Use the clear action and verify the history becomes empty.
 
 ## Projects and tasks
 
@@ -209,17 +224,34 @@
 - Rename that project and verify analytics still count the old session.
 - Complete or migrate an unassigned session and verify it appears as
   "Unassigned"/"Без проекта", not as an empty label.
+- Verify planned vs actual/effectiveness reflects the completed session totals.
+- Verify recent sessions show time, project/task context, mode, planned time,
+  honest time, and distraction count without clipping in RU and EN.
+- Complete sessions in at least two timer modes and verify mode effectiveness
+  groups them correctly.
+- Trigger strict rules in at least two projects or modes and verify distraction
+  analytics groups the persisted events by project and mode.
 
 ## Layout and localization
 
-- Check wide layout at 1320 px and above.
-- Check medium layout around 980-1319 px.
+- Check wide layout at 1680 pt and above. The contextual status rail may appear
+  only when this width is available.
+- Check medium layout around 980-1679 pt. The timer must remain centered between
+  project context and the task workspace without a duplicate context rail.
 - Check compact layout below 980 px.
 - Verify the main screen has project selection on the left of the timer and
   project tasks on the right.
 - Verify the right context rail does not duplicate the active project card.
 - Switch RU and EN and verify buttons, chips, sheets, empty states, Settings,
   and fullscreen controls do not clip or overlap.
+- Use long RU and EN project/task names and verify primary titles wrap to their
+  intended 2-3 lines instead of becoming unreadable one-line truncations.
+- Enable macOS Full Keyboard Access and traverse sidebar routes, project cards,
+  mode chips, task actions, Settings tabs, strict rows, and destructive
+  confirmations. Verify focus rings are visible and selected controls expose
+  the selected accessibility trait exactly once.
+- Compare secondary labels in system light, system dark, and a custom theme;
+  muted text must remain readable without competing with primary text.
 - Verify notification titles/bodies and permission error text follow the
   selected RU/EN language.
 - Switch Settings tabs: General, Timers, Strict Mode, Access, Appearance.
