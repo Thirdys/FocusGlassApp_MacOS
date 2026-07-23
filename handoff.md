@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-06-27
+Last updated: 2026-07-23
 
 ## Human Context
 
@@ -10,7 +10,7 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Latest Session Checkpoint
 
-Last checkpoint: 2026-06-27.
+Last checkpoint: 2026-07-23.
 
 Purpose: this section is the quick resume point for future sessions. Update it
 whenever work is completed, paused halfway, blocked, or intentionally deferred,
@@ -19,6 +19,39 @@ rereading the whole handoff.
 
 Last done:
 
+- Synchronized the durable handoff with the completed cumulative tester
+  delivery `0.0.4`:
+  - Source release commit
+    `1b113b55f64ed6db51b0ceeea935cebd8f035d12` is published in
+    `Release/codex/next`.
+  - `VERSION=0.0.4`; annotated tag `v0.0.4` points to the source release
+    commit. Release artifacts are under `build/releases/0.0.4`.
+  - Release validation recorded in tester build info passed: `swift build`,
+    58/58 Swift tests, `./Scripts/package-release.sh`, SHA-256 verification,
+    and strict codesign verification. The packaged app reports bundle version
+    `34`, short version `0.0.4`, and bundle identifier
+    `local.focusglass.app`.
+  - Isolated distribution branch `tester/0.0.4` is pushed at
+    `8cde56f33cc4c0ed51b2c3a8b3abec9f8118f645`.
+  - `tester/0.0.4` contains exactly `FocusGlass-0.0.4.zip`,
+    `FocusGlass-0.0.4.zip.sha256`, `README.md`, `TESTER_CHECKLIST.md`,
+    `TESTER_RULES.md`, `build-info.md`, and
+    `tester-report-template.md`.
+  - This is a cumulative tester build because the earlier tester package was
+    not fully tested. Treat the next external report as the first complete
+    tester pass over the accumulated product work.
+  - Tester-facing documents were clarified in Russian, including checksum,
+    local ad-hoc signing/notarization expectations, backup, permissions,
+    Strict Mode actions, and report severity.
+  - No GitHub Release was created. Creating one remains an explicit owner
+    decision.
+  - Used/validated with: Graphify for current-state orientation and handoff
+    synchronization; existing release proof from SwiftPM tests, packaging,
+    checksum, and codesign validation.
+  - Next skill/workflow: accept and triage the tester report through
+    SwiftPM/test-triage. If product work continues before feedback, use Product
+    Design first and Build macOS Apps second for the remaining Strict Mode
+    routing/count issues, then start strict distraction history.
 - Implemented Cockpit First UI/UX polish with the owner-requested timer-center
   correction:
   - Used Graphify first:
@@ -63,11 +96,10 @@ Last done:
     `/private/tmp/focusglass-cockpit-ui-pass-20260627/audit-notes.md`.
   - Used/validated with: Graphify, Product Design, Build macOS Apps,
     SwiftPM/test-triage.
-  - Local commit created for this checkpoint, but push from this environment is
-    blocked by GitHub HTTPS credentials: `fatal: could not read Username for
-    'https://github.com': Device not configured`. The local tracking ref points
-    at this commit, but a network push/remote verification could not be
-    confirmed until credentials are available.
+  - Cockpit/Theme Studio commit `b54bf4a` is now part of the published
+    `codex/next` history. GitHub HTTPS credentials were repaired with the
+    repo-local Xcode keychain helper, and the later `0.0.4` source release plus
+    tester branch were pushed and verified.
   - Next skill/workflow: run Product Design + Build macOS Apps for a narrower
     responsive/keyboard pass on the new cockpit, then continue roadmap with
     strict distraction history unless the owner prioritizes another UI issue.
@@ -404,9 +436,10 @@ Previous tester-fix validation still relevant:
 
 Not started yet:
 
-- A deeper manual QA pass for strict warn/hide against real blocked apps/sites
-  can still be done before tester delivery, but the QA First pass is no longer
-  blocked on screenshots or Settings/fullscreen verification.
+- A deeper manual QA pass for strict warn/hide/pause against real blocked
+  apps/sites can still be done before the next tester build or in response to
+  the `0.0.4` tester report. The baseline QA First pass is no longer blocked on
+  screenshots or Settings/fullscreen verification.
 - The full UI/UX audit pass is complete, and the first implementation polish
   pass is complete for Theme Studio plus cockpit task-row wrapping. The broader
   UI pass is still open: Strict Mode settings routing/count consistency,
@@ -416,13 +449,13 @@ Not started yet:
 - Deeper Product Design refinements for task-attached outcome states can still
   be done later, but both no-task and attached-task outcome states now have
   live `.app` proof.
-- GitHub Release was not created for `v0.0.3`.
+- GitHub Release was not created for `v0.0.4`.
 
 Next likely choices:
 
-- If staying pre-tester: inspect/fix the two strict-mode audit findings, then
-  optionally run strict warn/hide/pause against real blocked apps/sites once
-  system permissions are granted.
+- If addressing tester risk before the next build: inspect/fix the two
+  strict-mode audit findings, then optionally run strict warn/hide/pause
+  against real blocked apps/sites once system permissions are granted.
 - If continuing UI polish: use Product Design first, then Build macOS Apps live
   validation. Next likely UI targets are Settings routing/count consistency,
   strict rows, sidebar/project-card hierarchy, and contrast/readability across
@@ -433,11 +466,11 @@ Next likely choices:
   reorders it.
 - After that: analytics for planned vs actual, recent sessions, mode
   effectiveness, and distraction analytics by project/mode.
-- Optional later: create a GitHub Release for `v0.0.3` only if the owner asks.
+- Optional later: create a GitHub Release for `v0.0.4` only if the owner asks.
 
 Active partial work:
 
-- Release/tag/tester branch work for `0.0.3` is complete. No code partial
+- Release/tag/tester branch work for `0.0.4` is complete. No code partial
   remains in tester-fix, workflow/dev-loop, QA First, or tester delivery.
 - Post-session outcome first implementation is complete. No active partial code
   work is intentionally left open in this checkpoint. Attached-task outcome
@@ -563,10 +596,11 @@ using the full current operating plan first, then the roadmap block.
    `/private/tmp/focusglass-ui-ux-audit-20260627-184307`. Optional extra proof
    later is a strict warn/hide/pause scenario with a real configured blocked
    app/site and running timer.
-3. Tester delivery `0.0.3` is complete: `VERSION=0.0.3`, tag `v0.0.3`,
-   release zip/checksum under `build/releases/0.0.3`, and isolated artifact
-   branch `tester/0.0.3` pushed. GitHub Release is still owner-controlled and
-   was not created.
+3. Cumulative tester delivery `0.0.4` is complete: `VERSION=0.0.4`, tag
+   `v0.0.4`, release zip/checksum under `build/releases/0.0.4`, and isolated
+   artifact branch `tester/0.0.4` pushed. The branch includes the full tester
+   checklist, rules, build info, and report template. GitHub Release is still
+   owner-controlled and was not created.
 4. Use `script/build_and_run.sh` or the local Codex Run action for the active
    dev loop. Keep it a wrapper over `./Scripts/package-app.sh`; do not duplicate
    packaging logic or change release semantics.
@@ -1235,9 +1269,11 @@ Skills research:
 
 1. For broad status, planning, or codebase questions, start with Graphify:
    `graphify query "<question>"`, then read exact source/docs as needed.
-2. Tester delivery `0.0.3` is complete. The isolated `tester/0.0.3` branch now
-   includes zip, checksum, README, build-info, and `tester-report-template.md`.
-   Do not create a GitHub Release without a separate owner command.
+2. Cumulative tester delivery `0.0.4` is complete. The isolated
+   `tester/0.0.4` branch includes zip, checksum, README, full checklist, tester
+   rules, build info, and `tester-report-template.md`. Wait for and triage the
+   external tester report; do not create a GitHub Release or another tester
+   version without a separate owner command.
 3. Before the next tester delivery, repeat Build macOS Apps packaged-app QA:
    `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
    then check the main window, Settings, fullscreen, strict mode, logs,
