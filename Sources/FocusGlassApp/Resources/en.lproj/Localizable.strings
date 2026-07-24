@@ -224,6 +224,16 @@
 "theme.previewBackground" = "Background top / mid / bottom";
 "theme.previewMutedText" = "Muted text and secondary labels";
 "theme.deleted" = "Custom theme deleted";
+"theme.preview.main" = "Main window";
+"theme.preview.menu" = "Menu Bar";
+"theme.preview.fullscreen" = "Fullscreen";
+"theme.preview.noTask" = "Task for the next session";
+"theme.name" = "Theme name";
+"theme.contrastValue" = "Contrast %.1f:1";
+"theme.repairContrast" = "Repair contrast";
+"theme.contrastRepaired" = "Text contrast repaired";
+"theme.invalidColor" = "The selected color is invalid";
+"theme.invalidName" = "Enter a theme name";
 "presets.resetHint" = "Reset affects only the selected mode and leaves other presets unchanged.";
 "help.language" = "Changes the app UI, notifications, and FocusGlass guidance language.";
 "help.appearance" = "System follows macOS; light and dark pin the app appearance.";
@@ -245,6 +255,6 @@
 "help.themeDuplicate" = "Creates an editable copy of a built-in theme.";
 "help.themeReset" = "Resets a built-in theme to its original values.";
 "help.themeDelete" = "Deletes only the selected custom theme. Built-in themes cannot be deleted.";
-"help.themeExport" = "Copies the current theme to the clipboard as JSON.";
-"help.themeImport" = "Imports a theme from clipboard JSON.";
+"help.themeExport" = "Saves the current theme as a .focusglass-theme.json file.";
+"help.themeImport" = "Imports a .focusglass-theme.json file after validating colors and ranges.";
 "help.themePerformance" = "Theme switch profile: UI updates first, saving and icon persistence run later.";

@@ -7,71 +7,57 @@ struct FullscreenFocusView: View {
     @State private var isHoveringControls = false
 
     var body: some View {
-        ZStack {
-            model.theme.background
-                .ignoresSafeArea()
+        GeometryReader { proxy in
+            let glowDiameter = min(max(proxy.size.width, proxy.size.height) * 0.72, 860)
 
-            Circle()
-                .fill(model.theme.glow.opacity(model.theme.fullscreenGlowIntensity * 0.32))
-                .frame(width: 760, height: 760)
-                .blur(radius: 160)
-                .offset(x: 360, y: -260)
+            ZStack {
+                model.theme.background
+                    .ignoresSafeArea()
 
-            Circle()
-                .fill(model.theme.secondary.opacity(model.theme.fullscreenGlowIntensity * 0.24))
-                .frame(width: 620, height: 620)
-                .blur(radius: 150)
-                .offset(x: -380, y: 260)
+                Circle()
+                    .fill(model.theme.glow.opacity(model.theme.fullscreenGlowIntensity * 0.32))
+                    .frame(width: glowDiameter, height: glowDiameter)
+                    .blur(radius: glowDiameter * 0.21)
+                    .offset(x: proxy.size.width * 0.23, y: -proxy.size.height * 0.24)
 
-            VStack(spacing: 28) {
-                topBar
+                Circle()
+                    .fill(model.theme.secondary.opacity(model.theme.fullscreenGlowIntensity * 0.24))
+                    .frame(width: glowDiameter * 0.82, height: glowDiameter * 0.82)
+                    .blur(radius: glowDiameter * 0.20)
+                    .offset(x: -proxy.size.width * 0.24, y: proxy.size.height * 0.24)
 
-                Spacer(minLength: 18)
+                VStack(spacing: model.theme.spacing(24)) {
+                    topBar
 
-                HStack(alignment: .center, spacing: 48) {
-                    if !model.activeTasks.isEmpty {
-                        taskRail
-                    }
+                    focusWorkspace(in: proxy.size)
 
-                    CircularTimerView(
-                        clockText: model.primaryClockText,
-                        phase: model.phaseTitle(model.engineSnapshot.activeSegment.phase),
-                        progress: model.engineSnapshot.progress,
-                        theme: model.theme,
-                        statusText: model.statusTitle(model.engineSnapshot.status),
-                        size: 470,
-                        clockSize: 92
-                    )
-                }
+                    VStack(spacing: model.theme.spacing(16)) {
+                        segmentRail
 
-                Spacer(minLength: 18)
-
-                VStack(spacing: 18) {
-                    segmentRail
-
-                    if let message = model.focusGuard.lastDistractionMessage {
-                        HStack(spacing: 10) {
-                            Image(systemName: "lock.shield.fill")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(model.theme.strict)
-                            Text(message)
-                                .font(.system(size: 13, weight: .bold))
-                                .lineLimit(2)
-                                .foregroundStyle(model.theme.text)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 11)
-                        .background(model.theme.surface.opacity(0.44), in: Capsule())
-                        .overlay {
-                            Capsule()
-                                .stroke(model.theme.strict.opacity(0.28), lineWidth: 1)
+                        if let message = model.focusGuard.lastDistractionMessage {
+                            HStack(spacing: 10) {
+                                Image(systemName: "lock.shield.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(model.theme.strict)
+                                Text(message)
+                                    .font(.system(size: 13, weight: .bold))
+                                    .lineLimit(2)
+                                    .foregroundStyle(model.theme.text)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 11)
+                            .background(model.theme.surface.opacity(model.theme.resolvedSurfaceAlpha), in: Capsule())
+                            .overlay {
+                                Capsule()
+                                    .stroke(model.theme.strict.opacity(0.28), lineWidth: 1)
+                            }
                         }
                     }
+                    .padding(.bottom, min(34, proxy.size.height * 0.04))
                 }
-                .padding(.bottom, 40)
+                .padding(.horizontal, min(44, max(22, proxy.size.width * 0.035)))
+                .padding(.top, min(30, max(18, proxy.size.height * 0.03)))
             }
-            .padding(.horizontal, 44)
-            .padding(.top, 30)
         }
         .foregroundStyle(model.theme.text)
         .background(FullscreenWindowAccessor())
@@ -148,7 +134,48 @@ struct FullscreenFocusView: View {
         model.engineSnapshot.status != .running || isHoveringControls
     }
 
-    private var taskRail: some View {
+    @ViewBuilder
+    private func focusWorkspace(in size: CGSize) -> some View {
+        let isWide = size.width >= 1080 && size.height >= 680
+        let timerSize: CGFloat = if isWide {
+            min(470, max(330, min(size.width * 0.38, size.height * 0.52)))
+        } else {
+            min(360, max(238, min(size.width * 0.56, size.height * 0.38)))
+        }
+
+        if isWide {
+            HStack(alignment: .center, spacing: min(48, size.width * 0.035)) {
+                if !model.activeTasks.isEmpty {
+                    taskRail(width: min(420, max(320, size.width * 0.30)), maxHeight: min(300, size.height * 0.32))
+                }
+                timer(size: timerSize)
+            }
+            .frame(maxHeight: .infinity)
+        } else {
+            VStack(spacing: model.theme.spacing(18)) {
+                timer(size: timerSize)
+                if !model.activeTasks.isEmpty {
+                    taskRail(width: min(680, size.width - 44), maxHeight: min(190, size.height * 0.25))
+                }
+            }
+            .frame(maxHeight: .infinity)
+        }
+    }
+
+    private func timer(size: CGFloat) -> some View {
+        CircularTimerView(
+            clockText: model.primaryClockText,
+            phase: model.phaseTitle(model.engineSnapshot.activeSegment.phase),
+            progress: model.engineSnapshot.progress,
+            theme: model.theme,
+            statusText: model.statusTitle(model.engineSnapshot.status),
+            size: size,
+            clockSize: size * 0.196
+        )
+        .frame(width: size, height: size)
+    }
+
+    private func taskRail(width: CGFloat, maxHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(model.t("tasks.focusStack"))
                 .font(.system(size: 13, weight: .bold))
@@ -172,7 +199,9 @@ struct FullscreenFocusView: View {
                                         .foregroundStyle(model.activeTaskID == task.id ? model.theme.primary : model.theme.mutedText)
                                     Text(task.title)
                                         .font(.system(size: 15, weight: .bold))
-                                        .lineLimit(1)
+                                        .lineLimit(5)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .layoutPriority(1)
                                     Spacer()
                                     if task.timingMode == .timed {
                                         Text(task.estimate.focusClock)
@@ -194,14 +223,16 @@ struct FullscreenFocusView: View {
                             }
                             .buttonStyle(.plain)
                             .glassHover(theme: model.theme, radius: 14, isActive: model.activeTaskID == task.id)
+                            .help(task.title)
+                            .accessibilityLabel(task.title)
                         }
                     }
                     .padding(.trailing, 2)
                 }
-                .frame(maxHeight: 260)
+                .frame(maxHeight: maxHeight)
             }
         }
-        .frame(width: 440, alignment: .leading)
+        .frame(width: width, alignment: .leading)
     }
 
     private var segmentRail: some View {

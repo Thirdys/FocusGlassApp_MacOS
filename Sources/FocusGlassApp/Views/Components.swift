@@ -31,7 +31,7 @@ struct LiquidGlassPanel<Content: View>: View {
         let resolvedRadius = radius ?? CGFloat(model.theme.cornerRadius)
 
         content
-            .padding(padding)
+            .padding(model.theme.spacing(padding))
             .background {
                 LiquidGlassPanelBackground(
                     theme: model.theme,
@@ -65,9 +65,9 @@ struct LiquidGlassPanel<Content: View>: View {
 
     private var fillOpacity: Double {
         switch depth {
-        case .primary: model.theme.surfaceAlpha * 1.10
-        case .secondary: model.theme.surfaceAlpha * 0.82
-        case .floating: max(model.theme.menuGlassOpacity, model.theme.surfaceAlpha)
+        case .primary: model.theme.resolvedSurfaceAlpha * 1.10
+        case .secondary: model.theme.resolvedSurfaceAlpha * 0.82
+        case .floating: max(model.theme.menuGlassOpacity * model.theme.glassStrength, model.theme.resolvedSurfaceAlpha)
         }
     }
 
@@ -299,8 +299,8 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             configuration.label
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(foreground)
-            .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, verticalPadding)
+            .padding(.horizontal, theme.spacing(horizontalPadding))
+            .padding(.vertical, theme.spacing(verticalPadding))
             .background(background(isPressed: pressed, isHovering: isHovering), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(alignment: .topLeading) {
@@ -341,12 +341,12 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             .scaleEffect(pressed ? 0.975 : (isHovering ? 1.018 : 1))
             .brightness(pressed ? -0.025 : (isHovering ? 0.018 : 0))
             .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.16)) {
+                withAnimation(.easeInOut(duration: theme.animationDuration(0.16))) {
                     isHovering = hovering
                 }
             }
-            .animation(.spring(response: 0.22, dampingFraction: 0.84), value: pressed)
-            .animation(.easeInOut(duration: 0.16), value: isHovering)
+            .animation(.spring(response: theme.animationDuration(0.22), dampingFraction: 0.84), value: pressed)
+            .animation(.easeInOut(duration: theme.animationDuration(0.16)), value: isHovering)
         }
 
         private var foreground: Color {
@@ -472,7 +472,7 @@ struct GlassHoverHighlight: ViewModifier {
             .shadow(color: shadow, radius: isFocused ? 12 : (isHovering ? 10 : 0), x: 0, y: isFocused || isHovering ? 5 : 0)
             .brightness(isHovering ? 0.024 : 0)
             .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.15)) {
+                withAnimation(.easeInOut(duration: theme.animationDuration(0.15))) {
                     isHovering = hovering
                 }
             }
@@ -600,7 +600,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
             ForEach(Array(options.enumerated()), id: \.offset) { _, option in
                 let isSelected = option == selection
                 Button {
-                    withAnimation(.easeInOut(duration: 0.16)) {
+                    withAnimation(.easeInOut(duration: model.theme.animationDuration(0.16))) {
                         selection = option
                     }
                 } label: {
@@ -616,8 +616,8 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                             .minimumScaleFactor(0.72)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 9)
+                    .padding(.horizontal, model.theme.spacing(10))
+                    .padding(.vertical, model.theme.spacing(9))
                     .foregroundStyle(isSelected ? model.theme.text : model.theme.mutedText)
                     .background(
                         isSelected ? model.theme.primary.opacity(0.20) : Color.clear,
@@ -632,7 +632,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
             }
         }
-        .padding(5)
+        .padding(model.theme.spacing(5))
         .background(
             LinearGradient(
                 colors: [
@@ -707,8 +707,8 @@ struct GlassSelect<Value: Equatable>: View {
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(model.theme.primary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 9)
+            .padding(.horizontal, model.theme.spacing(12))
+            .padding(.vertical, model.theme.spacing(9))
             .frame(minWidth: minWidth, alignment: .leading)
             .background(
                 LinearGradient(
