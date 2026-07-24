@@ -24,19 +24,28 @@ enum FocusGlassIconRenderer {
         let highlight = NSColor(hex: theme.highlightHex)
         let text = NSColor(hex: theme.textHex)
 
-        let tileRect = rect.insetBy(dx: size * 0.065, dy: size * 0.065)
-        let tileRadius = size * 0.225
+        let tileRect = rect.insetBy(
+            dx: size * FocusGlassMarkGeometry.tileInset,
+            dy: size * FocusGlassMarkGeometry.tileInset
+        )
+        let tileRadius = size * FocusGlassMarkGeometry.tileCornerRadius
         let tile = NSBezierPath(roundedRect: tileRect, xRadius: tileRadius, yRadius: tileRadius)
         NSGradient(colors: [backgroundTop, backgroundMid, backgroundBottom])?.draw(in: tile, angle: -42)
 
-        let glassFace = NSBezierPath(ovalIn: rect.insetBy(dx: size * 0.196, dy: size * 0.196))
+        let glassFace = NSBezierPath(ovalIn: rect.insetBy(
+            dx: size * FocusGlassMarkGeometry.faceInset,
+            dy: size * FocusGlassMarkGeometry.faceInset
+        ))
         NSGradient(colors: [
             highlight.withAlphaComponent(0.26),
             elevated.withAlphaComponent(0.70),
             surface.withAlphaComponent(0.88)
         ])?.draw(in: glassFace, angle: -42)
 
-        let faceStroke = NSBezierPath(ovalIn: rect.insetBy(dx: size * 0.206, dy: size * 0.206))
+        let faceStroke = NSBezierPath(ovalIn: rect.insetBy(
+            dx: size * FocusGlassMarkGeometry.faceStrokeInset,
+            dy: size * FocusGlassMarkGeometry.faceStrokeInset
+        ))
         highlight.withAlphaComponent(0.32).setStroke()
         faceStroke.lineWidth = max(1.4, size * 0.017)
         faceStroke.stroke()
@@ -45,40 +54,48 @@ enum FocusGlassIconRenderer {
         let progress = NSBezierPath()
         progress.appendArc(
             withCenter: center,
-            radius: size * 0.343,
-            startAngle: 135,
-            endAngle: -48,
+            radius: size * FocusGlassMarkGeometry.progressRadius,
+            startAngle: FocusGlassMarkGeometry.progressStartAngle,
+            endAngle: FocusGlassMarkGeometry.progressEndAngle,
             clockwise: true
         )
         accent.setStroke()
         progress.lineCapStyle = .round
-        progress.lineWidth = max(4, size * 0.072)
+        progress.lineWidth = max(4, size * FocusGlassMarkGeometry.progressLineWidth)
         progress.stroke()
 
         let hands = NSBezierPath()
         hands.move(to: center)
-        hands.line(to: NSPoint(x: size * 0.5, y: size * 0.684))
+        hands.line(to: NSPoint(
+            x: size * FocusGlassMarkGeometry.minuteHandEnd.x,
+            y: size * FocusGlassMarkGeometry.minuteHandEnd.y
+        ))
         hands.move(to: center)
-        hands.line(to: NSPoint(x: size * 0.648, y: size * 0.425))
+        hands.line(to: NSPoint(
+            x: size * FocusGlassMarkGeometry.hourHandEnd.x,
+            y: size * FocusGlassMarkGeometry.hourHandEnd.y
+        ))
         text.withAlphaComponent(0.94).setStroke()
         hands.lineCapStyle = .round
-        hands.lineWidth = max(2.2, size * 0.034)
+        hands.lineWidth = max(2.2, size * FocusGlassMarkGeometry.handLineWidth)
         hands.stroke()
 
-        let centerDot = NSBezierPath(ovalIn: NSRect(
-            x: size * 0.466,
-            y: size * 0.466,
-            width: size * 0.068,
-            height: size * 0.068
+        let centerDot = NSBezierPath(ovalIn: FocusGlassMarkGeometry.appKitRect(
+            x: FocusGlassMarkGeometry.centerDotOrigin,
+            y: FocusGlassMarkGeometry.centerDotOrigin,
+            width: FocusGlassMarkGeometry.centerDotSize,
+            height: FocusGlassMarkGeometry.centerDotSize,
+            size: size
         ))
         text.withAlphaComponent(0.98).setFill()
         centerDot.fill()
 
-        let focusDot = NSBezierPath(ovalIn: NSRect(
-            x: size * 0.708,
-            y: size * 0.708,
-            width: size * 0.082,
-            height: size * 0.082
+        let focusDot = NSBezierPath(ovalIn: FocusGlassMarkGeometry.appKitRect(
+            x: FocusGlassMarkGeometry.focusDotX,
+            y: FocusGlassMarkGeometry.focusDotY,
+            width: FocusGlassMarkGeometry.focusDotSize,
+            height: FocusGlassMarkGeometry.focusDotSize,
+            size: size
         ))
         accent.withAlphaComponent(0.92).setFill()
         focusDot.fill()

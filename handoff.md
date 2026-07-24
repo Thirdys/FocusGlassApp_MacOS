@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-07-23
+Last updated: 2026-07-24
 
 ## Human Context
 
@@ -10,7 +10,7 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Latest Session Checkpoint
 
-Last checkpoint: 2026-07-23.
+Last checkpoint: 2026-07-24.
 
 Purpose: this section is the quick resume point for future sessions. Update it
 whenever work is completed, paused halfway, blocked, or intentionally deferred,
@@ -19,6 +19,69 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the mandatory zero-stage design/runtime pass before any future
+  tester synchronization:
+  - Rebuilt launch motion around shared normalized
+    `FocusGlassMarkGeometry`, now used by both the runtime AppIcon renderer and
+    the SwiftUI launch mark. The mark is one coherent tile/clock object; the
+    old independent spring, 3D rotation, 28 dial ticks, and flying capsule are
+    gone.
+  - Launch phases are tile `0-120 ms`, arc `100-380 ms`, timer hand
+    `220-500 ms`, focus confirmation `420-590 ms`, wordmark `460-650 ms`, and
+    cockpit crossfade by about `800 ms`. Theme motion scales the sequence only
+    in `0.8...1.15`; Reduce Motion uses a complete static mark and short fade.
+    The sequence remains once per process and does not replay when the main
+    window is reopened from Menu Bar.
+  - Added explicit Light/Dark palettes with schema-v6 migration. Runtime theme
+    resolution no longer silently substitutes hard-coded light colors.
+    `glassOpacity`, `density`, and `motion` now affect shared UI tokens.
+  - Theme Studio now has one preview with Main Window/Menu Bar/Fullscreen
+    modes, Light/Dark variant editing, ColorPicker-first color controls,
+    per-variant contrast status/repair, validated file import, and file export.
+  - Moved the build badge into scroll content, made fullscreen adaptive with a
+    complete multi-line long-task rail, and replaced the status `NSPopover`
+    with a lifecycle-managed nonactivating `NSPanel` that joins all Spaces and
+    remains visible over another active app.
+  - Fixed the dev loop so `script/build_and_run.sh` assigns a
+    toolchain/SDK-specific SwiftPM scratch path while keeping
+    `Scripts/package-app.sh` as packaging source of truth. Direct packaging
+    without that environment may still hit an old mixed-SDK `.build`; use the
+    dev-loop wrapper for active work.
+  - Live Product Design plus Build macOS Apps proof is in
+    `/private/tmp/focusglass-zero-stage-qa/accepted`. Accepted evidence:
+    `01-launch-final-mark.png`, the three Theme Studio preview modes,
+    `05-theme-studio-variants.png`, `06-fullscreen-long-task.png`, and
+    `08-menubar-over-textedit-desktop.png`. The last image has TextEdit as the
+    active menu-bar application while the FocusGlass panel remains visible.
+  - High-refresh automated window-video proof was not retained: current macOS
+    obsoletes the legacy CoreGraphics capture path, and `screencapture` did not
+    finalize the scripted window recording. The settled launch mark and all
+    product surfaces have accepted screenshots; a future ScreenCaptureKit
+    helper can close this QA-tooling-only gap.
+  - Final validation passed: plain `swift build` after clearing the stale
+    mixed-SDK cache, isolated `swift build`, 68/68 Swift tests,
+    `bash -n script/build_and_run.sh`,
+    `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-zero-stage-qa/data
+    ./script/build_and_run.sh --verify`, strict codesign verification,
+    `git diff --check`, and `graphify update .`.
+  - Git state:
+    - the implementation commit is available on
+      `Release/codex/next` as `814af85`;
+    - `main` had already received the previous cumulative package through a
+      squash merge, so cumulative PR #5 duplicated that history and was closed;
+    - clean review branch `Release/codex/zero-stage-design` was created from
+      current `Release/main` and contains the same zero-stage tree as commit
+      `2400feb`;
+    - ready PR #6 is mergeable and clean:
+      `https://github.com/Thirdys/FocusGlassApp_MacOS/pull/6`.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage, Computer Use, packaged `.app`, and codesign.
+  - Not done: no `VERSION` change, tag, tester branch, release archive, or
+    GitHub Release.
+  - Next skill/workflow: owner review of this zero-stage PR; then, only after an
+    explicit owner command, rebuild cumulative tester delivery through Build
+    macOS Apps. New UX work starts Product Design-first and is validated in the
+    packaged macOS app.
 - Closed the remaining first-step live QA through Product Design plus Build
   macOS Apps:
   - Ran Graphify orientation before the broad QA pass and used the packaged
@@ -657,6 +720,11 @@ item, also show "what is going on with the roadmap" from
 `Roadmap Status Snapshot`. If this plan later grows beyond seven items, keep
 using the full current operating plan first, then the roadmap block.
 
+0. Before any next tester synchronization, review and preserve the completed
+   zero stage: shared launch/AppIcon geometry, explicit Light/Dark variants,
+   live theme tokens, one three-mode Theme Studio preview, adaptive fullscreen,
+   lifecycle-managed Menu Bar panel, and toolchain-isolated dev loop. Proof:
+   `/private/tmp/focusglass-zero-stage-qa/accepted`.
 1. Use Graphify before broad project/status/codebase questions and after code
    changes: start with `graphify query "<question>"` when the graph exists, and
    finish code changes with `graphify update .`.
@@ -1333,6 +1401,12 @@ Skills research:
 
 ## Next Steps
 
+0. Mandatory zero stage before the next tester synchronization is implemented:
+   shared launch/AppIcon geometry, explicit Light/Dark theme variants, live
+   theme tokens, one three-mode Theme Studio preview, adaptive fullscreen,
+   lifecycle-managed Menu Bar panel, and toolchain-isolated dev loop. Start
+   review from the newest `Latest Session Checkpoint` and proof folder
+   `/private/tmp/focusglass-zero-stage-qa/accepted`.
 1. For broad status, planning, or codebase questions, start with Graphify:
    `graphify query "<question>"`, then read exact source/docs as needed.
 2. Cumulative tester delivery `0.0.4` is complete. The isolated
@@ -1341,12 +1415,13 @@ Skills research:
    triaged when it arrives, but current product work is not blocked on it. Do
    not create a GitHub Release or another tester version without a separate
    owner command.
-3. The honest live-QA limits are closed through Product Design plus Build
+3. The earlier cockpit/Strict live-QA limits are closed through Product Design plus Build
    macOS Apps: compact cockpit below 980 pt, long RU/EN titles, theme
    readability, visible keyboard focus during Tab traversal, real `warn`,
    `pauseSession`, Safari site-rule enforcement, and safe quit confirmation.
    Proof: `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
-4. Before the next tester delivery, repeat Build macOS Apps packaged-app QA:
+4. Before the next tester delivery, review the zero-stage proof, then repeat
+   Build macOS Apps packaged-app QA:
    `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify`,
    then check the main window, Settings, fullscreen, strict mode, logs,
    screenshots, and runtime proof against `docs/qa-checklist.md`.
@@ -1395,9 +1470,10 @@ Skills research:
      actual/effectiveness, recent sessions, mode effectiveness, project
      summaries, unassigned handling, and distraction grouping by project/mode.
      Later work is richer-data polish and optional task-level depth.
-   - Later roadmap items remain parked: strict-rule presets, improved menu bar
-     HUD, improved fullscreen task flow, Theme Studio readability pass, and
-     signed/notarized distribution.
+   - Later roadmap items remain parked: strict-rule presets, deeper
+     task-level analytics, and signed/notarized distribution. The first
+     improved Menu Bar HUD, fullscreen task-flow, and Theme Studio readability
+     pass are complete in the zero-stage checkpoint.
 10. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
    not make them near-term work.
 11. Decide whether to set upstream locally later with

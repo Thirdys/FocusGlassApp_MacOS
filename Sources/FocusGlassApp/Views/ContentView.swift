@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var toastGeneration = 0
     @State private var showsLaunchSequence = FocusGlassLaunchSession.shouldPresent
     @State private var didStartLaunchSequence = false
+    @State private var launchAnimationReady = false
 
     var body: some View {
         GeometryReader { proxy in
@@ -61,15 +62,13 @@ struct ContentView: View {
                     }
                 }
 
-                MainWindowBuildBadge()
-                    .padding(.trailing, 18)
-                    .padding(.bottom, 14)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-                    .allowsHitTesting(false)
-                    .zIndex(1)
-
                 if showsLaunchSequence {
-                    FocusGlassLaunchOverlay(theme: model.theme, reduceMotion: accessibilityReduceMotion)
+                    FocusGlassLaunchOverlay(
+                        theme: model.theme,
+                        reduceMotion: accessibilityReduceMotion
+                    ) {
+                        launchAnimationReady = true
+                    }
                         .transition(.opacity)
                         .zIndex(2)
                 }
@@ -120,6 +119,9 @@ struct ContentView: View {
                 if showsContextRail && model.selectedSidebarItem == .focusToday {
                     FocusContextRailView()
                 }
+                MainWindowBuildBadge()
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .allowsHitTesting(false)
             }
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
@@ -137,9 +139,23 @@ struct ContentView: View {
             return
         }
 
-        let duration = accessibilityReduceMotion ? Duration.milliseconds(280) : .milliseconds(1180)
-        try? await Task.sleep(for: duration)
-        withAnimation(.easeInOut(duration: accessibilityReduceMotion ? 0.16 : 0.34)) {
+        if accessibilityReduceMotion {
+            try? await Task.sleep(for: .milliseconds(160))
+        } else {
+            if FocusGlassLaunchCapture.delayMilliseconds > 0 {
+                try? await Task.sleep(for: .milliseconds(FocusGlassLaunchCapture.delayMilliseconds))
+            }
+            let scale = model.theme.motionDurationScale
+            let minimumMilliseconds = Int(620 * scale)
+            let maximumMilliseconds = Int(900 * scale)
+            var elapsed = 0
+            while elapsed < maximumMilliseconds,
+                  (elapsed < minimumMilliseconds || !launchAnimationReady) {
+                try? await Task.sleep(for: .milliseconds(20))
+                elapsed += 20
+            }
+        }
+        withAnimation(.easeInOut(duration: accessibilityReduceMotion ? 0.16 : model.theme.animationDuration(0.15))) {
             showsLaunchSequence = false
         }
     }
@@ -182,6 +198,21 @@ private struct AppBuildInfo {
     )
 }
 
+private enum FocusGlassLaunchCapture {
+    static let delayMilliseconds: Int = {
+#if DEBUG
+        let prefix = "focusglass-launch-capture-delay="
+        guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }),
+              let value = Int(argument.dropFirst(prefix.count)) else {
+            return 0
+        }
+        return min(3_000, max(0, value))
+#else
+        return 0
+#endif
+    }()
+}
+
 @MainActor
 private enum FocusGlassLaunchSession {
     static var didPresent = false
@@ -200,187 +231,296 @@ private enum FocusGlassLaunchSession {
 private struct FocusGlassLaunchOverlay: View {
     let theme: ThemeProfile
     let reduceMotion: Bool
+    let onAnimationReady: () -> Void
 
-    @State private var isRevealed = false
-    @State private var isSettled = false
+    @State private var tileProgress = 0.0
+    @State private var arcProgress = 0.0
+    @State private var handProgress = 0.0
+    @State private var dotProgress = 0.0
+    @State private var wordmarkProgress = 0.0
 
     var body: some View {
-        ZStack {
-            theme.background
-                .ignoresSafeArea()
+        GeometryReader { proxy in
+            let minimumSide = min(proxy.size.width, proxy.size.height)
+            let markSize = min(196, max(148, minimumSide * 0.25))
+            let glowSize = markSize * 2.35
 
-            Circle()
-                .fill(theme.glow.opacity(0.26))
-                .frame(width: 380, height: 380)
-                .blur(radius: 88)
-                .scaleEffect(isRevealed && !reduceMotion ? 1.08 : 0.82)
+            ZStack {
+                theme.background
+                    .ignoresSafeArea()
 
-            VStack(spacing: 22) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 42, style: .continuous)
-                        .fill(theme.highlight.opacity(0.10))
-                        .frame(width: 176, height: 176)
-                        .blur(radius: 24)
-                        .opacity(isSettled || reduceMotion ? 1 : 0)
+                Circle()
+                    .fill(theme.glow.opacity(0.22 * tileProgress))
+                    .frame(width: glowSize, height: glowSize)
+                    .blur(radius: markSize * 0.46)
 
-                    iconMark
-                        .frame(width: 144, height: 144)
-                }
-                .scaleEffect(isRevealed || reduceMotion ? 1 : 0.84)
-                .rotation3DEffect(.degrees(isRevealed || reduceMotion ? 0 : -7), axis: (x: 1, y: 0, z: 0))
-                .offset(y: isRevealed || reduceMotion ? 0 : 12)
-
-                Text("FocusGlass")
-                    .font(.system(size: 35, weight: .bold, design: .rounded))
-                    .foregroundStyle(theme.text)
-                    .opacity(isSettled || reduceMotion ? 1 : 0.18)
-                    .offset(y: isSettled || reduceMotion ? 0 : 8)
-
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                theme.primary.opacity(0.18),
-                                theme.glow.opacity(0.42),
-                                theme.highlight.opacity(0.18)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                VStack(spacing: theme.spacing(20)) {
+                    FocusGlassLaunchMark(
+                        theme: theme,
+                        tileProgress: tileProgress,
+                        arcProgress: arcProgress,
+                        handProgress: handProgress,
+                        dotProgress: dotProgress
                     )
-                    .frame(width: isSettled || reduceMotion ? 118 : 34, height: 4)
-                    .opacity(isSettled || reduceMotion ? 1 : 0.24)
+                    .frame(width: markSize, height: markSize)
+
+                    Text("FocusGlass")
+                        .font(.system(size: min(38, markSize * 0.20), weight: .bold, design: .rounded))
+                        .foregroundStyle(theme.text)
+                        .opacity(wordmarkProgress)
+                        .offset(y: (1 - wordmarkProgress) * 4)
+                }
+                .offset(y: -min(34, proxy.size.height * 0.04))
+                .shadow(color: theme.glow.opacity(0.18), radius: markSize * 0.16, x: 0, y: markSize * 0.08)
             }
-            .shadow(color: theme.glow.opacity(0.20), radius: 26, x: 0, y: 16)
         }
         .accessibilityHidden(true)
         .onAppear {
-            guard !reduceMotion else {
-                isRevealed = true
-                isSettled = true
+            if reduceMotion {
+                tileProgress = 1
+                arcProgress = 1
+                handProgress = 1
+                dotProgress = 1
+                wordmarkProgress = 1
+                onAnimationReady()
                 return
             }
 
-            withAnimation(.spring(duration: 0.72, bounce: 0.16)) {
-                isRevealed = true
-            }
             Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(260))
-                withAnimation(.easeInOut(duration: 0.34)) {
-                    isSettled = true
+                if FocusGlassLaunchCapture.delayMilliseconds > 0 {
+                    try? await Task.sleep(for: .milliseconds(FocusGlassLaunchCapture.delayMilliseconds))
                 }
+                await runPhases()
             }
         }
     }
 
-    private var iconMark: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 34, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color(hex: theme.backgroundTopHex),
-                            Color(hex: theme.backgroundMidHex),
-                            Color(hex: theme.backgroundBottomHex)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: 34, style: .continuous)
-                        .fill(theme.primary.opacity(0.08))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 34, style: .continuous)
-                        .stroke(theme.highlight.opacity(0.22), lineWidth: 1.3)
-                }
+    @MainActor
+    private func runPhases() async {
+        let scale = theme.motionDurationScale
+        withAnimation(.easeOut(duration: 0.12 * scale)) {
+            tileProgress = 1
+        }
+        try? await Task.sleep(for: .milliseconds(Int(100 * scale)))
+        withAnimation(.easeInOut(duration: 0.28 * scale)) {
+            arcProgress = 1
+        }
+        try? await Task.sleep(for: .milliseconds(Int(120 * scale)))
+        withAnimation(.easeInOut(duration: 0.28 * scale)) {
+            handProgress = 1
+        }
+        try? await Task.sleep(for: .milliseconds(Int(200 * scale)))
+        withAnimation(.easeOut(duration: 0.17 * scale)) {
+            dotProgress = 1.10
+        }
+        try? await Task.sleep(for: .milliseconds(Int(40 * scale)))
+        withAnimation(.easeOut(duration: 0.19 * scale)) {
+            wordmarkProgress = 1
+        }
+        try? await Task.sleep(for: .milliseconds(Int(50 * scale)))
+        withAnimation(.easeInOut(duration: 0.08 * scale)) {
+            dotProgress = 1
+        }
+        try? await Task.sleep(for: .milliseconds(Int(140 * scale)))
+        onAnimationReady()
+    }
+}
 
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            theme.highlight.opacity(0.24),
-                            theme.elevatedSurface.opacity(0.88),
-                            theme.surface.opacity(0.96)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .padding(28)
-                .overlay {
-                    Circle()
-                        .stroke(theme.highlight.opacity(0.28), lineWidth: 1.4)
-                        .padding(29)
-                }
+private struct FocusGlassLaunchMark: View {
+    let theme: ThemeProfile
+    let tileProgress: Double
+    let arcProgress: Double
+    let handProgress: Double
+    let dotProgress: Double
 
-            ForEach(0..<28, id: \.self) { index in
-                Capsule()
-                    .fill(theme.text.opacity(index.isMultiple(of: 4) ? 0.20 : 0.10))
-                    .frame(width: 2, height: index.isMultiple(of: 4) ? 10 : 6)
-                    .offset(y: -47)
-                    .rotationEffect(.degrees(Double(index) * (360 / 28)))
-                    .opacity(isRevealed || reduceMotion ? 1 : 0)
-                    .scaleEffect(isRevealed || reduceMotion ? 1 : 0.72)
+    var body: some View {
+        GeometryReader { proxy in
+            let size = min(proxy.size.width, proxy.size.height)
+            let tileInset = size * FocusGlassMarkGeometry.tileInset
+            let tileRadius = size * FocusGlassMarkGeometry.tileCornerRadius
+            let faceInset = size * FocusGlassMarkGeometry.faceInset
+            let faceStrokeInset = size * FocusGlassMarkGeometry.faceStrokeInset
+            let dotFrame = FocusGlassMarkGeometry.swiftUIRect(
+                x: FocusGlassMarkGeometry.focusDotX,
+                appKitY: FocusGlassMarkGeometry.focusDotY,
+                width: FocusGlassMarkGeometry.focusDotSize,
+                height: FocusGlassMarkGeometry.focusDotSize,
+                size: size
+            )
+            let lensGlintFrame = FocusGlassMarkGeometry.swiftUIRect(
+                x: 0.278,
+                appKitY: 0.644,
+                width: 0.052,
+                height: 0.052,
+                size: size
+            )
+
+            ZStack {
+                RoundedRectangle(cornerRadius: tileRadius, style: .continuous)
+                    .fill(theme.background)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: tileRadius, style: .continuous)
+                            .fill(theme.primary.opacity(0.10))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: tileRadius, style: .continuous)
+                            .stroke(theme.highlight.opacity(0.24), lineWidth: max(1, size * 0.012))
+                    }
+                    .padding(tileInset)
+
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                theme.highlight.opacity(0.26),
+                                theme.elevatedSurface.opacity(0.70),
+                                theme.surface.opacity(0.88)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .padding(faceInset)
+
+                Circle()
+                    .stroke(theme.highlight.opacity(0.32), lineWidth: max(1.4, size * 0.017))
+                    .padding(faceStrokeInset)
+
+                FocusGlassProgressArc(progress: arcProgress)
+                    .stroke(
+                        theme.primary,
+                        style: StrokeStyle(
+                            lineWidth: max(4, size * FocusGlassMarkGeometry.progressLineWidth),
+                            lineCap: .round
+                        )
+                    )
+
+                FocusGlassClockHands(progress: handProgress)
+                    .stroke(
+                        theme.text.opacity(0.94),
+                        style: StrokeStyle(
+                            lineWidth: max(2.2, size * FocusGlassMarkGeometry.handLineWidth),
+                            lineCap: .round
+                        )
+                    )
+
+                Circle()
+                    .fill(theme.text.opacity(0.98))
+                    .frame(
+                        width: size * FocusGlassMarkGeometry.centerDotSize,
+                        height: size * FocusGlassMarkGeometry.centerDotSize
+                    )
+
+                Circle()
+                    .stroke(theme.primary.opacity(0.18 * dotProgress), lineWidth: max(1, size * 0.012))
+                    .frame(
+                        width: size * FocusGlassMarkGeometry.focusHaloSize,
+                        height: size * FocusGlassMarkGeometry.focusHaloSize
+                    )
+                    .position(x: dotFrame.midX, y: dotFrame.midY)
+                    .scaleEffect(0.82 + 0.18 * dotProgress)
+
+                Circle()
+                    .fill(theme.primary.opacity(0.92))
+                    .frame(width: dotFrame.width, height: dotFrame.height)
+                    .position(x: dotFrame.midX, y: dotFrame.midY)
+                    .scaleEffect(max(0.72, dotProgress))
+                    .opacity(min(1, dotProgress))
+
+                FocusGlassLensShine()
+                    .stroke(
+                        theme.highlight.opacity(0.30),
+                        style: StrokeStyle(lineWidth: max(2, size * 0.030), lineCap: .round)
+                    )
+
+                Circle()
+                    .fill(theme.highlight.opacity(0.18))
+                    .frame(width: lensGlintFrame.width, height: lensGlintFrame.height)
+                    .position(x: lensGlintFrame.midX, y: lensGlintFrame.midY)
+
+                RoundedRectangle(cornerRadius: tileRadius, style: .continuous)
+                    .stroke(theme.primary.opacity(0.18), lineWidth: max(1, size * 0.010))
+                    .padding(tileInset + size * 0.012)
             }
-
-            Circle()
-                .trim(from: 0.05, to: isSettled || reduceMotion ? 0.82 : (isRevealed ? 0.70 : 0.15))
-                .stroke(
-                    AngularGradient(
-                        colors: [theme.primary.opacity(0.72), theme.primary, theme.glow.opacity(0.94)],
-                        center: .center
-                    ),
-                    style: StrokeStyle(lineWidth: 10, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-134))
-                .padding(22)
-
-            clockHands
-
-            Circle()
-                .fill(theme.text)
-                .frame(width: 10, height: 10)
-
-            Circle()
-                .fill(theme.primary)
-                .frame(width: 11, height: 11)
-                .overlay {
-                    Circle()
-                        .stroke(theme.primary.opacity(0.24), lineWidth: 5)
-                }
-                .offset(x: 35, y: -35)
-
-            Capsule()
-                .fill(
-                    LinearGradient(
-                        colors: [.clear, theme.highlight.opacity(0.72), .clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .frame(width: 72, height: 5)
-                .rotationEffect(.degrees(-16))
-                .offset(x: isSettled || reduceMotion ? 30 : -24, y: -42)
-                .opacity(isSettled || reduceMotion ? 0.82 : 0.18)
+            .frame(width: size, height: size)
+            .opacity(tileProgress)
+            .scaleEffect(0.96 + 0.04 * tileProgress)
         }
     }
+}
 
-    private var clockHands: some View {
-        ZStack {
-            Capsule()
-                .fill(theme.text.opacity(0.94))
-                .frame(width: 5, height: 33)
-                .offset(y: -14)
-                .rotationEffect(.degrees(isRevealed && !reduceMotion ? 0 : -36), anchor: .bottom)
+private struct FocusGlassProgressArc: Shape {
+    var progress: Double
 
-            Capsule()
-                .fill(theme.text.opacity(0.94))
-                .frame(width: 5, height: 30)
-                .offset(y: -13)
-                .rotationEffect(.degrees(isRevealed && !reduceMotion ? 118 : 70), anchor: .bottom)
-        }
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let start = -FocusGlassMarkGeometry.progressStartAngle
+        let finish = -FocusGlassMarkGeometry.progressEndAngle
+        let end = start + (finish - start) * progress
+        var path = Path()
+        path.addArc(
+            center: CGPoint(x: rect.midX, y: rect.midY),
+            radius: min(rect.width, rect.height) * FocusGlassMarkGeometry.progressRadius,
+            startAngle: .degrees(start),
+            endAngle: .degrees(end),
+            clockwise: false
+        )
+        return path
+    }
+}
+
+private struct FocusGlassClockHands: Shape {
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let size = min(rect.width, rect.height)
+        let center = CGPoint(x: rect.midX, y: rect.midY)
+        let staticHand = CGPoint(
+            x: FocusGlassMarkGeometry.minuteHandEnd.x * size,
+            y: (1 - FocusGlassMarkGeometry.minuteHandEnd.y) * size
+        )
+        let startAngle = -CGFloat.pi / 2
+        let finalPoint = CGPoint(
+            x: FocusGlassMarkGeometry.hourHandEnd.x * size,
+            y: (1 - FocusGlassMarkGeometry.hourHandEnd.y) * size
+        )
+        let finalAngle = atan2(finalPoint.y - center.y, finalPoint.x - center.x)
+        let angle = startAngle + (finalAngle - startAngle) * progress
+        let length = hypot(finalPoint.x - center.x, finalPoint.y - center.y)
+        let movingHand = CGPoint(
+            x: center.x + cos(angle) * length,
+            y: center.y + sin(angle) * length
+        )
+
+        var path = Path()
+        path.move(to: center)
+        path.addLine(to: staticHand)
+        path.move(to: center)
+        path.addLine(to: movingHand)
+        return path
+    }
+}
+
+private struct FocusGlassLensShine: Shape {
+    func path(in rect: CGRect) -> Path {
+        let size = min(rect.width, rect.height)
+        var path = Path()
+        path.move(to: CGPoint(x: size * 0.305, y: size * (1 - 0.690)))
+        path.addCurve(
+            to: CGPoint(x: size * 0.565, y: size * (1 - 0.755)),
+            control1: CGPoint(x: size * 0.365, y: size * (1 - 0.765)),
+            control2: CGPoint(x: size * 0.482, y: size * (1 - 0.790))
+        )
+        return path
     }
 }
 

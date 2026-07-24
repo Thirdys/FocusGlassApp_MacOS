@@ -120,7 +120,6 @@ struct SessionOutcomePresentation: Identifiable, Equatable {
 @MainActor
 final class FocusGlassViewModel: ObservableObject {
     static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("FocusGlass.main")
-    static let themeTransitionAnimation = Animation.easeInOut(duration: 0.42)
 
     @Published var selectedPreset: TimerPreset = .pomodoro
     @Published var selectedPresetID: UUID = TimerPreset.pomodoro.id { didSet { persist() } }
@@ -278,7 +277,11 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     var iconTheme: ThemeProfile {
-        selectedThemeProfile.adapted(to: resolvedAppearance)
+        effectiveTheme(for: resolvedAppearance)
+    }
+
+    var themeTransitionAnimation: Animation {
+        .easeInOut(duration: theme.animationDuration(0.42))
     }
 
     var preferredColorScheme: ColorScheme? {
@@ -435,7 +438,7 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     func effectiveTheme(for appearance: AppResolvedAppearance) -> ThemeProfile {
-        selectedThemeProfile.adapted(to: appearance)
+        selectedThemeProfile.resolved(for: appearance)
     }
 
     func presetTitle(_ preset: TimerPreset) -> String {
@@ -965,10 +968,16 @@ final class FocusGlassViewModel: ObservableObject {
     func updateActiveTheme(_ mutate: (inout ThemeProfile) -> Void) {
         if selectedThemeProfile.isBuiltIn {
             var copy = selectedThemeProfile
+            let previousPalette = copy.palette
             copy.id = UUID()
             copy.name = "\(selectedThemeProfile.name) Custom"
             copy.isBuiltIn = false
             mutate(&copy)
+            if copy.palette != previousPalette {
+                copy.lightPalette = copy.palette
+                copy.darkPalette = copy.palette
+            }
+            copy.ensureAppearanceVariants()
 
             performThemeMutation(reason: "themeProfiles") {
                 themeProfiles.append(copy)
@@ -980,14 +989,76 @@ final class FocusGlassViewModel: ObservableObject {
 
         guard let index = themeProfiles.firstIndex(where: { $0.id == selectedThemeID }) else { return }
         performThemeMutation(reason: "themeProfiles") {
+            let previousPalette = themeProfiles[index].palette
             mutate(&themeProfiles[index])
+            if themeProfiles[index].palette != previousPalette {
+                themeProfiles[index].lightPalette = themeProfiles[index].palette
+                themeProfiles[index].darkPalette = themeProfiles[index].palette
+            }
+            themeProfiles[index].ensureAppearanceVariants()
+        }
+    }
+
+    func updateActiveThemePalette(
+        for appearance: AppResolvedAppearance,
+        _ mutate: (inout ThemePalette) -> Void
+    ) {
+        var profile = editableThemeProfile()
+        var palette = profile.palette(for: appearance)
+        mutate(&palette)
+        guard palette.allHexValues.allSatisfy(ThemeProfile.isValidHexColor) else {
+            lastThemeMessage = t("theme.invalidColor")
+            return
+        }
+        profile.setPalette(palette, for: appearance)
+        saveEditableThemeProfile(profile)
+    }
+
+    func renameActiveTheme(_ name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            lastThemeMessage = t("theme.invalidName")
+            return
+        }
+        var profile = editableThemeProfile()
+        profile.name = trimmed
+        saveEditableThemeProfile(profile)
+    }
+
+    func repairActiveThemeContrast(for appearance: AppResolvedAppearance) {
+        var profile = editableThemeProfile()
+        profile.repairContrast(for: appearance)
+        saveEditableThemeProfile(profile)
+        lastThemeMessage = t("theme.contrastRepaired")
+    }
+
+    func themeExportData() throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return try encoder.encode(selectedThemeProfile.withAppearanceVariants())
+    }
+
+    @discardableResult
+    func importThemeJSON(data: Data) -> Bool {
+        do {
+            var imported = try JSONDecoder().decode(ThemeProfile.self, from: data)
+            try imported.normalizeForImport()
+            imported.id = UUID()
+            imported.isBuiltIn = false
+            performThemeMutation(reason: "themeProfiles") {
+                themeProfiles.append(imported)
+                selectedThemeID = imported.id
+            }
+            lastThemeMessage = t("theme.imported")
+            return true
+        } catch {
+            lastThemeMessage = error.localizedDescription
+            return false
         }
     }
 
     func exportActiveThemeJSON() {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? encoder.encode(selectedThemeProfile),
+        guard let data = try? themeExportData(),
               let text = String(data: data, encoding: .utf8) else {
             lastThemeMessage = t("theme.exportFailed")
             return
@@ -1000,19 +1071,11 @@ final class FocusGlassViewModel: ObservableObject {
 
     func importThemeJSONFromClipboard() {
         guard let text = NSPasteboard.general.string(forType: .string),
-              let data = text.data(using: .utf8),
-              var imported = try? JSONDecoder().decode(ThemeProfile.self, from: data) else {
+              let data = text.data(using: .utf8) else {
             lastThemeMessage = t("theme.importFailed")
             return
         }
-
-        imported.id = UUID()
-        imported.isBuiltIn = false
-        performThemeMutation(reason: "themeProfiles") {
-            themeProfiles.append(imported)
-            selectedThemeID = imported.id
-        }
-        lastThemeMessage = t("theme.imported")
+        _ = importThemeJSON(data: data)
     }
 
     func openDataDirectory() {
@@ -1042,7 +1105,7 @@ final class FocusGlassViewModel: ObservableObject {
     func updateSystemAppearanceAnimated() {
         let nextAppearance = AppResolvedAppearance.current
         guard systemAppearance != nextAppearance else { return }
-        withAnimation(Self.themeTransitionAnimation) {
+        withAnimation(themeTransitionAnimation) {
             systemAppearance = nextAppearance
             themeTransitionID &+= 1
         }
@@ -1241,7 +1304,7 @@ final class FocusGlassViewModel: ObservableObject {
 
         store.save(
             workspace: FocusGlassWorkspaceState(
-                schemaVersion: 5,
+                schemaVersion: 6,
                 intention: intention,
                 activeProjectID: activeProjectID,
                 activeTaskID: activeTaskID,
@@ -1253,7 +1316,7 @@ final class FocusGlassViewModel: ObservableObject {
                 recentSessions: recentSessions
             ),
             settings: FocusGlassSettingsState(
-                schemaVersion: 5,
+                schemaVersion: 6,
                 selectedThemeID: selectedThemeID,
                 themeProfiles: themeProfiles,
                 selectedPresetID: selectedPresetID,
@@ -1289,7 +1352,7 @@ final class FocusGlassViewModel: ObservableObject {
     private func performThemeMutation(reason: String, _ mutate: () -> Void) {
         let wasApplyingThemeMutation = isApplyingThemeMutation
         isApplyingThemeMutation = true
-        withAnimation(Self.themeTransitionAnimation) {
+        withAnimation(themeTransitionAnimation) {
             mutate()
             if !wasApplyingThemeMutation {
                 themeTransitionID &+= 1
@@ -1305,7 +1368,7 @@ final class FocusGlassViewModel: ObservableObject {
         guard !isHydrating else { return }
         let start = Date()
         if advancesTransition, !isApplyingThemeMutation {
-            withAnimation(Self.themeTransitionAnimation) {
+            withAnimation(themeTransitionAnimation) {
                 themeTransitionID &+= 1
             }
         }
@@ -1466,6 +1529,28 @@ final class FocusGlassViewModel: ObservableObject {
         return profiles
     }
 
+    private func editableThemeProfile() -> ThemeProfile {
+        var profile = selectedThemeProfile
+        if profile.isBuiltIn {
+            profile.id = UUID()
+            profile.name = "\(profile.name) Custom"
+            profile.isBuiltIn = false
+        }
+        profile.ensureAppearanceVariants()
+        return profile
+    }
+
+    private func saveEditableThemeProfile(_ profile: ThemeProfile) {
+        performThemeMutation(reason: "themeProfiles") {
+            if let index = themeProfiles.firstIndex(where: { $0.id == profile.id }) {
+                themeProfiles[index] = profile
+            } else {
+                themeProfiles.append(profile)
+                selectedThemeID = profile.id
+            }
+        }
+    }
+
     private static func mergedTimerPresets(_ persisted: [TimerPreset]) -> [TimerPreset] {
         guard !persisted.isEmpty else { return TimerPreset.defaultPresets }
         var presets = TimerPreset.defaultPresets
@@ -1617,7 +1702,7 @@ final class FocusGlassViewModel: ObservableObject {
         }
 
         return FocusGlassPersistedState(
-            schemaVersion: 5,
+            schemaVersion: 6,
             selectedThemeID: persisted.selectedThemeID,
             themeProfiles: persisted.themeProfiles,
             selectedPresetID: persisted.selectedPresetID,

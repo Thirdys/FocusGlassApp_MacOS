@@ -879,6 +879,93 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
+    func legacyThemeDecodeCreatesExplicitAppearancePalettes() throws {
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(ThemeProfile.builtIn[0])
+        var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        object.removeValue(forKey: "lightPalette")
+        object.removeValue(forKey: "darkPalette")
+        let legacyData = try JSONSerialization.data(withJSONObject: object)
+
+        let decoded = try JSONDecoder().decode(ThemeProfile.self, from: legacyData)
+
+        #expect(decoded.lightPalette != nil)
+        #expect(decoded.darkPalette != nil)
+        #expect(decoded.resolved(for: .light).backgroundTopHex != decoded.resolved(for: .dark).backgroundTopHex)
+    }
+
+    @Test
+    @MainActor
+    func editingLightPaletteDoesNotRewriteDarkPalette() {
+        let model = FocusGlassViewModel(
+            store: FocusGlassStore(fileURL: temporaryStateURL()),
+            requestPermissionsOnLaunch: false
+        )
+        let originalDark = model.effectiveTheme(for: .dark).primaryHex
+
+        model.updateActiveThemePalette(for: .light) { palette in
+            palette.primaryHex = "#123456"
+        }
+
+        #expect(model.effectiveTheme(for: .light).primaryHex == "#123456")
+        #expect(model.effectiveTheme(for: .dark).primaryHex == originalDark)
+    }
+
+    @Test
+    @MainActor
+    func invalidImportedThemeColorIsRejected() throws {
+        let model = FocusGlassViewModel(
+            store: FocusGlassStore(fileURL: temporaryStateURL()),
+            requestPermissionsOnLaunch: false
+        )
+        let initialCount = model.themeProfiles.count
+        var profile = ThemeProfile.builtIn[0]
+        var light = profile.palette(for: .light)
+        light.primaryHex = "not-a-color"
+        profile.setPalette(light, for: .light)
+        let data = try JSONEncoder().encode(profile)
+
+        #expect(!model.importThemeJSON(data: data))
+        #expect(model.themeProfiles.count == initialCount)
+    }
+
+    @Test
+    @MainActor
+    func themeEffectTokensChangeRenderedScales() {
+        var low = ThemeProfile.builtIn[0]
+        low.glassOpacity = 0
+        low.density = 0
+        low.motion = 0
+        var high = low
+        high.glassOpacity = 1
+        high.density = 1
+        high.motion = 1
+
+        #expect(low.glassStrength < high.glassStrength)
+        #expect(low.spacingScale < high.spacingScale)
+        #expect(low.motionDurationScale < high.motionDurationScale)
+        #expect(low.animationDuration(1) >= 0.8)
+        #expect(high.animationDuration(1) <= 1.15)
+    }
+
+    @Test
+    @MainActor
+    func settingsPersistCurrentSchemaVersion() async throws {
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        let model = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+
+        model.updateActiveTheme { profile in
+            profile.motion = 0.73
+        }
+        await model.flushPendingThemeSideEffectsForTesting()
+
+        let data = try Data(contentsOf: store.paths.settingsURL)
+        let settings = try JSONDecoder().decode(FocusGlassSettingsState.self, from: data)
+        #expect(settings.schemaVersion == 6)
+    }
+
+    @Test
+    @MainActor
     func highlightHexPersistsToSettingsFileAfterDebouncedFlush() async throws {
         let store = FocusGlassStore(fileURL: temporaryStateURL())
         let model = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)

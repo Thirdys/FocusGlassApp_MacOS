@@ -67,7 +67,7 @@ struct FocusGlassPersistedState: Codable {
 
     init(workspace: FocusGlassWorkspaceState, settings: FocusGlassSettingsState) {
         self.init(
-            schemaVersion: max(workspace.schemaVersion ?? 5, settings.schemaVersion ?? 5),
+            schemaVersion: max(workspace.schemaVersion ?? 6, settings.schemaVersion ?? 6),
             selectedThemeID: settings.selectedThemeID,
             themeProfiles: settings.themeProfiles,
             selectedPresetID: settings.selectedPresetID,
@@ -148,7 +148,7 @@ struct FocusGlassWorkspaceState: Codable, Equatable {
     var recentSessions: [FocusSessionRecord]
 
     init(
-        schemaVersion: Int? = 5,
+        schemaVersion: Int? = 6,
         intention: String = "",
         activeProjectID: UUID? = nil,
         activeTaskID: UUID? = nil,
@@ -173,7 +173,7 @@ struct FocusGlassWorkspaceState: Codable, Equatable {
 
     init(_ state: FocusGlassPersistedState) {
         self.init(
-            schemaVersion: 5,
+            schemaVersion: 6,
             intention: state.intention,
             activeProjectID: state.activeProjectID,
             activeTaskID: state.activeTaskID,
@@ -227,7 +227,7 @@ struct FocusGlassSettingsState: Codable, Equatable {
     var hasSeenPermissionsOnboarding: Bool
 
     init(
-        schemaVersion: Int? = 5,
+        schemaVersion: Int? = 6,
         selectedThemeID: UUID = ThemeProfile.noirCrimsonID,
         themeProfiles: [ThemeProfile] = ThemeProfile.builtIn,
         selectedPresetID: UUID = TimerPreset.pomodoro.id,
@@ -252,7 +252,7 @@ struct FocusGlassSettingsState: Codable, Equatable {
 
     init(_ state: FocusGlassPersistedState) {
         self.init(
-            schemaVersion: 5,
+            schemaVersion: 6,
             selectedThemeID: state.selectedThemeID,
             themeProfiles: state.themeProfiles,
             selectedPresetID: state.selectedPresetID,

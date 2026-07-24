@@ -55,6 +55,50 @@ source of truth.
   localized strict warning, and hover-only controls while running. The legacy
   global intention is not shown; project context lives in project notes.
 
+## Launch Motion
+
+- The AppIcon renderer and launch mark use the same normalized
+  `FocusGlassMarkGeometry`. Do not rebuild the launch logo from independent
+  proportions or add marks that are absent from the icon.
+- The launch sequence is one coherent object: glass tile and clock face first,
+  then the accent arc, moving timer hand, focus-dot confirmation, and wordmark.
+  The tile must already exist before any internal element becomes visible.
+- Normal motion is approximately 800 ms. Theme `motion` may scale it only
+  within `0.8...1.15`; it must not change the order of phases.
+- Reduce Motion shows the complete final mark and uses a short fade. It does
+  not draw the arc, rotate the hand, or pulse the focus dot.
+- The mark size is adaptive (`148...196 pt`) and sits slightly above geometric
+  center. Glow and spacing scale from the mark instead of fixed decoration.
+- Launch motion is process-scoped. Reopening the main window from Menu Bar must
+  not replay it.
+
+## Theme Runtime Contract
+
+- Every theme has explicit Light and Dark palettes. The runtime resolves the
+  selected appearance from those palettes and must not secretly replace user
+  colors with hard-coded light-mode values.
+- `glassOpacity` changes material strength and surface alpha, `density` scales
+  shared spacing/control padding, and `motion` scales UI and launch durations.
+  Tokens shown in Theme Studio must have an observable effect in the real app.
+- Theme Studio uses one preview surface with three modes: Main Window,
+  Menu Bar, and Fullscreen. Do not add a second competing live preview.
+- Color editing is ColorPicker-first. Hex values may be shown as a read-only
+  reference, but manual hex entry is not the primary workflow.
+- Imported `.focusglass-theme.json` files require valid `#RRGGBB` colors,
+  finite numeric values, clamped effect ranges, and repaired text contrast.
+- Contrast is checked separately for the selected Light or Dark palette.
+
+## Window Surfaces
+
+- The Menu Bar HUD is hosted in a lifecycle-managed nonactivating `NSPanel`,
+  not `NSPopover`. It joins all Spaces, can appear over fullscreen apps, stays
+  visible when another app is active, and closes on an actual outside click.
+- Fullscreen keeps the timer as the visual anchor. Wide windows place the task
+  rail beside it; narrower windows stack the rail and timer. Long task names
+  may wrap to five lines and expose the complete value to accessibility/help.
+- Build/version metadata belongs in the content flow rather than a fixed
+  overlay that can collide with scrollable content.
+
 ## Quality Rules
 
 - The app opens directly into the usable cockpit, not a landing page.
@@ -128,3 +172,7 @@ source of truth.
   grouped token sections, and ColorPicker-backed color cards. Future polish
   should continue from that control language instead of returning to stock
   sliders or manual hex entry as the primary color-editing path.
+- Automated high-refresh launch recording remains a QA-tooling concern on
+  current macOS because the legacy CoreGraphics window capture API is
+  unavailable. Keep the DEBUG launch-delay argument only for local proof; it
+  must never change normal or release timing.

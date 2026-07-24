@@ -7,6 +7,23 @@ APP_BUNDLE="${FOCUSGLASS_APP_BUNDLE:-$ROOT_DIR/build/FocusGlass.app}"
 APP_BINARY="$APP_BUNDLE/Contents/MacOS/FocusGlass"
 MODE="run"
 
+configure_scratch_path() {
+  if [[ -n "${FOCUSGLASS_SCRATCH_PATH:-}" ]]; then
+    return 0
+  fi
+
+  local swift_path
+  local swift_version
+  local sdk_path
+  local toolchain_signature
+
+  swift_path="$(command -v swift)"
+  swift_version="$(swift --version)"
+  sdk_path="$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || true)"
+  toolchain_signature="$(printf '%s\n%s\n%s\n' "$swift_path" "$swift_version" "$sdk_path" | shasum -a 256 | awk '{print $1}')"
+  export FOCUSGLASS_SCRATCH_PATH="$ROOT_DIR/.build/codex-${toolchain_signature:0:12}"
+}
+
 usage() {
   cat <<USAGE
 Usage: ./script/build_and_run.sh [--verify|--logs|--telemetry|--debug]
@@ -26,6 +43,7 @@ Environment:
                             mutating the generated app bundle.
   FOCUSGLASS_APP_BUNDLE     Override the packaged app bundle path.
   FOCUSGLASS_CONFIGURATION  Passed through to Scripts/package-app.sh.
+  FOCUSGLASS_SCRATCH_PATH   Override the toolchain-specific SwiftPM build path.
 USAGE
 }
 
@@ -154,6 +172,7 @@ diagnostics_file() {
 }
 
 stop_app
+configure_scratch_path
 package_app
 
 case "$MODE" in
