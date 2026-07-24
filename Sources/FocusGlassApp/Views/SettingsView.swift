@@ -1,5 +1,6 @@
 import SwiftUI
 import FocusGlassCore
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
@@ -1038,17 +1039,60 @@ private struct PermissionSetupRow: View {
 struct ThemeStudioView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @State private var showsAdvanced = false
+    @State private var previewSurface = ThemePreviewSurface.mainWindow
+    @State private var editingAppearance = AppResolvedAppearance.dark
+    @State private var showsThemeImporter = false
+    @State private var showsThemeExporter = false
+    @State private var exportDocument = ThemeProfileDocument()
+    @State private var themeNameDraft = ""
 
     var body: some View {
         LiquidGlassPanel(radius: 22, padding: 18) {
             VStack(alignment: .leading, spacing: 18) {
                 header
                 swatchGrid
-                ThemePreviewCard()
+                preview
                 actionGrid
                 statusStrip
                 advancedEditor
             }
+        }
+        .onAppear {
+            editingAppearance = model.resolvedAppearance
+            themeNameDraft = model.selectedThemeProfile.name
+        }
+        .onChange(of: model.selectedThemeID) { _, _ in
+            themeNameDraft = model.selectedThemeProfile.name
+        }
+        .fileExporter(
+            isPresented: $showsThemeExporter,
+            document: exportDocument,
+            contentType: .json,
+            defaultFilename: "\(model.selectedThemeProfile.name).focusglass-theme.json"
+        ) { result in
+            switch result {
+            case .success:
+                model.lastThemeMessage = model.t("theme.exported")
+            case .failure:
+                model.lastThemeMessage = model.t("theme.exportFailed")
+            }
+        }
+        .fileImporter(isPresented: $showsThemeImporter, allowedContentTypes: [.json]) { result in
+            guard case let .success(url) = result else {
+                model.lastThemeMessage = model.t("theme.importFailed")
+                return
+            }
+            let hasAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if hasAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+            guard let data = try? Data(contentsOf: url) else {
+                model.lastThemeMessage = model.t("theme.importFailed")
+                return
+            }
+            _ = model.importThemeJSON(data: data)
         }
     }
 
@@ -1070,10 +1114,20 @@ struct ThemeStudioView: View {
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(model.theme.mutedText)
                     .textCase(.uppercase)
-                ThemeStatusBadge(
-                    title: model.selectedThemeProfile.name,
-                    detail: model.selectedThemeProfile.isBuiltIn ? model.t("theme.builtIn") : model.t("theme.customTheme")
-                )
+                if model.selectedThemeProfile.isBuiltIn {
+                    ThemeStatusBadge(
+                        title: model.selectedThemeProfile.name,
+                        detail: model.t("theme.builtIn")
+                    )
+                } else {
+                    TextField(model.t("theme.name"), text: $themeNameDraft)
+                        .textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12, weight: .bold))
+                        .frame(width: 190)
+                        .onSubmit {
+                            model.renameActiveTheme(themeNameDraft)
+                        }
+                }
             }
         }
     }
@@ -1105,12 +1159,32 @@ struct ThemeStudioView: View {
             }
 
             themeAction(title: model.t("theme.export"), symbol: "square.and.arrow.up", help: model.t("help.themeExport")) {
-                model.exportActiveThemeJSON()
+                guard let data = try? model.themeExportData() else {
+                    model.lastThemeMessage = model.t("theme.exportFailed")
+                    return
+                }
+                exportDocument = ThemeProfileDocument(data: data)
+                showsThemeExporter = true
             }
 
             themeAction(title: model.t("theme.import"), symbol: "square.and.arrow.down", help: model.t("help.themeImport")) {
-                model.importThemeJSONFromClipboard()
+                showsThemeImporter = true
             }
+        }
+    }
+
+    private var preview: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            GlassSegmentedControl(
+                selection: $previewSurface,
+                options: ThemePreviewSurface.allCases,
+                title: { model.t($0.titleKey) },
+                symbol: { $0.symbolName }
+            )
+            ThemePreviewCard(
+                theme: model.effectiveTheme(for: editingAppearance),
+                surface: previewSurface
+            )
         }
     }
 
@@ -1140,8 +1214,6 @@ struct ThemeStudioView: View {
         }
         if model.isThemeSideEffectPending {
             messages.append(model.t("theme.saving"))
-        } else if let performance = model.lastThemePerformanceMessage {
-            messages.append(performance)
         }
         return messages
     }
@@ -1160,6 +1232,34 @@ struct ThemeStudioView: View {
 
     private var editorSections: some View {
         VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                GlassSegmentedControl(
+                    selection: $editingAppearance,
+                    options: [AppResolvedAppearance.light, .dark],
+                    title: { appearance in
+                        model.t(appearance == .light ? "appearance.light" : "appearance.dark")
+                    },
+                    symbol: { appearance in appearance == .light ? "sun.max" : "moon.stars" }
+                )
+
+                let ratio = model.effectiveTheme(for: editingAppearance).contrastRatio(for: editingAppearance)
+                Text(String(format: model.t("theme.contrastValue"), ratio))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundStyle(ratio >= 4.5 ? model.theme.strict : model.theme.mutedText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(model.theme.surface.opacity(model.theme.resolvedSurfaceAlpha), in: Capsule())
+
+                if ratio < 4.5 {
+                    Button {
+                        model.repairActiveThemeContrast(for: editingAppearance)
+                    } label: {
+                        Label(model.t("theme.repairContrast"), systemImage: "wand.and.stars")
+                    }
+                    .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
+                }
+            }
+
             ThemeEditorSection(
                 title: model.t("theme.group.glass"),
                 symbolName: "sparkles"
@@ -1246,12 +1346,12 @@ struct ThemeStudioView: View {
         }
     }
 
-    private func stringBinding(_ keyPath: WritableKeyPath<ThemeProfile, String>) -> Binding<String> {
+    private func stringBinding(_ keyPath: WritableKeyPath<ThemePalette, String>) -> Binding<String> {
         Binding(
-            get: { model.selectedThemeProfile[keyPath: keyPath] },
+            get: { model.selectedThemeProfile.palette(for: editingAppearance)[keyPath: keyPath] },
             set: { value in
-                model.updateActiveTheme { profile in
-                    profile[keyPath: keyPath] = value
+                model.updateActiveThemePalette(for: editingAppearance) { palette in
+                    palette[keyPath: keyPath] = value
                 }
             }
         )
@@ -1268,6 +1368,46 @@ struct ThemeStudioView: View {
         )
     }
 
+}
+
+private enum ThemePreviewSurface: String, CaseIterable {
+    case mainWindow
+    case menuBar
+    case fullscreen
+
+    var titleKey: String {
+        switch self {
+        case .mainWindow: "theme.preview.main"
+        case .menuBar: "theme.preview.menu"
+        case .fullscreen: "theme.preview.fullscreen"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .mainWindow: "macwindow"
+        case .menuBar: "menubar.rectangle"
+        case .fullscreen: "arrow.up.left.and.arrow.down.right"
+        }
+    }
+}
+
+private struct ThemeProfileDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+
+    var data: Data
+
+    init(data: Data = Data()) {
+        self.data = data
+    }
+
+    init(configuration: ReadConfiguration) throws {
+        data = configuration.file.regularFileContents ?? Data()
+    }
+
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
 }
 
 private struct ThemeColorField: View {
@@ -1430,59 +1570,121 @@ private struct ThemeSliderField: View {
 
 private struct ThemePreviewCard: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    let theme: ThemeProfile
+    let surface: ThemePreviewSurface
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: CGFloat(model.theme.cornerRadius), style: .continuous)
-                .fill(model.theme.background)
+            RoundedRectangle(cornerRadius: CGFloat(theme.cornerRadius), style: .continuous)
+                .fill(theme.background)
 
-            HStack(alignment: .center, spacing: 18) {
-                VStack(alignment: .leading, spacing: 13) {
-                    Label(model.t("theme.preview"), systemImage: "sparkle.magnifyingglass")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(model.theme.mutedText)
-
-                    Text(model.t("focus.today"))
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundStyle(model.theme.text)
-
-                    HStack(spacing: 8) {
-                        ThemePreviewDot(color: model.theme.primary)
-                        ThemePreviewDot(color: model.theme.secondary)
-                        ThemePreviewDot(color: model.theme.strict)
-                        ThemePreviewDot(color: model.theme.glow)
-                        ThemePreviewDot(color: model.theme.mutedText)
-                    }
-
-                    Text(model.t("timer.phase.focus"))
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(model.theme.primary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 7)
-                        .background(model.theme.surface.opacity(max(0.16, model.theme.surfaceAlpha)), in: Capsule())
-                }
-
-                Spacer(minLength: 0)
-
-                CircularTimerView(
-                    clockText: "25:00",
-                    phase: model.t("timer.phase.focus"),
-                    progress: 0.68,
-                    theme: model.theme,
-                    statusText: model.t("timer.status.running"),
-                    size: 122,
-                    clockSize: 25
-                )
-                .frame(width: 134, height: 134)
+            switch surface {
+            case .mainWindow:
+                mainPreview
+            case .menuBar:
+                menuPreview
+            case .fullscreen:
+                fullscreenPreview
             }
-            .padding(16)
         }
         .frame(height: 180)
-        .clipShape(RoundedRectangle(cornerRadius: CGFloat(model.theme.cornerRadius), style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: CGFloat(theme.cornerRadius), style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: CGFloat(model.theme.cornerRadius), style: .continuous)
-                .stroke(model.theme.highlight.opacity(model.theme.borderOpacity), lineWidth: 1)
+            RoundedRectangle(cornerRadius: CGFloat(theme.cornerRadius), style: .continuous)
+                .stroke(theme.highlight.opacity(theme.borderOpacity), lineWidth: 1)
         }
+    }
+
+    private var mainPreview: some View {
+        HStack(alignment: .center, spacing: 18) {
+            VStack(alignment: .leading, spacing: 13) {
+                Label(model.t("focus.today"), systemImage: "scope")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(theme.text)
+                Text(previewTaskTitle)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(theme.mutedText)
+                    .lineLimit(2)
+                HStack(spacing: 8) {
+                    ThemePreviewDot(color: theme.primary)
+                    ThemePreviewDot(color: theme.secondary)
+                    ThemePreviewDot(color: theme.strict)
+                    ThemePreviewDot(color: theme.glow)
+                }
+            }
+            Spacer(minLength: 0)
+            previewTimer(size: 122)
+        }
+        .padding(theme.spacing(16))
+    }
+
+    private var menuPreview: some View {
+        HStack {
+            Spacer()
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label("FocusGlass", systemImage: "timer")
+                        .font(.system(size: 13, weight: .bold))
+                    Spacer()
+                    Text("25:00")
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                }
+                Divider().overlay(theme.highlight.opacity(0.20))
+                Text(previewTaskTitle)
+                    .font(.system(size: 12, weight: .semibold))
+                    .lineLimit(2)
+                ProgressView(value: 0.68)
+                    .tint(theme.primary)
+            }
+            .foregroundStyle(theme.text)
+            .padding(theme.spacing(16))
+            .frame(width: 310)
+            .background(theme.surface.opacity(theme.resolvedSurfaceAlpha), in: RoundedRectangle(cornerRadius: 16))
+            .overlay {
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(theme.highlight.opacity(theme.borderOpacity), lineWidth: 1)
+            }
+            Spacer()
+        }
+    }
+
+    private var fullscreenPreview: some View {
+        HStack(spacing: 18) {
+            previewTimer(size: 132)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(model.t("tasks.activeForSession"))
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(theme.primary)
+                    .textCase(.uppercase)
+                Text(previewTaskTitle)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundStyle(theme.text)
+                    .lineLimit(3)
+                Text(model.t("timer.status.running"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(theme.mutedText)
+            }
+            .frame(maxWidth: 250, alignment: .leading)
+        }
+        .padding(theme.spacing(16))
+    }
+
+    private func previewTimer(size: CGFloat) -> some View {
+        CircularTimerView(
+            clockText: "25:00",
+            phase: model.t("timer.phase.focus"),
+            progress: 0.68,
+            theme: theme,
+            statusText: model.t("timer.status.running"),
+            size: size,
+            clockSize: size * 0.20
+        )
+        .frame(width: size + 12, height: size + 12)
+    }
+
+    private var previewTaskTitle: String {
+        model.activeTasks.first(where: { $0.id == model.activeTaskID })?.title
+            ?? model.t("theme.preview.noTask")
     }
 }
 

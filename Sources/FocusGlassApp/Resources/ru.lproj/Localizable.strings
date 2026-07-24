@@ -224,6 +224,16 @@
 "theme.previewBackground" = "Фон верх / середина / низ";
 "theme.previewMutedText" = "Тихий текст и вторичные подписи";
 "theme.deleted" = "Пользовательская тема удалена";
+"theme.preview.main" = "Главное окно";
+"theme.preview.menu" = "Menu Bar";
+"theme.preview.fullscreen" = "Fullscreen";
+"theme.preview.noTask" = "Задача для следующей сессии";
+"theme.name" = "Название темы";
+"theme.contrastValue" = "Контраст %.1f:1";
+"theme.repairContrast" = "Исправить контраст";
+"theme.contrastRepaired" = "Контраст текста исправлен";
+"theme.invalidColor" = "Выбран некорректный цвет";
+"theme.invalidName" = "Укажи название темы";
 "presets.resetHint" = "Сброс действует только на выбранный режим и не меняет остальные пресеты.";
 "help.language" = "Меняет язык интерфейса, уведомлений и подсказок FocusGlass.";
 "help.appearance" = "Системный режим следует macOS; светлый и темный закрепляют оформление приложения.";
@@ -245,6 +255,6 @@
 "help.themeDuplicate" = "Создает копию встроенной темы, которую можно безопасно редактировать.";
 "help.themeReset" = "Сбрасывает встроенную тему к исходным значениям.";
 "help.themeDelete" = "Удаляет только выбранную пользовательскую тему. Встроенные темы удалить нельзя.";
-"help.themeExport" = "Копирует текущую тему в буфер обмена как JSON.";
-"help.themeImport" = "Импортирует тему из JSON в буфере обмена.";
+"help.themeExport" = "Сохраняет текущую тему в файл .focusglass-theme.json.";
+"help.themeImport" = "Импортирует тему из файла .focusglass-theme.json с проверкой цветов и диапазонов.";
 "help.themePerformance" = "Профиль смены темы: UI обновляется сразу, сохранение и иконка выполняются отложенно.";
