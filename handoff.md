@@ -64,6 +64,16 @@ Last done:
     `FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-zero-stage-qa/data
     ./script/build_and_run.sh --verify`, strict codesign verification,
     `git diff --check`, and `graphify update .`.
+  - Git state:
+    - the implementation commit is available on
+      `Release/codex/next` as `814af85`;
+    - `main` had already received the previous cumulative package through a
+      squash merge, so cumulative PR #5 duplicated that history and was closed;
+    - clean review branch `Release/codex/zero-stage-design` was created from
+      current `Release/main` and contains the same zero-stage tree as commit
+      `2400feb`;
+    - ready PR #6 is mergeable and clean:
+      `https://github.com/Thirdys/FocusGlassApp_MacOS/pull/6`.
   - Used/validated with: Graphify, Product Design, Build macOS Apps,
     SwiftPM/test-triage, Computer Use, packaged `.app`, and codesign.
   - Not done: no `VERSION` change, tag, tester branch, release archive, or
