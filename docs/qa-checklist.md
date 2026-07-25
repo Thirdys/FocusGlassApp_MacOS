@@ -294,3 +294,23 @@
 - Switch appearance between system/light/dark and verify the app follows macOS
   when set to system while keeping the selected accent theme.
 - Verify the menu bar panel reads as a compact HUD, not a large square card.
+
+## Interface performance
+
+- Capture a before/after baseline from the packaged `.app`, not only a debug
+  SwiftPM executable.
+- Test launch and launch-animation handoff at compact, medium, and wide window
+  sizes without a visible freeze or broken intermediate frame.
+- With realistic projects, tasks, sessions, and distraction history, scroll and
+  resize the cockpit, Projects, Analytics, Settings, and Strict history without
+  repeated stalls.
+- Leave the timer running while interacting with unrelated surfaces. The
+  one-second tick must not visibly reset controls, interrupt scrolling, or
+  invalidate the entire window.
+- Drag Theme Studio sliders and switch Light/Dark/custom themes rapidly. Pointer
+  interaction must remain responsive while persistence and icon side effects
+  complete through their existing deferred paths.
+- Repeatedly open/close Menu Bar HUD and enter/exit fullscreen. Window
+  transitions and controls must respond without a visible main-thread pause.
+- Verify performance fixes preserve visual quality, Reduce Motion, keyboard
+  focus, accessibility labels, persistence, and existing timer/Strict behavior.

@@ -68,6 +68,22 @@ project summaries.
 
 ## Следующий порядок
 
+0. Провести отдельный performance pass интерфейса до новых функций и следующей
+   tester-синхронизации:
+   - снять baseline для запуска, launch animation, cockpit scrolling/resizing,
+     timer ticks, Theme Studio sliders/theme switching, Menu Bar HUD и
+     fullscreen;
+   - найти лишние SwiftUI invalidations, синхронную работу на main thread,
+     тяжёлые material/shadow/layout вычисления и side effects, попадающие в
+     пользовательское взаимодействие;
+   - исправлять только измеренные bottlenecks, сохраняя текущий FocusGlass
+     visual identity и поведение;
+   - проверить packaged `.app` с реалистичным объёмом проектов, задач, сессий и
+     distraction history: управление должно реагировать без заметной паузы,
+     scrolling/resizing/theme interactions должны быть плавными, а секундные
+     обновления таймера не должны перерисовывать несвязанные большие surfaces.
+   Workflow: Graphify orientation -> code-first SwiftUI performance audit ->
+   Build macOS Apps telemetry/live validation -> SwiftPM regression tests.
 1. Получить и разобрать обратную связь по tester-сборке. `tester/0.0.4` является
    историческим снимком; следующая tester delivery создаётся только по команде
    владельца и получает новую версию, cumulative checklist и новые документы.

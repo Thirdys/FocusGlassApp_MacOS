@@ -19,6 +19,14 @@ rereading the whole handoff.
 
 Last done:
 
+- Updated the current operating plan at the owner's request: the mandatory next
+  product step is now `0. Interface performance`. It must baseline and optimize
+  launch, cockpit scrolling/resizing, timer invalidations, Theme Studio
+  interactions, Menu Bar HUD, fullscreen, and realistic-data screens before
+  new features or the next tester synchronization. The pass is measurement-led:
+  Graphify orientation, code-first SwiftUI performance audit, Build macOS Apps
+  telemetry/live packaged-app proof, then SwiftPM regression tests. No
+  performance implementation has started yet.
 - Completed a repository-wide documentation synchronization against current
   code, Git history, `v0.0.4`, and `Release/tester/0.0.4`:
   - `README.md`, product/architecture/assistant/design context, roadmap,
@@ -782,11 +790,15 @@ item, also show "what is going on with the roadmap" from
 `Roadmap Status Snapshot`. If this plan later grows beyond seven items, keep
 using the full current operating plan first, then the roadmap block.
 
-0. Before any next tester synchronization, review and preserve the completed
-   zero stage: shared launch/AppIcon geometry, explicit Light/Dark variants,
-   live theme tokens, one three-mode Theme Studio preview, adaptive fullscreen,
-   lifecycle-managed Menu Bar panel, and toolchain-isolated dev loop. Proof:
-   `/private/tmp/focusglass-zero-stage-qa/accepted`.
+0. Before new features or the next tester synchronization, complete a dedicated
+   interface performance pass. Baseline launch/animation, cockpit
+   scrolling/resizing, timer ticks, Theme Studio interactions, Menu Bar HUD,
+   fullscreen, and realistic-data screens; then remove measured SwiftUI
+   invalidation, main-thread, material/shadow/layout, or side-effect
+   bottlenecks without degrading the existing visual identity. Validate through
+   code-first SwiftUI performance review plus Build macOS Apps telemetry and
+   live packaged `.app` proof. Preserve the completed zero-stage design/runtime
+   contract documented at `/private/tmp/focusglass-zero-stage-qa/accepted`.
 1. Use Graphify before broad project/status/codebase questions and after code
    changes: start with `graphify query "<question>"` when the graph exists, and
    finish code changes with `graphify update .`.
