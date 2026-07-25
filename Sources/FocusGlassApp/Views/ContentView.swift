@@ -755,6 +755,7 @@ private struct CompactNavBar: View {
             .padding(.vertical, 12)
         }
         .scrollIndicators(.hidden)
+        .frame(height: 64)
         .background(model.theme.surface.opacity(0.20))
         .background(.ultraThinMaterial)
     }
@@ -1184,6 +1185,7 @@ private struct FocusTaskPanel: View {
                     .stroke(model.theme.primary.opacity(0.42), lineWidth: 1)
             }
             .shadow(color: model.theme.primary.opacity(0.16), radius: 22, x: 0, y: 14)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -1361,6 +1363,7 @@ private struct FocusTaskCardRow: View {
         }
         .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
         .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
         .background(
             (isSelected ? model.theme.primary.opacity(0.13) : Color.white.opacity(0.052)),

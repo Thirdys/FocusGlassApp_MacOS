@@ -216,10 +216,12 @@ struct FullscreenFocusView: View {
                                         }
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
+                                    .layoutPriority(1)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 13)
                                 .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
                                 .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .background(model.theme.surface.opacity(model.activeTaskID == task.id ? 0.58 : 0.42), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .overlay {
