@@ -19,6 +19,33 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed a Product Design-led layout consistency fix for the five
+  owner-reported screenshots:
+  - The shared horizontal `FocusGlassScrollView` was accepting the full
+    vertical proposal in compact mode. `CompactNavBar` now has a stable 64 pt
+    rail, so route content remains visible below it.
+  - `GlassDisclosureSection` now matches Theme Studio editor groups: the
+    content label owns the leading area and the decorative chevron stays on
+    the trailing edge. This fixes both `Настройка темы` and `Заметки проекта`
+    while preserving the full-row hit target.
+  - Cockpit active-task cards, secondary task rows, and Fullscreen task rows
+    now keep their ideal vertical size. Long RU checklist titles and metadata
+    no longer escape or overlap a compressed selection border.
+  - Product Design/Build macOS Apps proof:
+    `/private/tmp/focusglass-layout-consistency-20260726-060149`.
+    Accepted screenshots cover wide/compact cockpit, collapsed/expanded Theme
+    Studio, project notes, a long checklist task, and its Fullscreen state.
+  - Validation passed: isolated `swift build`, 71/71 SwiftPM tests, packaged
+    `./script/build_and_run.sh --verify`, strict codesign, and
+    `git diff --check`.
+  - Used/validated with: Graphify, Product Design audit (no saved user context),
+    Build macOS Apps, SwiftPM/test-triage, Computer Use, packaged `.app`, and
+    codesign.
+  - Not done: no `VERSION`, tag, tester branch, release archive, GitHub
+    Release, or tester synchronization.
+  - Next skill/workflow: owner visual review or tester feedback starts with
+    SwiftPM/test-triage. Further UI changes start Product Design-first and end
+    with Build macOS Apps packaged proof.
 - Completed the repository-wide scroll-performance pass requested after the
   first timer-invalidation optimization:
   - Every vertical/horizontal app `ScrollView` now goes through

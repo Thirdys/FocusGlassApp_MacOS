@@ -786,15 +786,14 @@ struct GlassDisclosureSection<Label: View, Content: View>: View {
                 }
             } label: {
                 HStack(alignment: .center, spacing: 10) {
+                    label
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 12, weight: .bold))
                         .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .foregroundStyle(model.theme.primary)
+                        .foregroundStyle(model.theme.mutedText)
                         .accessibilityHidden(true)
-
-                    label
-
-                    Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
                 .contentShape(Rectangle())
