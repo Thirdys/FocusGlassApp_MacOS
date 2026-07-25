@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-07-24
+Last updated: 2026-07-26
 
 ## Human Context
 
@@ -10,7 +10,7 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Latest Session Checkpoint
 
-Last checkpoint: 2026-07-24.
+Last checkpoint: 2026-07-26.
 
 Purpose: this section is the quick resume point for future sessions. Update it
 whenever work is completed, paused halfway, blocked, or intentionally deferred,
@@ -19,6 +19,40 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed a Product Design-led full UI hit-target audit and implementation
+  pass:
+  - Audited every SwiftUI button/disclosure/custom control pattern under
+    `Sources/FocusGlassApp`, grounded in the owner's Theme Studio screenshot,
+    `docs/design/design-source.md`, and the packaged macOS app.
+  - Added shared `FocusGlassHitTarget` metrics: 40 pt for compact controls and
+    44 pt for rows. `LiquidGlassButtonStyle`, glass selects/options, segmented
+    controls, checkbox labels, mode chips, and theme swatches now give the
+    whole rendered surface an explicit content shape.
+  - Replaced the two stock `DisclosureGroup` controls with
+    `GlassDisclosureSection`. Theme Studio's `Настройка темы` row and cockpit
+    project notes now toggle from the center or trailing edge, not only from
+    the chevron/text.
+  - Expanded independent task/project edit and completion targets without
+    making multi-action cards ambiguous. Compact navigation, project/task
+    selection, running-app choices, Fullscreen task rows, and shared card
+    buttons now use full highlighted-row hit areas.
+  - Build macOS Apps plus Computer Use live proof confirmed trailing-area
+    activation for Theme Studio, project notes, sidebar routes/projects,
+    Fullscreen controls, and the lifecycle-managed Menu Bar panel. The timer
+    was restored to idle after interaction checks.
+  - Product Design notes and proof:
+    `/private/tmp/focusglass-hit-target-audit-20260726`.
+    Accepted screenshots are under its `accepted` folder.
+  - Validation passed: `swift build`, 68/68 SwiftPM tests,
+    `./Scripts/package-app.sh`, `bash -n script/build_and_run.sh`, strict
+    codesign verification, `git diff --check`, and `graphify update .`.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage, Computer Use, packaged `.app`, and codesign.
+  - Not done: no release, version, tag, tester branch, or GitHub Release work.
+  - Next skill/workflow: tester feedback enters through
+    SwiftPM/test-triage. New UI changes start Product Design-first and finish
+    with Build macOS Apps live validation; use the shared hit-target primitives
+    instead of adding ad-hoc plain-button geometry.
 - Completed the mandatory zero-stage design/runtime pass before any future
   tester synchronization:
   - Rebuilt launch motion around shared normalized
