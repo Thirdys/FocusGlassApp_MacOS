@@ -109,8 +109,8 @@ struct ContentView: View {
     }
 
     private func contentScroll(horizontalPadding: CGFloat, verticalPadding: CGFloat, showsContextRail: Bool) -> some View {
-        ScrollView {
-            VStack(spacing: 22) {
+        FocusGlassScrollView {
+            LazyVStack(spacing: 22) {
                 HeaderView()
                 if model.needsPermissionAttention {
                     PermissionBannerView()
@@ -730,8 +730,8 @@ private struct CompactNavBar: View {
     @EnvironmentObject private var model: FocusGlassViewModel
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
+        FocusGlassScrollView(.horizontal) {
+            LazyHStack(spacing: 8) {
                 ForEach(SidebarItem.allCases) { item in
                     Button {
                         model.selectedSidebarItem = item
@@ -1199,7 +1199,7 @@ private struct FocusTaskPanel: View {
                     detail: model.t("tasks.empty.detail")
                 )
             } else if !secondaryTasks.isEmpty {
-                ScrollView {
+                FocusGlassScrollView {
                     LazyVStack(spacing: 10) {
                         ForEach(secondaryTasks) { task in
                             FocusTaskCardRow(task: task) {
@@ -1287,6 +1287,7 @@ private struct TimerControlRow: View {
 
 private struct FocusTaskCardRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassIsScrolling) private var isScrolling
     @State private var isHovering = false
 
     let task: FocusTask
@@ -1354,7 +1355,7 @@ private struct FocusTaskCardRow: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(model.theme.mutedText)
-            .opacity(isHovering || isSelected ? 1 : 0.58)
+            .opacity((isHovering && !isScrolling) || isSelected ? 1 : 0.58)
             .glassHover(theme: model.theme, radius: 8)
             .help(model.t("tasks.edit"))
         }
@@ -1371,8 +1372,14 @@ private struct FocusTaskCardRow: View {
         }
         .glassHover(theme: model.theme, radius: 15, isActive: isSelected)
         .onHover { hovering in
+            guard !isScrolling else { return }
             withAnimation(.easeInOut(duration: 0.14)) {
                 isHovering = hovering
+            }
+        }
+        .onChange(of: isScrolling) { _, scrolling in
+            if scrolling {
+                isHovering = false
             }
         }
     }

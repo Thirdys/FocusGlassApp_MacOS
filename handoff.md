@@ -19,6 +19,39 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the repository-wide scroll-performance pass requested after the
+  first timer-invalidation optimization:
+  - Every vertical/horizontal app `ScrollView` now goes through
+    `FocusGlassScrollView`. On macOS 15+ it tracks SwiftUI scroll phase; a
+    narrow `NSViewRepresentable` observes live-scroll notifications on macOS
+    14. Nested scroll surfaces inherit the active state.
+  - While scrolling, shared glass controls suppress hover animations, button
+    material layers, and most panel shadow cost. Main/settings stacks and
+    compact navigation are lazy; existing task/fullscreen lists remain lazy.
+  - Theme Studio advanced groups are independently collapsible. Only
+    `Стекло и движение` opens initially, repeated slider/color cards no longer
+    add a second material layer, and continuous slider/color edits update live
+    without incrementing the app-wide animated theme transition token.
+  - Build macOS Apps live QA found and fixed a separate fullscreen compression
+    defect: checklist type text could collapse into a vertical letter column.
+    Fullscreen task metadata now sits below the multi-line task title.
+  - Product Design/runtime proof:
+    `/private/tmp/focusglass-scroll-performance-20260726-044203`.
+    Accepted screenshots cover Theme Studio top/groups, Strict Settings, rich
+    cockpit data, fullscreen scroll, and the corrected fullscreen task layout.
+  - Validation passed: isolated `swift build`, 71/71 SwiftPM tests,
+    packaged `./script/build_and_run.sh --verify`, strict codesign, and
+    `git diff --check`. A raw plain `swift build` can still hit the machine's
+    mixed Command Line Tools SDK/module-cache mismatch; the isolated scratch
+    path and dev-loop are authoritative on this machine.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftUI performance audit, AppKit interop, SwiftPM/test-triage, Computer
+    Use, packaged `.app`, `top`, and codesign.
+  - Not done: no `VERSION`, tag, tester branch, release archive, GitHub
+    Release, or tester synchronization.
+  - Next skill/workflow: owner visual review or tester feedback starts with
+    SwiftPM/test-triage. Further real-data UI polish starts Product
+    Design-first and finishes with Build macOS Apps proof.
 - Completed the mandatory `0. Interface performance` implementation pass:
   - Code-first SwiftUI review found that the one-second
     `@Published engineSnapshot` invalidated the broad

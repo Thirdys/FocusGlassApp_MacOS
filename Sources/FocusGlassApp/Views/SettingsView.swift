@@ -6,8 +6,10 @@ struct SettingsView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
 
     var body: some View {
-        ScrollView {
-            SettingsContentView(showsHeader: true)
+        FocusGlassScrollView {
+            LazyVStack {
+                SettingsContentView(showsHeader: true)
+            }
             .padding(26)
         }
         .background(model.theme.background)
@@ -1050,7 +1052,7 @@ struct ThemeStudioView: View {
 
     var body: some View {
         LiquidGlassPanel(radius: 22, padding: 18) {
-            VStack(alignment: .leading, spacing: 18) {
+            LazyVStack(alignment: .leading, spacing: 18) {
                 header
                 swatchGrid
                 preview
@@ -1233,7 +1235,7 @@ struct ThemeStudioView: View {
     }
 
     private var editorSections: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        LazyVStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
                 GlassSegmentedControl(
                     selection: $editingAppearance,
@@ -1264,7 +1266,8 @@ struct ThemeStudioView: View {
 
             ThemeEditorSection(
                 title: model.t("theme.group.glass"),
-                symbolName: "sparkles"
+                symbolName: "sparkles",
+                initiallyExpanded: true
             ) {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
                     ThemeSliderField(title: model.t("theme.glass"), value: doubleBinding(\.glassOpacity), range: 0.2...0.9)
@@ -1284,7 +1287,8 @@ struct ThemeStudioView: View {
 
             ThemeEditorSection(
                 title: model.t("theme.group.accent"),
-                symbolName: "paintpalette"
+                symbolName: "paintpalette",
+                initiallyExpanded: false
             ) {
                 colorGrid {
                     ThemeColorField(title: model.t("theme.primary"), value: stringBinding(\.primaryHex))
@@ -1298,7 +1302,8 @@ struct ThemeStudioView: View {
 
             ThemeEditorSection(
                 title: model.t("theme.group.foundation"),
-                symbolName: "rectangle.3.group"
+                symbolName: "rectangle.3.group",
+                initiallyExpanded: false
             ) {
                 colorGrid {
                     ThemeColorField(title: model.t("theme.backgroundTop"), value: stringBinding(\.backgroundTopHex))
@@ -1312,7 +1317,8 @@ struct ThemeStudioView: View {
 
             ThemeEditorSection(
                 title: model.t("theme.group.readability"),
-                symbolName: "textformat.size"
+                symbolName: "textformat.size",
+                initiallyExpanded: false
             ) {
                 colorGrid {
                     ThemeColorField(title: model.t("theme.text"), value: stringBinding(\.textHex))
@@ -1352,7 +1358,10 @@ struct ThemeStudioView: View {
         Binding(
             get: { model.selectedThemeProfile.palette(for: editingAppearance)[keyPath: keyPath] },
             set: { value in
-                model.updateActiveThemePalette(for: editingAppearance) { palette in
+                model.updateActiveThemePalette(
+                    for: editingAppearance,
+                    animatesTransition: false
+                ) { palette in
                     palette[keyPath: keyPath] = value
                 }
             }
@@ -1363,7 +1372,7 @@ struct ThemeStudioView: View {
         Binding(
             get: { model.selectedThemeProfile[keyPath: keyPath] },
             set: { value in
-                model.updateActiveTheme { profile in
+                model.updateActiveThemeInteractively { profile in
                     profile[keyPath: keyPath] = value
                 }
             }
@@ -1450,7 +1459,6 @@ private struct ThemeColorField: View {
             ),
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.72), lineWidth: 1)
@@ -1534,7 +1542,6 @@ private struct ThemeSliderField: View {
             ),
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.70), lineWidth: 1)
@@ -1692,35 +1699,59 @@ private struct ThemePreviewCard: View {
 
 private struct ThemeEditorSection<Content: View>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var isExpanded: Bool
 
     let title: String
     let symbolName: String
     let content: Content
 
-    init(title: String, symbolName: String, @ViewBuilder content: () -> Content) {
+    init(
+        title: String,
+        symbolName: String,
+        initiallyExpanded: Bool,
+        @ViewBuilder content: () -> Content
+    ) {
         self.title = title
         self.symbolName = symbolName
+        _isExpanded = State(initialValue: initiallyExpanded)
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: symbolName)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(model.theme.primary)
-                    .frame(width: 28, height: 28)
-                    .background(model.theme.primary.opacity(0.13), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            Button {
+                withAnimation(.easeInOut(duration: model.theme.animationDuration(0.16))) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 10) {
+                    Image(systemName: symbolName)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(model.theme.primary)
+                        .frame(width: 28, height: 28)
+                        .background(model.theme.primary.opacity(0.13), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 3) {
                     Text(title)
                         .font(.system(size: 14, weight: .bold))
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(model.theme.mutedText)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .accessibilityHidden(true)
                 }
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .glassHover(theme: model.theme, radius: 11, isActive: isExpanded)
 
-            content
+            if isExpanded {
+                content
+                    .transition(.opacity)
+            }
         }
         .padding(14)
         .background(model.theme.highlight.opacity(model.theme.highlightAlpha * 0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))

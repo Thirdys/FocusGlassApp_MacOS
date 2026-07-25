@@ -1017,6 +1017,17 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     func updateActiveTheme(_ mutate: (inout ThemeProfile) -> Void) {
+        updateActiveTheme(animatesTransition: true, mutate)
+    }
+
+    func updateActiveThemeInteractively(_ mutate: (inout ThemeProfile) -> Void) {
+        updateActiveTheme(animatesTransition: false, mutate)
+    }
+
+    private func updateActiveTheme(
+        animatesTransition: Bool,
+        _ mutate: (inout ThemeProfile) -> Void
+    ) {
         if selectedThemeProfile.isBuiltIn {
             var copy = selectedThemeProfile
             let previousPalette = copy.palette
@@ -1030,7 +1041,7 @@ final class FocusGlassViewModel: ObservableObject {
             }
             copy.ensureAppearanceVariants()
 
-            performThemeMutation(reason: "themeProfiles") {
+            performThemeMutation(reason: "themeProfiles", animatesTransition: animatesTransition) {
                 themeProfiles.append(copy)
                 selectedThemeID = copy.id
             }
@@ -1039,7 +1050,7 @@ final class FocusGlassViewModel: ObservableObject {
         }
 
         guard let index = themeProfiles.firstIndex(where: { $0.id == selectedThemeID }) else { return }
-        performThemeMutation(reason: "themeProfiles") {
+        performThemeMutation(reason: "themeProfiles", animatesTransition: animatesTransition) {
             let previousPalette = themeProfiles[index].palette
             mutate(&themeProfiles[index])
             if themeProfiles[index].palette != previousPalette {
@@ -1052,6 +1063,7 @@ final class FocusGlassViewModel: ObservableObject {
 
     func updateActiveThemePalette(
         for appearance: AppResolvedAppearance,
+        animatesTransition: Bool = true,
         _ mutate: (inout ThemePalette) -> Void
     ) {
         var profile = editableThemeProfile()
@@ -1062,7 +1074,7 @@ final class FocusGlassViewModel: ObservableObject {
             return
         }
         profile.setPalette(palette, for: appearance)
-        saveEditableThemeProfile(profile)
+        saveEditableThemeProfile(profile, animatesTransition: animatesTransition)
     }
 
     func renameActiveTheme(_ name: String) {
@@ -1416,15 +1428,25 @@ final class FocusGlassViewModel: ObservableObject {
         sessionTaskID = nil
     }
 
-    private func performThemeMutation(reason: String, _ mutate: () -> Void) {
+    private func performThemeMutation(
+        reason: String,
+        animatesTransition: Bool = true,
+        _ mutate: () -> Void
+    ) {
         let wasApplyingThemeMutation = isApplyingThemeMutation
         isApplyingThemeMutation = true
-        withAnimation(themeTransitionAnimation) {
-            mutate()
-            if !wasApplyingThemeMutation {
-                themeTransitionID &+= 1
+
+        if animatesTransition {
+            withAnimation(themeTransitionAnimation) {
+                mutate()
+                if !wasApplyingThemeMutation {
+                    themeTransitionID &+= 1
+                }
             }
+        } else {
+            mutate()
         }
+
         isApplyingThemeMutation = wasApplyingThemeMutation
 
         guard !wasApplyingThemeMutation else { return }
@@ -1607,8 +1629,11 @@ final class FocusGlassViewModel: ObservableObject {
         return profile
     }
 
-    private func saveEditableThemeProfile(_ profile: ThemeProfile) {
-        performThemeMutation(reason: "themeProfiles") {
+    private func saveEditableThemeProfile(
+        _ profile: ThemeProfile,
+        animatesTransition: Bool = true
+    ) {
+        performThemeMutation(reason: "themeProfiles", animatesTransition: animatesTransition) {
             if let index = themeProfiles.firstIndex(where: { $0.id == profile.id }) {
                 themeProfiles[index] = profile
             } else {

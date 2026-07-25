@@ -1130,6 +1130,23 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
+    func interactiveThemeEditsDoNotAnimateTheWholeApplication() {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        let initialTransitionID = model.themeTransitionID
+
+        model.updateActiveThemeInteractively { profile in
+            profile.glassOpacity = 0.61
+        }
+        model.updateActiveThemeInteractively { profile in
+            profile.glassOpacity = 0.62
+        }
+
+        #expect(model.selectedThemeProfile.glassOpacity == 0.62)
+        #expect(model.themeTransitionID == initialTransitionID)
+    }
+
+    @Test
+    @MainActor
     func rapidThemeEditsPersistOnlyFinalThemeAfterFlush() async throws {
         let store = FocusGlassStore(fileURL: temporaryStateURL())
         let model = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
