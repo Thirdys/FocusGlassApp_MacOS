@@ -143,6 +143,12 @@ source of truth.
   must stay legible across FocusGlass themes and macOS light/dark appearance.
 - Checkbox toggles use the FocusGlass glass checkbox treatment. Pointer targets
   follow the full highlighted route/card surface, not only the visible label.
+- Disclosure headers such as Theme Studio advanced settings and project notes
+  use `GlassDisclosureSection`; clicking the title, empty padding, or chevron
+  performs the same action.
+- Compact icon actions provide at least a 40 pt target and regular rows/actions
+  target 44 pt. Visual hover/pressed feedback covers the same area that accepts
+  input.
 - The main active project chooser uses the same `GlassSelect` language as
   Settings, including theme-aware hover states.
 - Menu bar UI is a compact HUD with one primary timer action and a small bottom
@@ -168,10 +174,13 @@ source of truth.
 
 ## Known Design Caveats
 
-- Advanced Theme Studio now uses a single live preview, custom `GlassSlider`,
-  grouped token sections, and ColorPicker-backed color cards. Future polish
-  should continue from that control language instead of returning to stock
-  sliders or manual hex entry as the primary color-editing path.
+- Advanced Theme Studio uses a single three-mode live preview, custom
+  `GlassSlider`, grouped token sections, and ColorPicker-backed color cards.
+  Future polish should continue from that control language instead of
+  returning to stock sliders or manual hex entry as the primary color-editing
+  path.
+- Remaining design work is data-driven Product Design polish and a dedicated
+  VoiceOver audit, not a replacement of the current information architecture.
 - Automated high-refresh launch recording remains a QA-tooling concern on
   current macOS because the legacy CoreGraphics window capture API is
   unavailable. Keep the DEBUG launch-delay argument only for local proof; it

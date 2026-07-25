@@ -1,6 +1,6 @@
 # FocusGlass Assistant Context
 
-Last reviewed: 2026-07-23.
+Last reviewed: 2026-07-26.
 
 Read this file first when returning to the project. It is intentionally written
 as implementation context for future assistant sessions, not as marketing copy.
@@ -116,7 +116,8 @@ The app is local-first. There is no account, sync, cloud, or remote service.
   - `FocusGlassApp`: SwiftUI app, view model, services, UI, resources.
 - `Sources/FocusGlassApp/FocusGlassApp.swift` defines the app shell:
   - `WindowGroup("FocusGlass", id: "main")` for the cockpit.
-  - AppKit `NSStatusItem` with a template glyph and `NSPopover` hosting `MenuBarPanel`.
+  - AppKit `NSStatusItem` with a template glyph and a lifecycle-managed
+    `FocusGlassStatusPanel` (`NSPanel`) hosting `MenuBarPanel`.
   - `WindowGroup("Focus", id: "focus-mode")` for fullscreen focus.
   - `Settings` with `SettingsView`.
 - `FocusGlassViewModel` is the app-level `@MainActor` state owner.
@@ -157,8 +158,8 @@ Current persistent files live in:
 
 `workspace.json` stores user work:
 
-- intention;
-- active project ID plus legacy readable active project name;
+- legacy intention for one-time project-notes migration only;
+- active project/task IDs plus legacy readable active project name;
 - projects;
 - tasks;
 - strict distraction rules;
@@ -172,10 +173,11 @@ Current persistent files live in:
 - selected timer preset and editable presets;
 - language;
 - strict-mode enabled flag;
+- strict-mode break enforcement flag;
 - permissions onboarding flag.
 
 Legacy `state.json` is still decoded for migration and is not deleted. New saves
-write schema v5 split files. If `workspace.json` cannot decode, the store backs
+write schema v6 split files. If `workspace.json` cannot decode, the store backs
 it up as `workspace.invalid-YYYYMMDD-HHMMSS.json`, blocks automatic saves, logs
 the issue, and avoids replacing user data with defaults. If `settings.json`
 cannot decode, it is backed up and defaults are used while workspace still
@@ -202,7 +204,7 @@ project.
 Notes:
 
 - `sanitizedStarterState` returns a migrated state marker, while the actual
-  current split saves write schema v5.
+  current split saves write schema v6.
 - `activeTasks` is intentionally scoped to `activeProjectID` and does not fall
   back to all tasks when a selected project is missing.
 - Project rename does not cascade into task/session strings. Display and
@@ -249,9 +251,10 @@ Settings:
 - Permissions rows share `FocusPermissionStatus` and show calm states instead
   of false red warnings.
 - Appearance exposes built-in themes first and keeps Theme Studio advanced
-  controls in a disclosure group. Theme Studio uses one compact live preview,
-  ColorPicker-backed color token cards, and glass sliders for numeric tokens;
-  hex strings are display/export details, not the primary editing path.
+  controls in `GlassDisclosureSection`. Theme Studio uses one live preview
+  with Main Window/Menu Bar/Fullscreen modes, ColorPicker-backed color token
+  cards, and glass sliders for numeric tokens; hex strings are display/export
+  details, not the primary editing path.
 
 Reusable controls live in `Views/Components.swift`:
 
@@ -261,8 +264,14 @@ Reusable controls live in `Views/Components.swift`:
 - `GlassSelect`;
 - `GlassStepper`;
 - `GlassTextFieldStyle`;
+- `GlassDisclosureSection`;
+- `FocusGlassHitTarget`;
 - `EmptyInlineState`;
 - timer and analytics visual helpers.
+
+Pointer targets are part of the visual contract: a highlighted row/card is
+clickable across the entire surface. Compact icon actions have at least 40 pt
+targets; regular controls and rows target 44 pt.
 
 Known visual caveats to remember:
 
@@ -331,8 +340,9 @@ Strict rules:
 
 ## Theme, appearance, and icons
 
-`ThemeProfile` drives glass surfaces, text colors, timer rings, heatmap colors,
-strict color, highlight color, opacity, radius, density, and motion tokens.
+`ThemeProfile` contains explicit Light and Dark palettes and drives glass
+surfaces, text colors, timer rings, heatmap colors, strict color, highlight
+color, opacity, radius, density, and motion tokens.
 
 `appearanceMode` behavior:
 
@@ -367,8 +377,10 @@ Theme switching is intentionally animated, split, and batched:
   final debounced side effects finish.
 
 Finder `.icns` is static and generated from the same geometry as the runtime
-icon. `Scripts/package-app.sh` regenerates the static icon before packaging so
-the bundled app stays aligned with `FocusGlassRuntimeIcon`. Runtime/custom app
+icon. `FocusGlassMarkGeometry` is also used by the process-scoped launch
+animation, whose final frame matches the icon and whose Reduce Motion path uses
+a short static fade. `Scripts/package-app.sh` regenerates the static icon before
+packaging so the bundled app stays aligned with `FocusGlassRuntimeIcon`. Runtime/custom app
 icon persistence is best-effort; macOS may reject `NSWorkspace.setIcon` for
 local bundles, and FocusGlass skips persistent writes in user-protected folders
 to avoid permission prompts during theme editing.
@@ -392,25 +404,26 @@ Use:
 
 ```sh
 swift build --disable-sandbox
-swift test --disable-sandbox
-./Scripts/package-app.sh
+swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test
+FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify
 ./Scripts/package-release.sh
 ```
 
-`swift run FocusGlass` is useful for quick UI checks but cannot fully test
-notification permissions because it is not a real app bundle. In this assistant
-sandbox, plain SwiftPM sandboxing can fail while compiling `Package.swift`, so
-use the `--disable-sandbox` variants above for verification.
+`swift run FocusGlass` is only a narrow debugging shortcut and cannot validate
+notification permissions, Menu Bar lifecycle, fullscreen Spaces, signing, or
+packaged resources. Live UI proof uses `build/FocusGlass.app`. In this
+assistant sandbox, plain SwiftPM sandboxing can fail while compiling
+`Package.swift`, so use the `--disable-sandbox` variants above.
 
 `build/` is ignored generated output. Keep local `.app` bundles, release zips,
 and checksums out of git. For tester handoff, the owner builds locally with
 `Scripts/package-release.sh`, which packages `FocusGlass.app` into
 `build/releases/<version>/FocusGlass-<version>.zip` and writes a SHA-256 file
 next to it. The tester-facing version is explicit: update the root `VERSION`
-file, then use a matching public tag such as `v0.0.2` on the exact build commit.
+file, then use a matching public tag such as `v0.0.4` on the exact build commit.
 On an exact tag, packaging scripts prefer the tag; otherwise they use `VERSION`.
 Tester artifact branches should use the same visible number, for example
-`tester/0.0.2`. Do not turn this into mandatory release automation. If the
+`tester/0.0.4`. Do not turn this into mandatory release automation. If the
 owner wants GitHub Release, treat it as a manual distribution page for the
 already built zip/checksum tied to a tag and commit.
 
@@ -420,10 +433,16 @@ the packaged app `Info.plist`. Do not add this badge to `MenuBarPanel` or
 the generated `.app` before ad-hoc signing so local resource forks do not break
 `codesign`.
 
-The current test suite covers timer transitions, analytics, permission status
+The current suite contains 68 tests covering timer transitions, analytics,
+strict history, permission status
 helpers, rule decoding/matching, migration from legacy project names, split
 state persistence, invalid JSON protection, preset editing/reset, task estimate
-clamping, project-scoped task lists, and debounced theme side effects.
+clamping, project-scoped task lists, explicit theme variants/import validation,
+launch geometry, and debounced theme side effects.
+
+`v0.0.4` and `tester/0.0.4` are historical delivery snapshots. Current
+`codex/next` changes after that tag belong to `CHANGELOG.md` `[Unreleased]` and
+must not be described as already present in the tester artifact.
 
 ## High-risk areas
 
