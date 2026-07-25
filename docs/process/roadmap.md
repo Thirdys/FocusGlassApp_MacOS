@@ -1,6 +1,7 @@
 # Roadmap
 
-FocusGlass развивается без смены идеи проекта. Это не облачный task-manager и не календарь, а локальный macOS focus cockpit.
+FocusGlass развивается без смены идеи проекта. Это не облачный task-manager и
+не календарь, а локальный macOS focus cockpit.
 
 Главный цикл:
 
@@ -8,95 +9,84 @@ FocusGlass развивается без смены идеи проекта. Э�
 подготовка -> фокус -> защита -> результат
 ```
 
-## Ближайший фокус
+## Текущее состояние
 
-### 1. Таймеры как полноценная система
+### Таймеры и задачи
 
-- Найти и связать с поведением все поля, которые уже есть в UI/моделях, но используются слабо.
-- Частично готово: `FocusTask.estimate` влияет на прогресс timed-задачи после
-  завершённой сессии; выбранная на старте задача получает honest focus time.
-  Готово: первый post-session outcome flow показывает planned vs honest,
-  отвлечения, задачу и действия complete/continue/start next.
-  Осталось решить, достаточно ли редактирования встроенных пресетов или нужны
-  отдельные пользовательские пресеты.
-- Добавить пользовательские таймеры в рамках существующих режимов.
-- Готово: добавить описания базовых режимов в пользовательском UI:
-  - Pomodoro;
-  - Countdown;
-  - Stopwatch;
-  - Flow;
-  - Timebox;
-  - Intervals.
+- Реализованы Pomodoro, Countdown, Stopwatch, Flow, Timebox и Intervals.
+- Встроенные presets редактируются и сбрасываются по одному.
+- Timed-задачи получают honest focus time задачи, захваченной на старте
+  сессии; checklist-задачи закрываются вручную и не получают time progress.
+- Post-session outcome показывает planned vs honest, отвлечения, контекст
+  проекта/задачи и действия complete/continue/start next.
+- Project notes заменили глобальное поле intention.
 
-### 2. Session outcome
+Открытое решение: достаточно ли редактирования встроенных presets или нужны
+отдельные пользовательские timer presets.
 
-- Готов первый implementation pass: после завершения сессии Focus Today
-  показывает итог:
-  - проект;
-  - задачу;
-  - planned time;
-  - honest focus time;
-  - отвлечения;
-  - действие с задачей: завершить, продолжить, запустить следующий блок.
-- Готово: Build macOS Apps proof для attached timed/checklist задач:
-  timed-задача показывает прогресс, checklist-задача не получает время,
-  действия завершить/продолжить/запустить следующий блок проверены в live
-  `.app`.
-- Осталось: Product Design polish при изменении UX.
+### Strict Mode
 
-### 3. Strict mode end-to-end
+- App/site rules поддерживают `warn`, `hide`, `pauseSession` и безопасный
+  `quitAfterOptIn`.
+- Cockpit открывает Settings сразу на Strict Mode; enabled app/site counts
+  согласованы между поверхностями.
+- Strict protection работает во время активной сессии в normal и fullscreen
+  flows, а enforcement во время break включается отдельно.
+- Persistent distraction history хранит цель, время, правило, фактическое
+  действие, сессию, проект, задачу и режим таймера.
+- Packaged-app proof покрывает реальные app rules, Safari Automation site rule
+  и отмену опасного quit.
 
-- Готово: кнопка управления из cockpit открывает сразу
-  Settings -> Strict Mode; счётчики приложений и сайтов используют одинаковые
-  enabled-правила в cockpit и Settings.
-- Готово: `quitAfterOptIn` требует отдельного опасного подтверждения. Старое
-  правило без сохранённого opt-in безопасно выполняется как `hide`.
-- Готово: история отвлечений сохраняет цель, время, правило, действие,
-  сессию, проект, задачу и режим; Strict Mode показывает историю и позволяет
-  очистить её.
-- Готово: live `.app` proof для `warn`, `hide` и `pauseSession` на реальном
-  приложении. Для site-rule также проверен реальный Safari Automation URL-path
-  на безопасной локальной странице `127.0.0.1`: браузер скрыт, событие
-  записано в историю.
-- Готово: destructive confirmation для `quitAfterOptIn` проверен в live
-  `.app`; отмена сохраняет предыдущее безопасное действие и не закрывает
-  целевое приложение.
-- Готово: реально связать `pauseSession` с таймером.
-- Готово: добавить настройку strict-mode enforcement во время перерывов.
+Открытое решение: нужны ли пользователю наборы strict-rule presets.
 
-### 4. UI interactive layer
+### UI, темы и системные поверхности
 
-- Готово в первом полном implementation pass: единые
-  hover/pressed/selected/focus states, увеличенные hit areas, keyboard-focusable
-  project cards, responsive strict rows, адаптивные mode chips и
-  accessibility selected traits.
-- Готово: новый cockpit сохраняет таймер в центре, скрывает контекстный rail на
-  medium-layout и возвращает его только при ширине от 1680 pt.
-- Готово: усилен контраст вторичного текста в light/dark/custom themes;
-  проверены light и dark Theme Studio состояния.
-- Готово: live compact-layout proof ниже 980 pt, длинные RU/EN названия,
-  light/dark/custom themes и Tab traversal с временно включённой macOS
-  Keyboard Navigation. Найденное сжатие compact-nav labels исправлено.
-- Осталось: точечный Product Design polish по реальным накопленным данным и
-  отдельный VoiceOver-аудит, если он понадобится перед более широкой поставкой.
+- Wide cockpit сохраняет проект слева, таймер в центре и задачи справа;
+  medium/compact layouts, длинные RU/EN подписи и keyboard focus проверены.
+- Общий visual control layer покрывает hover, pressed, selected, focus и полные
+  pointer targets для выделенных surface.
+- Theme Studio хранит явные Light/Dark palettes, использует один preview с
+  режимами Main Window/Menu Bar/Fullscreen и подключает `glassOpacity`,
+  `density` и `motion` к runtime UI.
+- AppIcon и launch animation используют общую `FocusGlassMarkGeometry`;
+  последовательность адаптивна и уважает Reduce Motion.
+- Menu Bar HUD работает через lifecycle-managed `NSPanel` поверх других
+  приложений и fullscreen Spaces.
+- Fullscreen адаптирован для узких окон и длинных названий задач.
 
-### 5. Аналитика
+Открыто: отдельный VoiceOver-аудит и точечный Product Design polish на реальных
+пользовательских данных.
 
-- Готов первый implementation pass: planned vs actual/effectiveness,
-  последние сессии, эффективность режимов, сводка по проектам и отвлечения по
-  проектам/режимам.
-- Осталось: Product Design polish на реальных накопленных данных и решение,
-  нужны ли отдельные task-level срезы сверх текущих session/project summaries.
+### Аналитика
 
-## Позже
+- Реализованы daily summary, focus score, planned vs actual/effectiveness,
+  recent sessions, mode effectiveness, project summaries и distraction
+  analytics по проектам/режимам.
 
-- Наборы strict-rule presets.
-- Улучшенный menu bar HUD.
-- Улучшенный fullscreen task flow. Частично начато: добавлен skip segment и
-  выбор активной задачи в fullscreen.
-- Проверка читаемости Theme Studio. Частично начато: advanced color tokens
-  получили живой preview.
-- Подготовка подписанного/notarized релиза.
+Открытое решение: нужны ли отдельные task-level срезы сверх текущих session и
+project summaries.
+
+## Следующий порядок
+
+1. Получить и разобрать обратную связь по tester-сборке. `tester/0.0.4` является
+   историческим снимком; следующая tester delivery создаётся только по команде
+   владельца и получает новую версию, cumulative checklist и новые документы.
+2. Провести Product Design polish на реальных накопленных session/history data,
+   не перестраивая уже реализованные outcome, Strict history и analytics с
+   нуля.
+3. Принять продуктовые решения по custom timer presets, strict-rule presets и
+   task-level analytics.
+4. Провести отдельный VoiceOver/accessibility audit всех основных surfaces.
+5. Подготовить Developer ID signing/notarization для более широкого
+   распространения.
+
+## QA-инструменты позже
+
+- При необходимости добавить ScreenCaptureKit-based helper для стабильной
+  записи launch animation на 60/120 Hz. DEBUG launch delay остаётся только
+  локальным инструментом и не влияет на release timing.
+- Branch protection и GitHub Actions включать после отдельного решения о
+  стабильном PR/release процессе.
 
 ## Пока вне зоны
 

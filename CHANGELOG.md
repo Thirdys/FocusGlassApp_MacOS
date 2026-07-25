@@ -4,7 +4,50 @@
 
 ## [Unreleased]
 
-- Пока нет новых изменений после подготовки tester-сборки `0.0.4`.
+Эти изменения находятся в текущей ветке разработки и не входят в историческую
+tester-сборку `0.0.4`.
+
+### Добавлено
+
+- Persistent Strict Mode history с целью, временем, фактическим действием,
+  сессией, проектом, задачей и режимом таймера.
+- Analytics первого прохода: planned vs actual, последние сессии,
+  эффективность режимов, сводки проектов и отвлечения по проектам/режимам.
+- Общая `FocusGlassMarkGeometry` для AppIcon и launch animation.
+- Явные Light/Dark палитры пользовательских тем и проверка импортируемых
+  theme-файлов.
+- Общие интерактивные зоны `FocusGlassHitTarget` и disclosure surface, у
+  которых работает вся визуально выделенная область.
+
+### Изменено
+
+- Launch animation переработана в цельную последовательность tile, arc, timer
+  hand, focus confirmation и wordmark с адаптивным размером и Reduce Motion.
+- Theme Studio использует одно preview с режимами Main Window, Menu Bar и
+  Fullscreen; `glassOpacity`, `density` и `motion` влияют на реальный UI.
+- Menu Bar HUD переведён с `NSPopover` на lifecycle-managed `NSPanel`, чтобы
+  открываться поверх других приложений и fullscreen Spaces.
+- Fullscreen task flow адаптирован для узких окон и длинных RU/EN названий.
+- Cockpit открывает Settings сразу на Strict Mode, а счётчики enabled app/site
+  rules согласованы между поверхностями.
+- Compact navigation, длинные подписи, вторичный текст и keyboard focus
+  проверены и доработаны для Light, Dark и custom themes.
+
+### Исправлено
+
+- Все найденные кнопки, disclosure-заголовки, строки навигации, карточки и
+  компактные icon actions реагируют на нажатие по полной видимой области, а не
+  только по тексту или SF Symbol.
+- `quitAfterOptIn` не выполняет опасное действие без сохранённого подтверждения.
+- Dev-loop изолирует SwiftPM scratch-пути разных toolchain и не переиспользует
+  несовместимую `.build`.
+
+### Проверено
+
+- Полный набор SwiftPM-тестов: 68/68.
+- Packaged-app QA главного окна, Settings, Theme Studio, Menu Bar, fullscreen,
+  Strict Mode и launch animation.
+- `codesign --verify --deep --strict build/FocusGlass.app`.
 
 ## [0.0.4] - 2026-06-27
 

@@ -73,20 +73,17 @@ swift build --disable-sandbox
 swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test
 ```
 
-Быстрый запуск как SwiftPM executable:
+Основной dev-loop для ручного тестирования реальной macOS `.app`:
 
 ```sh
-swift run FocusGlass
+FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify
 ```
 
-Сборка локального `.app` для ручного тестирования:
-
-```sh
-./Scripts/package-app.sh
-open build/FocusGlass.app
-```
-
-`swift run` полезен для быстрых UI-проверок, но macOS не считает такой процесс полноценным приложением. Для permissions QA используй `build/FocusGlass.app`.
+Скрипт использует `./Scripts/package-app.sh` как источник логики упаковки,
+перезапускает `build/FocusGlass.app` и поддерживает `--logs`, `--telemetry` и
+`--debug`. `swift run FocusGlass` допустим только для узкой отладки: macOS не
+считает такой процесс полноценным приложением, поэтому permissions, Menu Bar,
+fullscreen и packaged-app UI проверяются через `.app`.
 
 Сборка zip-артефакта для ручной передачи тестеру:
 
@@ -94,8 +91,8 @@ open build/FocusGlass.app
 ./Scripts/package-release.sh
 ```
 
-Номер версии хранится в `VERSION`, например `0.0.2`. Для публично отмеченной
-сборки commit дополнительно помечается tag вида `v0.0.2`; если текущий commit
+Номер версии хранится в `VERSION`, например `0.0.4`. Для публично отмеченной
+сборки commit дополнительно помечается tag вида `v0.0.4`; если текущий commit
 стоит ровно на таком tag, скрипты берут версию из tag. Скрипт создаёт
 `FocusGlass.app`, `FocusGlass-<version>.zip` и `.sha256` под
 `build/releases/<version>/`. Папка `build/` остаётся локальным generated output
@@ -126,8 +123,9 @@ VERSION                # текущий понятный номер сборки
 - [QA Checklist](docs/qa-checklist.md) - ручная и автоматическая проверка.
 - [GitHub Workflow](docs/process/github-workflow.md) - ветки, коммиты, теги, релизы и правила работы.
 - [Roadmap](docs/process/roadmap.md) - ближайшее развитие без смены идеи проекта.
-- [Tester Checklist](docs/process/tester-checklist.md) - компактный чеклист для ручной проверки tester-сборки.
-- [Tester Report Template](docs/process/tester-report-template.md) - шаблон отчёта тестера со screenshots и severity.
+- [Tester Checklist](docs/process/tester-checklist.md) - снимок полного ручного прохода для tester-сборки `0.0.4`.
+- [Tester Rules](docs/process/tester-rules.md) - правила, словарь терминов и критерии blocker для тестера.
+- [Tester Report Template](docs/process/tester-report-template.md) - снимок шаблона отчёта для `0.0.4` со screenshots и severity.
 
 Документация считается частью реализации. Если меняется поведение, структура данных, permissions, UI, сборка или QA, соответствующий документ обновляется в том же изменении.
 
@@ -136,7 +134,9 @@ VERSION                # текущий понятный номер сборки
 Проект ведётся по аккуратному GitHub-процессу:
 
 - `main` - стабильная ветка.
-- `feature/...` - новые возможности.
+- `codex/next` - основная ветка работы ассистента.
+- `feature/next` - рабочая ветка владельца, когда она нужна.
+- `codex/<topic>` / `feature/<topic>` - изолированные изменения.
 - `fix/...` - исправления.
 - `chore/...` - инфраструктура и уборка.
 - `docs/...` - документация.
@@ -148,13 +148,18 @@ VERSION                # текущий понятный номер сборки
 
 ## Текущий статус
 
-Проект находится в активной разработке. Это уже не пустой MVP, но ещё не финальный публичный релиз. Ближайший фокус:
+Проект находится в активной разработке. В текущей ветке уже реализованы
+post-session outcome, project notes, persistent strict distraction history,
+planned-vs-actual analytics, явные Light/Dark варианты тем, общий знак
+AppIcon/launch animation, lifecycle-managed Menu Bar panel и полный проход зон
+нажатия. Tester-сборка `0.0.4` остаётся отдельным историческим снимком и не
+включает изменения из секции `Unreleased`.
 
-- довести таймеры и task estimate до полноценного поведения;
-- усилить strict mode end-to-end;
-- сделать session outcome;
-- выровнять интерактивность UI;
-- улучшить аналитику planned vs honest focus.
+Ближайшие решения: обработать реальные tester-данные, определить необходимость
+пользовательских timer/strict presets и task-level analytics, провести
+отдельный VoiceOver-аудит и подготовить подписанный/notarized канал
+распространения. Детальный порядок хранится в
+[roadmap](docs/process/roadmap.md) и [handoff](handoff.md).
 
 ## Принципы проекта
 

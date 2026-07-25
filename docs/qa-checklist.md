@@ -11,8 +11,8 @@
   `build/FocusGlass.app`, forwards `FOCUSGLASS_DATA_DIR` as a launch argument,
   and can also stream `--logs` or `--telemetry`.
 - Before tester handoff, check that `VERSION`, public tag, zip name, and tester
-  branch name describe the same visible version, for example `0.0.2` and
-  `v0.0.2`.
+  branch name describe the same visible version, for example `X.Y.Z` and
+  `vX.Y.Z`.
 - For release handoff, run `./Scripts/package-release.sh` and verify the zip
   plus `.sha256` appear under `build/releases/<version>/`.
 - In the main window, verify the bottom-right badge shows the app version and
@@ -184,6 +184,13 @@
   steppers.
 - Verify project/task edit buttons respond when clicking the full 44x44 hover
   area around the pencil icon.
+- Expand and collapse Theme Studio advanced settings by clicking the title,
+  empty row padding, and chevron separately; all points in the highlighted
+  disclosure header must work.
+- Repeat the full-surface check for project notes and other disclosure rows.
+- Verify compact icon actions have at least a 40 pt target and regular
+  controls/rows at least 44 pt. The pointer target and hover/pressed surface
+  must describe the same area.
 - Verify Settings text fields use glass styling instead of rounded-border
   stock controls.
 - Verify long RU/EN values such as "Как в macOS", "Универсальный доступ", and
@@ -209,6 +216,12 @@
   not manual hex typing, and changes are visible in the single live preview.
 - Duplicate or import a custom theme and verify `Удалить тему` appears only for
   that custom theme. Verify built-in themes show `Сбросить`, not delete.
+- Export/import a theme with malformed colors, non-finite numeric values, and
+  out-of-range opacity/motion/density values; invalid data must be rejected or
+  repaired without corrupting the selected profile.
+- In each Light and Dark variant, change `glassOpacity`, `density`, and
+  `motion`; verify each token visibly affects the real main, Menu Bar,
+  fullscreen, or launch surface rather than preview only.
 
 ## Fullscreen focus
 
@@ -221,6 +234,20 @@
 - Skip segment is available in fullscreen hover controls with the same disabled
   behavior as the main screen.
 - Escape or close control exits focus mode.
+- Use a long five-line RU/EN task name at narrow and wide sizes. The timer must
+  remain the visual anchor and the complete title must remain available through
+  wrapping and accessibility/help.
+
+## Menu bar HUD
+
+- Open the HUD while another application is active; it must appear without
+  first activating the desktop or FocusGlass main window.
+- Open it over a fullscreen Space and verify the lifecycle-managed panel is
+  visible and interactive.
+- Verify an actual outside click closes it, while interacting with its controls
+  does not dismiss it prematurely.
+- Close/reopen the main window from Menu Bar and verify launch animation does
+  not replay during the same process.
 
 ## Analytics
 

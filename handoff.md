@@ -19,6 +19,35 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed a repository-wide documentation synchronization against current
+  code, Git history, `v0.0.4`, and `Release/tester/0.0.4`:
+  - `README.md`, product/architecture/assistant/design context, roadmap,
+    GitHub workflow, QA, changelog, and current handoff sections now describe
+    schema v6, the lifecycle-managed Menu Bar `NSPanel`, shared launch/AppIcon
+    geometry, explicit Light/Dark theme variants, Strict history, analytics,
+    and the completed full-surface hit-target pass.
+  - `CHANGELOG.md` now records all commits after `v0.0.4` under `Unreleased`.
+    `PATCH_NOTES.md`, tester checklist, and tester report template are explicitly
+    marked as historical `0.0.4` snapshots so they cannot be mistaken for the
+    current development branch.
+  - Added canonical `docs/process/tester-rules.md` with explanations for
+    checksum, ad-hoc signing, notarization, backup, Automation permissions,
+    Strict actions, and blocker criteria.
+  - Current roadmap now distinguishes completed outcome/Strict history/UI/theme/
+    Menu Bar/fullscreen/analytics work from actual open decisions: custom timer
+    presets, strict-rule presets, task-level analytics, dedicated VoiceOver
+    audit, real-data Product Design polish, and signing/notarization.
+  - Validation passed: all local links across 15 active Markdown files exist,
+    stale-current-term scans are clean, `bash -n script/build_and_run.sh`,
+    `git diff --check`, and 68/68 SwiftPM tests.
+  - Used/validated with: Graphify, Git/code/history inspection, SwiftPM and
+    documentation link/consistency checks.
+  - Not done: no code behavior, `VERSION`, tag, tester branch, release archive,
+    GitHub Release, or packaged-app runtime changes.
+  - Next skill/workflow: tester feedback starts with SwiftPM/test-triage; UX
+    follow-up starts Product Design-first and finishes with Build macOS Apps.
+    Before another tester sync, generate a new cumulative checklist/rules/report
+    package from current `CHANGELOG.md` and `docs/qa-checklist.md`.
 - Completed a Product Design-led full UI hit-target audit and implementation
   pass:
   - Audited every SwiftUI button/disclosure/custom control pattern under
@@ -737,10 +766,9 @@ Started or partially started roadmap items:
 Parked roadmap items for later:
 
 - Strict-rule presets.
-- Improved menu bar HUD.
-- Improved fullscreen task flow. Partially started with fullscreen skip and
-  active task selection.
-- Theme Studio readability pass. Partially started with advanced-token preview.
+- Custom timer presets, if editable built-ins are not sufficient.
+- Deeper task-level analytics, if session/project summaries are not sufficient.
+- Dedicated VoiceOver/accessibility audit.
 - Signed/notarized distribution.
 
 ## Current Operating Plan
@@ -895,7 +923,10 @@ Keep quick choices in the main cockpit, deep configuration in Settings, and syst
 - Update documentation when behavior, architecture, QA, packaging, permissions, visual language, or design rules change.
 - Never revert user changes or generated outputs without explicit approval.
 - GitHub process lives in `docs/process/github-workflow.md`; follow it for branches, Russian commit messages, Russian PRs, tags, releases, and issue handling.
-- Branching is intentionally simple for solo work: use `feature/next` as the default branch for new features and roadmap work; create short separate branches only for isolated fixes/docs/chore/release tasks.
+- Branching is intentionally simple for solo work: assistant work continues on
+  `codex/next`; the owner may use `feature/next`. Create short
+  `codex/<topic>`/`feature/<topic>` branches only for changes that need
+  isolated review, fixes, docs, chores, or release preparation.
 - Every assistant-made commit and assistant-created PR must include the signature line `Ассистент: Codex`.
 - Public roadmap lives in `docs/process/roadmap.md`.
 - Roadmap visibility rule: do not rely only on the numbered `Next Steps`.
@@ -914,8 +945,8 @@ package-first native macOS SwiftUI/AppKit app:
 - `Package.swift` targets `.macOS(.v14)` and exposes executable `FocusGlass`
   plus library `FocusGlassCore`.
 - The app shell uses SwiftUI scenes and AppKit bridges:
-  `NSStatusItem`, `NSPopover`, `NSWindow`, Settings, the main cockpit window,
-  and the fullscreen focus window.
+  `NSStatusItem`, lifecycle-managed `NSPanel`, `NSWindow`, Settings, the main
+  cockpit window, and the fullscreen focus window.
 - Permissions QA must run from a real `.app` bundle, not only from
   `swift run FocusGlass`.
 
@@ -934,7 +965,8 @@ for the existing release process:
 - `build-run-debug`: use and maintain the project-local
   `script/build_and_run.sh` and local ignored
   `.codex/environments/environment.toml` Run action.
-- `appkit-interop`: handle `NSStatusItem`, `NSPopover`, `NSWindow`,
+- `appkit-interop`: handle `NSStatusItem`, `FocusGlassStatusPanel`/`NSPanel`,
+  `NSWindow`,
   activation, AppKit representables, and responder-chain/window behavior.
 - `swiftui-patterns` and `view-refactor`: keep macOS SwiftUI scenes, Settings,
   menu bar UI, cockpit layout, and reusable controls desktop-native.
@@ -957,8 +989,9 @@ FocusGlass-specific use cases to remember:
   runtime work.
 - Use `swiftpm-macos` whenever the task is about package shape, target/product
   boundaries, focused `swift build`, or `swift test` in this package-first repo.
-- Use `appkit-interop` for the menu bar extra, `NSStatusItem`, `NSPopover`,
-  `NSWindow`, activation/foreground behavior, responder-chain behavior,
+- Use `appkit-interop` for the menu bar extra, `NSStatusItem`,
+  `FocusGlassStatusPanel`/`NSPanel`, `NSWindow`, activation/foreground behavior,
+  responder-chain behavior,
   permission-related AppKit edges, and any narrow bridge SwiftUI cannot express
   cleanly.
 - Use `swiftui-patterns` when changing scenes, Settings, menu bar UI, main
@@ -1208,7 +1241,7 @@ Semantic/deep mode later:
   Either ask for a supported key or rebuild an AST-only graph from the Graphify
   Python modules as done on 2026-06-04.
 
-## Current Audit Status
+## Historical Repository Audit (2026-05)
 
 Started on 2026-05-28. Continued on 2026-05-29.
 
