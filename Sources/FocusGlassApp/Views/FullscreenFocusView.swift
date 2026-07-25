@@ -3,6 +3,7 @@ import SwiftUI
 
 struct FullscreenFocusView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
     @Environment(\.dismissWindow) private var dismissWindow
     @State private var isHoveringControls = false
 
@@ -86,7 +87,7 @@ struct FullscreenFocusView: View {
                     Button {
                         model.toggleTimer()
                     } label: {
-                        Image(systemName: model.engineSnapshot.status == .running ? "pause.fill" : "play.fill")
+                        Image(systemName: timerPresentation.snapshot.status == .running ? "pause.fill" : "play.fill")
                             .frame(width: 44, height: 38)
                     }
                     .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .primary))
@@ -106,8 +107,8 @@ struct FullscreenFocusView: View {
                             .frame(width: 38, height: 38)
                     }
                     .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
-                    .disabled(!model.canSkipSegment)
-                    .opacity(model.canSkipSegment ? 1 : 0.42)
+                    .disabled(!timerPresentation.canSkipSegment)
+                    .opacity(timerPresentation.canSkipSegment ? 1 : 0.42)
                     .help(model.t("help.timerSkip"))
 
                     Button {
@@ -131,7 +132,7 @@ struct FullscreenFocusView: View {
     }
 
     private var showsControls: Bool {
-        model.engineSnapshot.status != .running || isHoveringControls
+        timerPresentation.snapshot.status != .running || isHoveringControls
     }
 
     @ViewBuilder
@@ -164,11 +165,11 @@ struct FullscreenFocusView: View {
 
     private func timer(size: CGFloat) -> some View {
         CircularTimerView(
-            clockText: model.primaryClockText,
-            phase: model.phaseTitle(model.engineSnapshot.activeSegment.phase),
-            progress: model.engineSnapshot.progress,
+            clockText: timerPresentation.primaryClockText,
+            phase: model.phaseTitle(timerPresentation.snapshot.activeSegment.phase),
+            progress: timerPresentation.snapshot.progress,
             theme: model.theme,
-            statusText: model.statusTitle(model.engineSnapshot.status),
+            statusText: model.statusTitle(timerPresentation.snapshot.status),
             size: size,
             clockSize: size * 0.196
         )
@@ -240,14 +241,14 @@ struct FullscreenFocusView: View {
     private var segmentRail: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                ForEach(Array(model.engineSnapshot.preset.segments.enumerated()), id: \.offset) { index, segment in
+                ForEach(Array(timerPresentation.snapshot.preset.segments.enumerated()), id: \.offset) { index, segment in
                     VStack(spacing: 7) {
                         Capsule()
-                            .fill(index <= model.engineSnapshot.activeSegmentIndex ? model.theme.primary : .white.opacity(0.14))
+                            .fill(index <= timerPresentation.snapshot.activeSegmentIndex ? model.theme.primary : .white.opacity(0.14))
                             .frame(height: 8)
                         Text(model.phaseTitle(segment.phase))
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(index <= model.engineSnapshot.activeSegmentIndex ? model.theme.primary : model.theme.mutedText)
+                            .foregroundStyle(index <= timerPresentation.snapshot.activeSegmentIndex ? model.theme.primary : model.theme.mutedText)
                             .lineLimit(1)
                     }
                 }

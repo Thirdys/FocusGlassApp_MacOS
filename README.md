@@ -152,8 +152,10 @@ VERSION                # текущий понятный номер сборки
 post-session outcome, project notes, persistent strict distraction history,
 planned-vs-actual analytics, явные Light/Dark варианты тем, общий знак
 AppIcon/launch animation, lifecycle-managed Menu Bar panel и полный проход зон
-нажатия. Tester-сборка `0.0.4` остаётся отдельным историческим снимком и не
-включает изменения из секции `Unreleased`.
+нажатия. Первый interface-performance pass изолировал секундный timer state,
+закэшировал task/analytics summaries и исправил адаптивные project cards.
+Tester-сборка `0.0.4` остаётся отдельным историческим снимком и не включает
+изменения из секции `Unreleased`.
 
 Ближайшие решения: обработать реальные tester-данные, определить необходимость
 пользовательских timer/strict presets и task-level analytics, провести

@@ -32,6 +32,12 @@ tester-сборку `0.0.4`.
   rules согласованы между поверхностями.
 - Compact navigation, длинные подписи, вторичный текст и keyboard focus
   проверены и доработаны для Light, Dark и custom themes.
+- Секундный snapshot таймера вынесен в отдельное presentation state, а
+  task/analytics summaries кэшируются по изменению исходных коллекций: тик
+  больше не инвалидирует весь cockpit и несвязанные экраны.
+- Project grid использует полную selectable surface с внутренними отступами,
+  отдельной зоной редактирования и адаптивной шириной для длинных RU/EN
+  названий.
 
 ### Исправлено
 
@@ -44,9 +50,9 @@ tester-сборку `0.0.4`.
 
 ### Проверено
 
-- Полный набор SwiftPM-тестов: 68/68.
+- Полный набор SwiftPM-тестов: 70/70.
 - Packaged-app QA главного окна, Settings, Theme Studio, Menu Bar, fullscreen,
-  Strict Mode и launch animation.
+  Strict Mode, launch animation и performance/UI-card pass.
 - `codesign --verify --deep --strict build/FocusGlass.app`.
 
 ## [0.0.4] - 2026-06-27

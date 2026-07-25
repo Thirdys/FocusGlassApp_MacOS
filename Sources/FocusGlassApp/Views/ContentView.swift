@@ -906,7 +906,7 @@ private struct FocusTodayView: View {
                 FocusProjectPanel()
                     .frame(width: 360)
 
-                timerStack(size: 360, clockSize: 72)
+                FocusTimerStack(size: 360, clockSize: 72)
                     .frame(minWidth: 360)
 
                 FocusTaskPanel()
@@ -914,7 +914,7 @@ private struct FocusTodayView: View {
             }
 
             VStack(spacing: 18) {
-                timerStack(size: 318, clockSize: 62)
+                FocusTimerStack(size: 318, clockSize: 62)
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 16) {
                         FocusProjectPanel()
@@ -929,15 +929,23 @@ private struct FocusTodayView: View {
             }
         }
     }
+}
 
-    private func timerStack(size: CGFloat, clockSize: CGFloat) -> some View {
+private struct FocusTimerStack: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
+
+    let size: CGFloat
+    let clockSize: CGFloat
+
+    var body: some View {
         VStack(spacing: 18) {
             CircularTimerView(
-                clockText: model.primaryClockText,
-                phase: model.phaseTitle(model.engineSnapshot.activeSegment.phase),
-                progress: model.engineSnapshot.progress,
+                clockText: timerPresentation.primaryClockText,
+                phase: model.phaseTitle(timerPresentation.snapshot.activeSegment.phase),
+                progress: timerPresentation.snapshot.progress,
                 theme: model.theme,
-                statusText: model.statusTitle(model.engineSnapshot.status),
+                statusText: model.statusTitle(timerPresentation.snapshot.status),
                 size: size,
                 clockSize: clockSize
             )
@@ -1232,6 +1240,7 @@ private struct FocusTaskPanel: View {
 
 private struct TimerControlRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
 
     var body: some View {
         HStack(spacing: 14) {
@@ -1261,14 +1270,14 @@ private struct TimerControlRow: View {
                     .frame(width: 34, height: 34)
             }
             .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
-            .disabled(!model.canSkipSegment)
-            .opacity(model.canSkipSegment ? 1 : 0.42)
+            .disabled(!timerPresentation.canSkipSegment)
+            .opacity(timerPresentation.canSkipSegment ? 1 : 0.42)
             .help(model.t("help.timerSkip"))
         }
     }
 
     private var primaryTitle: String {
-        switch model.engineSnapshot.status {
+        switch timerPresentation.snapshot.status {
         case .running: model.t("timer.pause")
         case .paused: model.t("timer.resume")
         case .idle, .completed: model.t("timer.start")
@@ -1656,6 +1665,7 @@ private struct AnalyticsStripView: View {
 
 private struct FocusContextRailView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1665,7 +1675,7 @@ private struct FocusContextRailView: View {
                         Label(model.presetTitle(model.selectedPreset), systemImage: model.selectedPreset.mode.symbolName)
                             .font(.system(size: 13, weight: .bold))
                         Spacer()
-                        Text(model.statusTitle(model.engineSnapshot.status))
+                        Text(model.statusTitle(timerPresentation.snapshot.status))
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(model.theme.primary)
                     }
@@ -1675,11 +1685,11 @@ private struct FocusContextRailView: View {
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(model.theme.mutedText)
                         Spacer()
-                        Text(model.phaseTitle(model.engineSnapshot.activeSegment.phase))
+                        Text(model.phaseTitle(timerPresentation.snapshot.activeSegment.phase))
                             .font(.system(size: 12, weight: .bold))
                     }
 
-                    ProgressView(value: model.engineSnapshot.progress)
+                    ProgressView(value: timerPresentation.snapshot.progress)
                         .tint(model.theme.primary)
                 }
             }
@@ -1946,60 +1956,14 @@ private struct ProjectsScreen: View {
                         detail: model.t("projects.empty.detail")
                     )
                 } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 14)], spacing: 14) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 340), spacing: 14)], spacing: 14) {
                         ForEach(model.projects) { project in
-                            HStack(alignment: .top, spacing: 10) {
-                                Button {
-                                    model.selectProject(project)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        HStack {
-                                            Circle()
-                                                .fill(project.id == model.activeProjectID ? model.theme.primary : model.theme.secondary)
-                                                .frame(width: 10, height: 10)
-                                            if project.id == model.activeProjectID {
-                                                Text(model.t("projects.selected"))
-                                                    .font(.system(size: 10, weight: .bold))
-                                                    .foregroundStyle(model.theme.primary)
-                                            }
-                                            Spacer()
-                                        }
-
-                                        Text(project.name)
-                                            .font(.system(size: 19, weight: .bold, design: .rounded))
-                                            .lineLimit(2)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                        Text(project.detail)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundStyle(model.theme.mutedText)
-                                            .lineLimit(3)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                        Text("\(model.tasks(for: project).count) \(model.t("projects.tasks"))")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundStyle(model.theme.mutedText)
-                                    }
-                                    .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
-                                    .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                }
-                                .buttonStyle(.plain)
-                                .glassHover(theme: model.theme, radius: 12, isActive: project.id == model.activeProjectID)
-                                .accessibilityAddTraits(project.id == model.activeProjectID ? .isSelected : [])
-
-                                Button {
-                                    editingProject = project
-                                } label: {
-                                    Image(systemName: "pencil")
-                                        .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
-                                        .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(model.theme.mutedText)
-                                .glassHover(theme: model.theme, radius: 9)
-                                .help(model.t("projects.edit"))
-                                .accessibilityLabel("\(model.t("projects.edit")): \(project.name)")
+                            ProjectGridCard(
+                                project: project,
+                                taskCount: model.taskCount(for: project)
+                            ) {
+                                editingProject = project
                             }
-                            .padding(16)
-                            .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                         }
                     }
                 }
@@ -2015,6 +1979,83 @@ private struct ProjectsScreen: View {
             }
             .environmentObject(model)
         }
+    }
+}
+
+private struct ProjectGridCard: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    let project: FocusProject
+    let taskCount: Int
+    let onEdit: () -> Void
+
+    private var isSelected: Bool {
+        project.id == model.activeProjectID
+    }
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Button {
+                model.selectProject(project)
+            } label: {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(isSelected ? model.theme.primary : model.theme.secondary)
+                            .frame(width: 10, height: 10)
+                        if isSelected {
+                            Text(model.t("projects.selected"))
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(model.theme.primary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                    }
+
+                    Text(project.name)
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
+
+                    Text(project.detail)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(model.theme.mutedText)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+
+                    Text("\(taskCount) \(model.t("projects.tasks"))")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(model.theme.mutedText)
+                        .lineLimit(1)
+                }
+                .padding(16)
+                .padding(.trailing, 48)
+                .frame(maxWidth: .infinity, minHeight: 178, alignment: .topLeading)
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .glassHover(theme: model.theme, radius: 16, isActive: isSelected)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .help("\(project.name)\n\(project.detail)")
+
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil")
+                    .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(model.theme.mutedText)
+            .glassHover(theme: model.theme, radius: 10)
+            .help(model.t("projects.edit"))
+            .accessibilityLabel("\(model.t("projects.edit")): \(project.name)")
+            .padding(10)
+        }
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

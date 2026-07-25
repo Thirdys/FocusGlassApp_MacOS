@@ -114,6 +114,11 @@
 
 - Create a project from empty state.
 - Select the active project from the cockpit project dropdown.
+- On the Projects screen, use long RU and EN project names/descriptions at
+  narrow and medium widths. Title, description, task count, and selected label
+  must stay inside the selected border with visible internal padding.
+- Click the empty lower area of a project card and verify the project becomes
+  active. The independent pencil target must still open only the editor.
 - Verify the wide cockpit layout keeps project context on the left, the timer in
   the center, and active/project tasks on the right.
 - Verify the old top-level intention field is not visible in cockpit, menu bar,

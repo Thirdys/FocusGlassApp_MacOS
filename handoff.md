@@ -19,14 +19,50 @@ rereading the whole handoff.
 
 Last done:
 
-- Updated the current operating plan at the owner's request: the mandatory next
-  product step is now `0. Interface performance`. It must baseline and optimize
-  launch, cockpit scrolling/resizing, timer invalidations, Theme Studio
-  interactions, Menu Bar HUD, fullscreen, and realistic-data screens before
-  new features or the next tester synchronization. The pass is measurement-led:
-  Graphify orientation, code-first SwiftUI performance audit, Build macOS Apps
-  telemetry/live packaged-app proof, then SwiftPM regression tests. No
-  performance implementation has started yet.
+- Completed the mandatory `0. Interface performance` implementation pass:
+  - Code-first SwiftUI review found that the one-second
+    `@Published engineSnapshot` invalidated the broad
+    `FocusGlassViewModel`, including sidebar, project/task panels, and
+    analytics-derived work. `FocusTimerPresentationState` now publishes the
+    snapshot only to timer surfaces in the cockpit, Menu Bar, fullscreen, and
+    context rail.
+  - Active-project tasks, project task counts, daily/mode/project analytics,
+    and the 28-day heatmap are cached from their source collections. Heatmap
+    cache refreshes across a calendar-day change. Redundant
+    `activeTaskID = nil` publication during timer start was removed.
+  - Product Design live review reproduced the owner's Projects screenshot
+    problem: the selected border was applied before the card's outer padding.
+    `ProjectGridCard` is now one full selectable surface with 16 pt internal
+    padding, 48 pt trailing reserve for the independent edit action, a 340 pt
+    adaptive minimum, and up to three title lines.
+  - Build macOS Apps plus Computer Use confirmed narrow/medium layouts,
+    Light/Dark custom Noir Crimson, long RU/EN project names, and selection by
+    clicking the empty lower part of a card. No text crosses the selected
+    border and edit controls stay independent.
+  - Runtime timer proof: five `top` samples were `0.0...1.2% CPU`, about
+    `119 MB` resident memory, and 4 threads. Current custom-theme telemetry
+    recorded `ui 0.05 ms`, runtime icon `3.05 ms`, save `2.19 ms`, and icon
+    `4.50 ms`.
+  - Tests prove timer start/tick produces two timer-state publications and
+    zero broad-model publications; task/analytics cache synchronization is
+    covered separately.
+  - Product Design/runtime proof:
+    `/private/tmp/focusglass-performance-pass-20260726-034829`.
+  - Validation passed: `swift build`, 70/70 SwiftPM tests,
+    `bash -n script/build_and_run.sh`, packaged
+    `./script/build_and_run.sh --verify`, strict codesign, and
+    `git diff --check`.
+  - Limitation: this machine exposes Command Line Tools, not a usable full
+    Xcode `xctrace`, so no Instruments trace is claimed. Use Instruments only
+    if a reproducible jank remains or full Xcode becomes available.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage, Computer Use, packaged `.app`, telemetry, `top`, and
+    codesign.
+  - Not done: no `VERSION`, tag, tester branch, release archive, GitHub
+    Release, or tester synchronization.
+  - Next skill/workflow: owner visual review or tester feedback starts with
+    SwiftPM/test-triage. Further UX polish starts Product Design-first against
+    realistic accumulated data and finishes with Build macOS Apps live proof.
 - Completed a repository-wide documentation synchronization against current
   code, Git history, `v0.0.4`, and `Release/tester/0.0.4`:
   - `README.md`, product/architecture/assistant/design context, roadmap,
@@ -650,6 +686,10 @@ Previous tester-fix validation still relevant:
 
 Remaining after the newest implementation checkpoint:
 
+- The first interface-performance pass and the owner-reported project-card
+  selection/text overflow defect are closed. Full Instruments profiling is not
+  required unless a reproducible lag remains; it needs full Xcode rather than
+  the current Command Line Tools.
 - The requested compact, keyboard-focus, real `warn`, real `pauseSession`,
   Safari site-rule, and safe `quitAfterOptIn` live-QA limits are closed. The
   proof folder is `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
@@ -681,8 +721,8 @@ Active partial work:
 - Full UI/UX audit is complete as evidence/planning work. First UI polish code
   has been implemented for Theme Studio, cockpit task-row wrapping, and the
   protected-folder icon-persistence prompt. The compact navigation issue found
-  by the follow-up live pass is also fixed. Broader targeted UI polish remains
-  open.
+  by the follow-up live pass and the project-grid selected-surface overflow are
+  also fixed. Broader targeted UI polish against real user data remains open.
 
 Resume instructions if a future plan/thread continues from here:
 
@@ -697,12 +737,12 @@ Resume instructions if a future plan/thread continues from here:
      currently missing, so use `docs/design/design-source.md` plus the current
      `.app`.
 - If this checkpoint is seen before the commit lands, the intended tracked
-  source changes are the Theme Studio polish, reusable `GlassSlider`, cockpit
-  task-row wrapping fix, protected-folder icon-persistence skip, focused tests,
-  localization/docs updates, and this handoff update. Local audit/proof
-  artifacts live in `/private/tmp` and release artifacts live under ignored
-  `build/`. Do not stage `.codex/`, `graphify-out/`, `build/`, `.build/`, or
-  `.swiftpm/`.
+  source changes are timer-presentation isolation, derived task/analytics
+  caches, project-grid selected-surface layout, focused tests, documentation,
+  and this handoff update. Local audit/proof artifacts live at
+  `/private/tmp/focusglass-performance-pass-20260726-034829`; generated app
+  output stays under ignored `build/`. Do not stage `.codex/`, `graphify-out/`,
+  `build/`, `.build/`, or `.swiftpm/`.
 - Required final checks for this workflow pass:
   `bash -n script/build_and_run.sh`,
   `swift build`,
@@ -713,7 +753,7 @@ Resume instructions if a future plan/thread continues from here:
   `codesign --verify --deep --strict build/FocusGlass.app`,
   `git diff --check`, and `graphify update .`.
 - Intended commit message if not already committed:
-  `feat: улучшить Theme Studio` with commit body
+  `perf: изолировать обновления таймера` with commit body
   `Ассистент: Codex`.
 - Do not create a GitHub Release until the owner explicitly asks for it.
 
@@ -790,15 +830,14 @@ item, also show "what is going on with the roadmap" from
 `Roadmap Status Snapshot`. If this plan later grows beyond seven items, keep
 using the full current operating plan first, then the roadmap block.
 
-0. Before new features or the next tester synchronization, complete a dedicated
-   interface performance pass. Baseline launch/animation, cockpit
-   scrolling/resizing, timer ticks, Theme Studio interactions, Menu Bar HUD,
-   fullscreen, and realistic-data screens; then remove measured SwiftUI
-   invalidation, main-thread, material/shadow/layout, or side-effect
-   bottlenecks without degrading the existing visual identity. Validate through
-   code-first SwiftUI performance review plus Build macOS Apps telemetry and
-   live packaged `.app` proof. Preserve the completed zero-stage design/runtime
-   contract documented at `/private/tmp/focusglass-zero-stage-qa/accepted`.
+0. The first dedicated interface-performance pass is complete. Timer ticks are
+   isolated from the broad app model, derived task/analytics work is cached,
+   redundant active-task publications are removed, and project cards keep
+   long RU/EN content inside their full selected surfaces. Packaged-app proof
+   and runtime samples are under
+   `/private/tmp/focusglass-performance-pass-20260726-034829`. A full
+   Instruments trace is optional when full Xcode is available or a reproducible
+   jank remains.
 1. Use Graphify before broad project/status/codebase questions and after code
    changes: start with `graphify query "<question>"` when the graph exists, and
    finish code changes with `graphify update .`.
