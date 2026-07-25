@@ -301,6 +301,8 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             .foregroundStyle(foreground)
             .padding(.horizontal, theme.spacing(horizontalPadding))
             .padding(.vertical, theme.spacing(verticalPadding))
+            .frame(minHeight: FocusGlassHitTarget.compact)
+            .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .background(background(isPressed: pressed, isHovering: isHovering), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(alignment: .topLeading) {
@@ -443,6 +445,11 @@ struct LiquidGlassButtonStyle: ButtonStyle {
     }
 }
 
+enum FocusGlassHitTarget {
+    static let compact: CGFloat = 40
+    static let row: CGFloat = 44
+}
+
 struct GlassHoverHighlight: ViewModifier {
     let theme: ThemeProfile
     var radius: CGFloat = 11
@@ -538,6 +545,7 @@ struct GlassCheckboxToggleStyle: ToggleStyle {
                 configuration.label
             }
             .foregroundStyle(theme.text)
+            .frame(minHeight: FocusGlassHitTarget.compact)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -587,6 +595,57 @@ extension View {
     }
 }
 
+struct GlassDisclosureSection<Label: View, Content: View>: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    @Binding var isExpanded: Bool
+    private let label: Label
+    private let content: Content
+
+    init(
+        isExpanded: Binding<Bool>,
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder content: () -> Content
+    ) {
+        _isExpanded = isExpanded
+        self.label = label()
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: model.theme.animationDuration(0.18))) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 10) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .foregroundStyle(model.theme.primary)
+                        .accessibilityHidden(true)
+
+                    label
+
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .glassHover(theme: model.theme, radius: 10, isActive: isExpanded)
+
+            if isExpanded {
+                content
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .animation(.easeInOut(duration: model.theme.animationDuration(0.18)), value: isExpanded)
+    }
+}
+
 struct GlassSegmentedControl<Value: Equatable>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
 
@@ -618,6 +677,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, model.theme.spacing(10))
                     .padding(.vertical, model.theme.spacing(9))
+                    .frame(minHeight: FocusGlassHitTarget.compact)
                     .foregroundStyle(isSelected ? model.theme.text : model.theme.mutedText)
                     .background(
                         isSelected ? model.theme.primary.opacity(0.20) : Color.clear,
@@ -709,7 +769,8 @@ struct GlassSelect<Value: Equatable>: View {
             }
             .padding(.horizontal, model.theme.spacing(12))
             .padding(.vertical, model.theme.spacing(9))
-            .frame(minWidth: minWidth, alignment: .leading)
+            .frame(minWidth: minWidth, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .background(
                 LinearGradient(
                     colors: [
@@ -781,6 +842,8 @@ struct GlassSelect<Value: Equatable>: View {
                         }
                         .padding(.horizontal, 11)
                         .padding(.vertical, 9)
+                        .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.compact, alignment: .leading)
+                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .foregroundStyle(option == selection ? model.theme.text : model.theme.mutedText)
                         .background(
                             option == selection ? model.theme.primary.opacity(0.16) : Color.clear,
@@ -1199,6 +1262,8 @@ struct ModeChip: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 15)
             .padding(.vertical, 10)
+            .frame(minHeight: FocusGlassHitTarget.row)
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .foregroundStyle(isSelected ? model.theme.text : model.theme.text.opacity(0.74))
             .background(
                 LinearGradient(
@@ -1392,6 +1457,8 @@ struct ThemeSwatch: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 9)
+            .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .background(
                 isSelected ? profile.primary.opacity(0.18) : .white.opacity(0.045),
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -1402,6 +1469,7 @@ struct ThemeSwatch: View {
             }
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
         .glassHover(theme: profile, radius: 10, isActive: isSelected)
     }
 }

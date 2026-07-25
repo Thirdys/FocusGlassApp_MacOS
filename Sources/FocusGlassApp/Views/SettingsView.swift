@@ -878,6 +878,8 @@ private struct AddAppRuleControls: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 11)
                             .padding(.vertical, 9)
+                            .frame(minHeight: FocusGlassHitTarget.row)
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(.plain)
@@ -1219,15 +1221,15 @@ struct ThemeStudioView: View {
     }
 
     private var advancedEditor: some View {
-        DisclosureGroup(isExpanded: $showsAdvanced) {
-            editorSections
-            .padding(.top, 12)
-        } label: {
+        GlassDisclosureSection(isExpanded: $showsAdvanced) {
             Label(model.t("theme.advancedColors"), systemImage: "slider.horizontal.3")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(model.theme.text)
+                .padding(.horizontal, 2)
+        } content: {
+            editorSections
+                .padding(.top, 12)
         }
-        .tint(model.theme.primary)
     }
 
     private var editorSections: some View {

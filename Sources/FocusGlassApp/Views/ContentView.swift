@@ -740,8 +740,10 @@ private struct CompactNavBar: View {
                             .font(.system(size: 12, weight: .bold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 9)
+                            .frame(minHeight: FocusGlassHitTarget.compact)
                             .fixedSize(horizontal: true, vertical: false)
                             .foregroundStyle(model.selectedSidebarItem == item ? model.theme.text : model.theme.mutedText)
+                            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .fixedSize(horizontal: true, vertical: false)
@@ -1031,13 +1033,7 @@ private struct FocusProjectPanel: View {
     @ViewBuilder
     private var projectNotes: some View {
         if activeProject != nil {
-            DisclosureGroup(isExpanded: $isNotesExpanded) {
-                TextField(model.t("projects.notes.placeholder"), text: activeProjectNotesBinding, axis: .vertical)
-                    .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
-                    .font(.system(size: 12, weight: .medium))
-                    .lineLimit(3...7)
-                    .padding(.top, 8)
-            } label: {
+            GlassDisclosureSection(isExpanded: $isNotesExpanded) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Image(systemName: "note.text")
@@ -1056,8 +1052,15 @@ private struct FocusProjectPanel: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                .padding(13)
+            } content: {
+                TextField(model.t("projects.notes.placeholder"), text: activeProjectNotesBinding, axis: .vertical)
+                    .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(3...7)
+                    .padding(.horizontal, 13)
+                    .padding(.bottom, 13)
             }
-            .padding(13)
             .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -1130,7 +1133,8 @@ private struct FocusTaskPanel: View {
                         editingTask = task
                     } label: {
                         Image(systemName: "pencil")
-                            .frame(width: 28, height: 28)
+                            .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(model.theme.mutedText)
@@ -1290,7 +1294,7 @@ private struct FocusTaskCardRow: View {
             } label: {
                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 16, weight: .bold))
-                    .frame(width: 30, height: 30)
+                    .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
                     .contentShape(Rectangle())
                     .foregroundStyle(task.isDone ? model.theme.primary : model.theme.mutedText)
             }
@@ -1324,7 +1328,8 @@ private struct FocusTaskCardRow: View {
                             .tint(model.theme.primary)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .buttonStyle(.plain)
             .glassHover(theme: model.theme, radius: 12, isActive: isSelected)
@@ -1335,7 +1340,7 @@ private struct FocusTaskCardRow: View {
                 onEdit()
             } label: {
                 Image(systemName: "pencil")
-                    .frame(width: 28, height: 28)
+                    .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -1973,8 +1978,8 @@ private struct ProjectsScreen: View {
                                             .font(.system(size: 11, weight: .semibold))
                                             .foregroundStyle(model.theme.mutedText)
                                     }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
+                                    .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                                    .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
                                 .glassHover(theme: model.theme, radius: 12, isActive: project.id == model.activeProjectID)
@@ -1984,7 +1989,8 @@ private struct ProjectsScreen: View {
                                     editingProject = project
                                 } label: {
                                     Image(systemName: "pencil")
-                                        .frame(width: 28, height: 28)
+                                        .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
+                                        .contentShape(Rectangle())
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundStyle(model.theme.mutedText)
