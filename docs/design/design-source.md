@@ -179,10 +179,15 @@ source of truth.
 ## Known Design Caveats
 
 - Advanced Theme Studio uses a single three-mode live preview, custom
-  `GlassSlider`, grouped token sections, and ColorPicker-backed color cards.
-  Future polish should continue from that control language instead of
-  returning to stock sliders or manual hex entry as the primary color-editing
-  path.
+  `GlassSlider`, independently collapsible token sections, and
+  ColorPicker-backed color cards. `Стекло и движение` is the initial open
+  group; the other groups stay discoverable without forcing every editor
+  control into one long composited surface. Future polish should continue from
+  that control language instead of returning to stock sliders or manual hex
+  entry as the primary color-editing path.
+- Scroll motion should remain visually quiet: controls do not pulse, scale, or
+  rebuild moving shadows merely because a stationary pointer crosses them
+  during scrolling. Hover feedback resumes when the surface becomes idle.
 - Remaining design work is data-driven Product Design polish and a dedicated
   VoiceOver audit, not a replacement of the current information architecture.
 - Automated high-refresh launch recording remains a QA-tooling concern on

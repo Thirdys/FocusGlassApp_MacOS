@@ -216,9 +216,12 @@
   persists after the debounce, without visible UI stalls during dragging.
 - Check Appearance for the theme side-effect status/performance message.
 - Confirm advanced Theme Studio is collapsed by default.
-- Expand advanced Theme Studio and verify background top/mid/bottom, surface,
-  elevated surface, text, and muted text can be changed through color pickers,
-  not manual hex typing, and changes are visible in the single live preview.
+- Expand advanced Theme Studio. Verify `Стекло и движение` opens initially,
+  while accent, foundation, and readability are separate full-row disclosure
+  targets. Expand each group from its text, empty padding, and chevron.
+- Verify background top/mid/bottom, surface, elevated surface, text, and muted
+  text can be changed through color pickers, not manual hex typing, and changes
+  are visible in the single live preview.
 - Duplicate or import a custom theme and verify `Удалить тему` appears only for
   that custom theme. Verify built-in themes show `Сбросить`, not delete.
 - Export/import a theme with malformed colors, non-finite numeric values, and
@@ -309,12 +312,17 @@
 - With realistic projects, tasks, sessions, and distraction history, scroll and
   resize the cockpit, Projects, Analytics, Settings, and Strict history without
   repeated stalls.
+- Keep the pointer over interactive rows while scrolling. Hover scale, glow,
+  material, and shadow effects must not repeatedly animate as rows pass under
+  the stationary pointer; they should resume after scrolling stops.
 - Leave the timer running while interacting with unrelated surfaces. The
   one-second tick must not visibly reset controls, interrupt scrolling, or
   invalidate the entire window.
 - Drag Theme Studio sliders and switch Light/Dark/custom themes rapidly. Pointer
   interaction must remain responsive while persistence and icon side effects
   complete through their existing deferred paths.
+- In fullscreen, verify checklist/timed metadata stays on a separate readable
+  line below long task titles and never collapses into a vertical letter stack.
 - Repeatedly open/close Menu Bar HUD and enter/exit fullscreen. Window
   transitions and controls must respond without a visible main-thread pause.
 - Verify performance fixes preserve visual quality, Reduce Motion, keyboard

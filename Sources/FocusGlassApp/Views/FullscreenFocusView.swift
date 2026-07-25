@@ -189,7 +189,7 @@ struct FullscreenFocusView: View {
                     detail: model.t("fullscreen.empty.detail")
                 )
             } else {
-                ScrollView {
+                FocusGlassScrollView {
                     LazyVStack(spacing: 10) {
                         ForEach(model.activeTasks) { task in
                             Button {
@@ -198,21 +198,24 @@ struct FullscreenFocusView: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: model.activeTaskID == task.id ? "target" : "circle")
                                         .foregroundStyle(model.activeTaskID == task.id ? model.theme.primary : model.theme.mutedText)
-                                    Text(task.title)
-                                        .font(.system(size: 15, weight: .bold))
-                                        .lineLimit(5)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                        .layoutPriority(1)
-                                    Spacer()
-                                    if task.timingMode == .timed {
-                                        Text(task.estimate.focusClock)
-                                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                                            .foregroundStyle(model.theme.mutedText)
-                                    } else {
-                                        Text(model.t("tasks.checklist"))
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(model.theme.mutedText)
+
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(task.title)
+                                            .font(.system(size: 15, weight: .bold))
+                                            .lineLimit(5)
+                                            .fixedSize(horizontal: false, vertical: true)
+
+                                        if task.timingMode == .timed {
+                                            Text(task.estimate.focusClock)
+                                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                                .foregroundStyle(model.theme.mutedText)
+                                        } else {
+                                            Text(model.t("tasks.checklist"))
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundStyle(model.theme.mutedText)
+                                        }
                                     }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 13)

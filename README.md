@@ -154,6 +154,8 @@ planned-vs-actual analytics, явные Light/Dark варианты тем, об
 AppIcon/launch animation, lifecycle-managed Menu Bar panel и полный проход зон
 нажатия. Первый interface-performance pass изолировал секундный timer state,
 закэшировал task/analytics summaries и исправил адаптивные project cards.
+Следующий performance-pass унифицировал все scroll surfaces, убрал hover/shadow
+churn во время движения и сократил одновременно открытый Theme Studio editor.
 Tester-сборка `0.0.4` остаётся отдельным историческим снимком и не включает
 изменения из секции `Unreleased`.
 

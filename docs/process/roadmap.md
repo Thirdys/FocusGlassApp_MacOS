@@ -82,6 +82,14 @@ project summaries.
      theme и длинных RU/EN строках; runtime timer samples держались в пределах
      `0.0...1.2% CPU`, около `119 MB` resident memory и 4 threads;
    - proof: `/private/tmp/focusglass-performance-pass-20260726-034829`.
+   Продолжение performance-pass также завершено:
+   - все app scroll surfaces используют общий scroll-phase-aware wrapper,
+     ленивые стеки и подавление hover/shadow/material cost во время движения;
+   - Theme Studio advanced-группы раскрываются отдельно, а непрерывные
+     slider/color edits не запускают app-wide transition на каждом шаге;
+   - fullscreen task metadata больше не сжимается рядом с длинным заголовком;
+   - proof:
+     `/private/tmp/focusglass-scroll-performance-20260726-044203`.
    Полный Instruments trace остаётся optional follow-up при установленном
    полном Xcode или при появлении воспроизводимого jank.
 1. Получить и разобрать обратную связь по tester-сборке. `tester/0.0.4` является

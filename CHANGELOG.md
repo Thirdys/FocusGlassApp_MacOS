@@ -38,6 +38,12 @@ tester-сборку `0.0.4`.
 - Project grid использует полную selectable surface с внутренними отступами,
   отдельной зоной редактирования и адаптивной шириной для длинных RU/EN
   названий.
+- Все scrollable surfaces используют общий scroll-phase-aware wrapper:
+  ленивые стеки, hover/shadow suppression во время движения и совместимый с
+  macOS 14 fallback через `NSScrollView` live-scroll notifications.
+- Theme Studio открывает advanced-группы отдельно, не держит все ColorPicker и
+  slider surfaces одновременно и не запускает app-wide transition animation
+  на каждом шаге непрерывного редактирования.
 
 ### Исправлено
 
@@ -47,12 +53,15 @@ tester-сборку `0.0.4`.
 - `quitAfterOptIn` не выполняет опасное действие без сохранённого подтверждения.
 - Dev-loop изолирует SwiftPM scratch-пути разных toolchain и не переиспользует
   несовместимую `.build`.
+- Fullscreen checklist metadata больше не сжимается в вертикальную колонку
+  букв рядом с длинным названием задачи.
 
 ### Проверено
 
-- Полный набор SwiftPM-тестов: 70/70.
+- Полный набор SwiftPM-тестов: 71/71.
 - Packaged-app QA главного окна, Settings, Theme Studio, Menu Bar, fullscreen,
-  Strict Mode, launch animation и performance/UI-card pass.
+  Strict Mode, launch animation, performance/UI-card и scroll-performance
+  passes.
 - `codesign --verify --deep --strict build/FocusGlass.app`.
 
 ## [0.0.4] - 2026-06-27

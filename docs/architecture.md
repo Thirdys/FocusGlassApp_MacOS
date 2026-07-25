@@ -220,6 +220,14 @@ and batch multi-step theme mutations:
   numeric glass/motion/density tokens use the custom `GlassSlider`. Every theme
   stores explicit Light and Dark palettes, and the runtime does not substitute
   hard-coded colors for a selected variant.
+- Advanced token groups are independent disclosures so off-screen ColorPicker
+  and slider surfaces are not all rendered at once. Repeated editor cards use
+  static theme fills inside the parent glass panel rather than stacking a
+  separate material layer per control.
+- Continuous Theme Studio edits call the interactive mutation path. It still
+  schedules debounced runtime-icon/persistence work, but does not advance the
+  app-wide `themeTransitionID` on every drag step. Discrete theme selection,
+  reset, import, and appearance changes keep their animated transition.
 - Built-in themes can be reset to defaults. Custom themes have a separate
   delete action and are never removed through reset.
 - `lastThemePerformanceMessage` records UI scheduling, runtime icon, save, and
@@ -227,10 +235,15 @@ and batch multi-step theme mutations:
 - Diagnostics logs `theme.switch_completed` after the final debounced side
   effects finish.
 
+All app `ScrollView` surfaces go through `FocusGlassScrollView`. It propagates
+live-scroll state through the environment, uses SwiftUI scroll phase on macOS
+15+, and a narrow `NSScrollView` notification bridge on macOS 14. Shared glass
+buttons/rows suppress hover animation and expensive moving shadows/material
+layers only while scrolling; nested scroll surfaces inherit the parent state.
+
 Do not reintroduce synchronous custom icon persistence into every Theme Studio
-field/slider update, and do not bypass the animated theme mutation helpers for
-user-facing theme/appearance changes; both make light/dark or theme switching
-feel abrupt or stuck.
+field/slider update. Keep discrete theme/appearance changes animated and keep
+continuous editor drags on the interactive mutation path.
 
 ## Strict Focus
 

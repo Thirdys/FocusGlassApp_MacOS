@@ -453,6 +453,15 @@ lines so long RU/EN content stays inside the selected shape. Live proof and
 runtime samples are under
 `/private/tmp/focusglass-performance-pass-20260726-034829`.
 
+The follow-up scroll-performance pass is also complete. Every app scroll
+surface uses `FocusGlassScrollView`, which propagates active scroll state,
+suppresses hover/material/shadow churn while moving, and supports macOS 14
+through a narrow AppKit live-scroll bridge. Theme Studio advanced groups render
+independently and continuous slider/color edits must not increment the global
+theme transition token. Fullscreen task metadata belongs below the title so it
+cannot collapse into a vertical letter stack. Live proof is under
+`/private/tmp/focusglass-scroll-performance-20260726-044203`.
+
 `v0.0.4` and `tester/0.0.4` are historical delivery snapshots. Current
 `codex/next` changes after that tag belong to `CHANGELOG.md` `[Unreleased]` and
 must not be described as already present in the tester artifact.
