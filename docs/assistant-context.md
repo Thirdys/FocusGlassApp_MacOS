@@ -135,7 +135,10 @@ The app is local-first. There is no account, sync, cloud, or remote service.
   summarizes sessions and calculates focus score.
 - `Sources/FocusGlassApp/FocusGlassViewModel.swift`
   bridges UI, engine, persistence, permissions, theme state, strict mode, and
-  window reuse.
+  window reuse. Its `FocusTimerPresentationState` isolates one-second snapshot
+  publications from the broad app model; timer-only surfaces observe that
+  state directly. Active tasks, project task counts, analytics summaries, and
+  heatmap values are cached from their source collections.
 - `Sources/FocusGlassApp/Services/FocusGlassStore.swift`
   loads/saves split JSON state and protects user workspace data from bad
   decode/write paths.
@@ -433,12 +436,22 @@ the packaged app `Info.plist`. Do not add this badge to `MenuBarPanel` or
 the generated `.app` before ad-hoc signing so local resource forks do not break
 `codesign`.
 
-The current suite contains 68 tests covering timer transitions, analytics,
+The current suite contains 70 tests covering timer transitions, analytics,
 strict history, permission status
 helpers, rule decoding/matching, migration from legacy project names, split
 state persistence, invalid JSON protection, preset editing/reset, task estimate
 clamping, project-scoped task lists, explicit theme variants/import validation,
-launch geometry, and debounced theme side effects.
+launch geometry, debounced theme side effects, timer-publication isolation, and
+derived UI cache synchronization.
+
+The first dedicated interface-performance pass is complete. A running timer
+publishes only through `FocusTimerPresentationState`; it must not restore
+one-second `FocusGlassViewModel.objectWillChange` fan-out. Project selection
+cards keep their selection/hover surface outside the content padding, reserve a
+separate 40 pt edit target, use a 340 pt adaptive minimum, and allow three title
+lines so long RU/EN content stays inside the selected shape. Live proof and
+runtime samples are under
+`/private/tmp/focusglass-performance-pass-20260726-034829`.
 
 `v0.0.4` and `tester/0.0.4` are historical delivery snapshots. Current
 `codex/next` changes after that tag belong to `CHANGELOG.md` `[Unreleased]` and

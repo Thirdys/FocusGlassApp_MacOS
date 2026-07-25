@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Combine
 import Testing
 @testable import FocusGlassApp
 import FocusGlassCore
@@ -429,6 +430,68 @@ struct FocusGlassPersistenceTests {
         }
 
         #expect(model.activeTasks.map(\.title) == ["Task 1", "Task 2", "Task 3", "Task 4", "Task 5"])
+    }
+
+    @Test
+    @MainActor
+    func timerTicksPublishOnlyTimerPresentationState() {
+        let model = FocusGlassViewModel(
+            store: FocusGlassStore(fileURL: temporaryStateURL()),
+            requestPermissionsOnLaunch: false
+        )
+        var modelUpdates = 0
+        var timerUpdates = 0
+        let modelObservation = model.objectWillChange.sink {
+            modelUpdates += 1
+        }
+        let timerObservation = model.timerPresentation.objectWillChange.sink {
+            timerUpdates += 1
+        }
+
+        model.startTimerForTesting()
+        model.advanceTimerForTesting(by: 1)
+
+        #expect(modelUpdates == 0)
+        #expect(timerUpdates == 2)
+        #expect(model.engineSnapshot.elapsed == 1)
+        withExtendedLifetime((modelObservation, timerObservation)) {}
+    }
+
+    @Test
+    @MainActor
+    func taskAndAnalyticsCachesStayInSyncWithPublishedCollections() {
+        let model = FocusGlassViewModel(
+            store: FocusGlassStore(fileURL: temporaryStateURL()),
+            requestPermissionsOnLaunch: false
+        )
+        let project = model.addProject()
+        let task = model.addQuickTask()
+
+        #expect(model.taskCount(for: project) == 1)
+        #expect(model.activeTasks.map(\.id) == [task.id])
+
+        model.toggleTask(task)
+        #expect(model.taskCount(for: project) == 1)
+        #expect(model.activeTasks.isEmpty)
+
+        model.recentSessions = [
+            FocusSessionRecord(
+                projectID: project.id,
+                projectName: project.name,
+                mode: .pomodoro,
+                startedAt: Date(timeIntervalSince1970: 10),
+                endedAt: Date(timeIntervalSince1970: 20),
+                plannedSeconds: 20,
+                honestFocusSeconds: 15,
+                distractionCount: 1
+            )
+        ]
+
+        #expect(model.dailySummary.sessionsCompleted == 1)
+        #expect(model.dailySummary.honestFocusSeconds == 15)
+        #expect(model.modeEffectivenessSummaries.first?.mode == .pomodoro)
+        #expect(model.projectFocusSummaries.first?.projectID == project.id)
+        #expect(model.focusHeatmapValues.count == 28)
     }
 
     @Test

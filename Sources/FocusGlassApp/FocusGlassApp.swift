@@ -10,10 +10,17 @@ struct FocusGlassApp: App {
         WindowGroup("FocusGlass", id: "main") {
             ContentView()
                 .environmentObject(model)
+                .environmentObject(model.timerPresentation)
                 .preferredColorScheme(model.preferredColorScheme)
                 .focusGlassThemeTransition(model)
                 .background(MainWindowAccessor())
-                .background(StatusItemInstaller(model: model, controller: appDelegate.statusItemController))
+                .background(
+                    StatusItemInstaller(
+                        model: model,
+                        timerPresentation: model.timerPresentation,
+                        controller: appDelegate.statusItemController
+                    )
+                )
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
                     model.flushPendingThemeSideEffectsBeforeExit()
                 }
@@ -25,6 +32,7 @@ struct FocusGlassApp: App {
         WindowGroup("Focus", id: "focus-mode") {
             FullscreenFocusView()
                 .environmentObject(model)
+                .environmentObject(model.timerPresentation)
                 .preferredColorScheme(model.preferredColorScheme)
                 .focusGlassThemeTransition(model)
                 .frame(minWidth: 960, minHeight: 640)
@@ -34,6 +42,7 @@ struct FocusGlassApp: App {
         Settings {
             SettingsView()
                 .environmentObject(model)
+                .environmentObject(model.timerPresentation)
                 .preferredColorScheme(model.preferredColorScheme)
                 .focusGlassThemeTransition(model)
                 .frame(width: 680, height: 560)
@@ -78,6 +87,7 @@ private struct MainWindowAccessor: NSViewRepresentable {
 
 private struct StatusItemInstaller: View {
     @ObservedObject var model: FocusGlassViewModel
+    @ObservedObject var timerPresentation: FocusTimerPresentationState
     @Environment(\.openWindow) private var openWindow
 
     let controller: FocusGlassStatusItemController
@@ -98,6 +108,9 @@ private struct StatusItemInstaller: View {
                         model.openFocusModeFullscreen()
                     }
                 )
+            }
+            .onReceive(timerPresentation.$snapshot) { _ in
+                controller.updateTimerTitle(model.menuBarTitle)
             }
     }
 }
@@ -198,6 +211,7 @@ private final class FocusGlassStatusItemController: NSObject {
             }
         )
         .environmentObject(model)
+        .environmentObject(model.timerPresentation)
         .preferredColorScheme(model.preferredColorScheme)
         .focusGlassThemeTransition(model)
         .frame(width: 360)
@@ -259,6 +273,10 @@ private final class FocusGlassStatusItemController: NSObject {
     private func hidePanel() {
         panel.orderOut(nil)
         removeOutsideClickMonitor()
+    }
+
+    func updateTimerTitle(_ title: String) {
+        statusItem?.button?.toolTip = title
     }
 
     private func removeOutsideClickMonitor() {

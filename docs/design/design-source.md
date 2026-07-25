@@ -122,6 +122,10 @@ source of truth.
   project summary or project tasks in the right context rail.
 - Project and task editing happens in sheets, not inline inside dense cards.
   Task estimate controls use minute presets plus a compact stepper.
+- Project-grid cards are one full selectable surface with content padding
+  inside the selected/hover shape. Reserve trailing space for the independent
+  edit action, keep an adaptive minimum width of 340 pt, and allow project names
+  up to three lines so RU/EN text never crosses or sits on the selection border.
 - Empty states must be paired with explicit primary actions in the surrounding
   surface, such as create project, add task, or configure mode.
 - Permission UX is soft: notification prompt once on app-bundle launch,

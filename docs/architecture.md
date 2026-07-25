@@ -17,6 +17,10 @@
 - `FocusGlassViewModel` is the app state coordinator. It owns timer selection,
   projects, tasks, recent sessions, strict rules, permissions service, storage
   status, theme selection, runtime icons, and window reuse.
+- `FocusTimerPresentationState` owns the frequently changing
+  `TimerEngineSnapshot`. Timer-only views observe it directly so the one-second
+  tick does not invalidate the full cockpit, sidebar, project grid, and
+  analytics hierarchy.
 - `FocusTimerEngine` is the pure timer state machine. UI code should interact
   through view-model snapshots, not by duplicating timer math.
 - `FocusGlassStore` owns split JSON persistence and invalid-file protection.
@@ -150,6 +154,15 @@ Tasks support two timing modes:
 Starting a timer captures the currently selected `activeTaskID` into an internal
 session task ID. Later task selection changes do not redirect the current
 session's honest focus time.
+
+### UI-derived caches
+
+The view model rebuilds project task counts, active-project tasks, daily
+analytics, mode/project summaries, and heatmap values only when their source
+collections change. Heatmap values also refresh when the calendar day changes.
+Do not move these filters/reductions back into frequently invalidated SwiftUI
+`body` paths. A timer tick must publish through
+`FocusTimerPresentationState`, not the broad `FocusGlassViewModel`.
 
 ### Timer presets
 

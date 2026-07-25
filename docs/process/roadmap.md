@@ -53,6 +53,9 @@ FocusGlass развивается без смены идеи проекта. Э�
 - Menu Bar HUD работает через lifecycle-managed `NSPanel` поверх других
   приложений и fullscreen Spaces.
 - Fullscreen адаптирован для узких окон и длинных названий задач.
+- Секундный timer snapshot изолирован от общего app state; project/task counts,
+  analytics summaries и heatmap не пересчитываются на каждом тике. Project
+  cards держат длинные RU/EN названия внутри полной selectable surface.
 
 Открыто: отдельный VoiceOver-аудит и точечный Product Design polish на реальных
 пользовательских данных.
@@ -68,22 +71,19 @@ project summaries.
 
 ## Следующий порядок
 
-0. Провести отдельный performance pass интерфейса до новых функций и следующей
-   tester-синхронизации:
-   - снять baseline для запуска, launch animation, cockpit scrolling/resizing,
-     timer ticks, Theme Studio sliders/theme switching, Menu Bar HUD и
-     fullscreen;
-   - найти лишние SwiftUI invalidations, синхронную работу на main thread,
-     тяжёлые material/shadow/layout вычисления и side effects, попадающие в
-     пользовательское взаимодействие;
-   - исправлять только измеренные bottlenecks, сохраняя текущий FocusGlass
-     visual identity и поведение;
-   - проверить packaged `.app` с реалистичным объёмом проектов, задач, сессий и
-     distraction history: управление должно реагировать без заметной паузы,
-     scrolling/resizing/theme interactions должны быть плавными, а секундные
-     обновления таймера не должны перерисовывать несвязанные большие surfaces.
-   Workflow: Graphify orientation -> code-first SwiftUI performance audit ->
-   Build macOS Apps telemetry/live validation -> SwiftPM regression tests.
+0. Первый отдельный interface-performance pass завершён:
+   - секундный `TimerEngineSnapshot` публикуется через отдельный
+     `FocusTimerPresentationState`, не через весь `FocusGlassViewModel`;
+   - active tasks, project task counts, analytics summaries и heatmap
+     перестраиваются только при изменении исходных данных;
+   - исправлены лишние `activeTaskID = nil` публикации и project-card layout,
+     найденный Product Design live-аудитом;
+   - packaged `.app` проверена на narrow/medium layouts, Light/Dark custom
+     theme и длинных RU/EN строках; runtime timer samples держались в пределах
+     `0.0...1.2% CPU`, около `119 MB` resident memory и 4 threads;
+   - proof: `/private/tmp/focusglass-performance-pass-20260726-034829`.
+   Полный Instruments trace остаётся optional follow-up при установленном
+   полном Xcode или при появлении воспроизводимого jank.
 1. Получить и разобрать обратную связь по tester-сборке. `tester/0.0.4` является
    историческим снимком; следующая tester delivery создаётся только по команде
    владельца и получает новую версию, cumulative checklist и новые документы.

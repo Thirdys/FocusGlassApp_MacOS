@@ -118,6 +118,30 @@ struct SessionOutcomePresentation: Identifiable, Equatable {
 }
 
 @MainActor
+final class FocusTimerPresentationState: ObservableObject {
+    @Published private(set) var snapshot: TimerEngineSnapshot
+
+    init(snapshot: TimerEngineSnapshot) {
+        self.snapshot = snapshot
+    }
+
+    var primaryClockText: String {
+        snapshot.preset.mode == .stopwatch
+            ? snapshot.elapsed.focusClock
+            : snapshot.remaining.focusClock
+    }
+
+    var canSkipSegment: Bool {
+        snapshot.preset.segments.count > 1
+    }
+
+    fileprivate func update(_ snapshot: TimerEngineSnapshot) {
+        guard self.snapshot != snapshot else { return }
+        self.snapshot = snapshot
+    }
+}
+
+@MainActor
 final class FocusGlassViewModel: ObservableObject {
     static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("FocusGlass.main")
 
@@ -157,7 +181,14 @@ final class FocusGlassViewModel: ObservableObject {
     @Published var hasSeenPermissionsOnboarding = false { didSet { persist() } }
     @Published var intention = "" { didSet { persist() } }
     @Published var activeProject = "" { didSet { persist() } }
-    @Published var activeProjectID: UUID? = nil { didSet { syncActiveProjectName(); syncActiveTaskSelection(); persist() } }
+    @Published var activeProjectID: UUID? = nil {
+        didSet {
+            syncActiveProjectName()
+            rebuildTaskCaches()
+            syncActiveTaskSelection()
+            persist()
+        }
+    }
     @Published var activeTaskID: UUID? = nil { didSet { persist() } }
     @Published var selectedSidebarItem = SidebarItem.focusToday
     @Published var selectedSettingsTab = SettingsTab.general
@@ -172,13 +203,25 @@ final class FocusGlassViewModel: ObservableObject {
     @Published private(set) var isPersistenceBlocked = false
     @Published private var systemAppearance: AppResolvedAppearance = .current
     @Published private(set) var isFocusModeActive = false
-    @Published private(set) var engineSnapshot: TimerEngineSnapshot
     @Published var projects: [FocusProject] = [] { didSet { persist() } }
-    @Published var tasks: [FocusTask] = [] { didSet { syncActiveTaskSelection(); persist() } }
+    @Published var tasks: [FocusTask] = [] {
+        didSet {
+            rebuildTaskCaches()
+            syncActiveTaskSelection()
+            persist()
+        }
+    }
     @Published var distractionRules: [DistractionRuleSpec] = [] { didSet { persist() } }
     @Published var distractionHistory: [DistractionEventRecord] = [] { didSet { persist() } }
-    @Published var recentSessions: [FocusSessionRecord] = [] { didSet { persist() } }
+    @Published var recentSessions: [FocusSessionRecord] = [] {
+        didSet {
+            rebuildAnalyticsCaches()
+            persist()
+        }
+    }
     @Published private(set) var pendingSessionOutcome: SessionOutcomePresentation?
+
+    let timerPresentation: FocusTimerPresentationState
 
     private var timer: Timer?
     private let engine: FocusTimerEngine
@@ -196,12 +239,19 @@ final class FocusGlassViewModel: ObservableObject {
     private var runtimeIconTask: Task<Void, Never>?
     private var isApplyingThemeMutation = false
     private var lastRuntimeIconUpdateDuration: TimeInterval = 0
+    private(set) var dailySummary = AnalyticsEngine.summarize([])
+    private(set) var modeEffectivenessSummaries: [ModeEffectivenessSummary] = []
+    private(set) var projectFocusSummaries: [ProjectFocusSummary] = []
+    private(set) var activeTasks: [FocusTask] = []
+    private var taskCountByProjectID: [UUID: Int] = [:]
+    private var cachedFocusHeatmapValues = Array(repeating: 0.0, count: 28)
+    private var cachedFocusHeatmapDay = Calendar.current.startOfDay(for: .now)
 
     init(store: FocusGlassStore = FocusGlassStore(), requestPermissionsOnLaunch: Bool = true) {
         self.store = store
         let engine = FocusTimerEngine(preset: .pomodoro)
         self.engine = engine
-        self.engineSnapshot = engine.snapshot
+        self.timerPresentation = FocusTimerPresentationState(snapshot: engine.snapshot)
         focusGuardObservation = focusGuard.objectWillChange.sink { [weak self] _ in
             Task { @MainActor in
                 self?.objectWillChange.send()
@@ -243,7 +293,9 @@ final class FocusGlassViewModel: ObservableObject {
         focusGuard.setLanguage(language)
         engine.configure(selectedPreset)
         syncActiveProjectName()
+        rebuildTaskCaches()
         syncActiveTaskSelection()
+        rebuildAnalyticsCaches()
         installAppearanceObserver()
         updateSystemAppearance()
         updateRuntimeIcons()
@@ -323,7 +375,11 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     var canSkipSegment: Bool {
-        engineSnapshot.preset.segments.count > 1
+        timerPresentation.canSkipSegment
+    }
+
+    var engineSnapshot: TimerEngineSnapshot {
+        timerPresentation.snapshot
     }
 
     var menuBarTitle: String {
@@ -340,21 +396,7 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     var primaryClockText: String {
-        engineSnapshot.preset.mode == .stopwatch
-            ? engineSnapshot.elapsed.focusClock
-            : engineSnapshot.remaining.focusClock
-    }
-
-    var dailySummary: DailyFocusSummary {
-        AnalyticsEngine.summarize(recentSessions)
-    }
-
-    var modeEffectivenessSummaries: [ModeEffectivenessSummary] {
-        AnalyticsEngine.summarizeByMode(recentSessions)
-    }
-
-    var projectFocusSummaries: [ProjectFocusSummary] {
-        AnalyticsEngine.summarizeByProject(recentSessions)
+        timerPresentation.primaryClockText
     }
 
     var activeProjectName: String {
@@ -363,10 +405,6 @@ final class FocusGlassViewModel: ObservableObject {
 
     var unassignedProjectTitle: String {
         t("projects.unassigned")
-    }
-
-    var activeTasks: [FocusTask] {
-        tasks.filter { !$0.isDone && $0.projectID == activeProjectID }
     }
 
     var selectedActiveTask: FocusTask? {
@@ -379,13 +417,22 @@ final class FocusGlassViewModel: ObservableObject {
         selectedActiveTask?.title ?? t("tasks.noActiveTask")
     }
 
+    var focusHeatmapValues: [Double] {
+        let today = Calendar.current.startOfDay(for: .now)
+        if today != cachedFocusHeatmapDay {
+            cachedFocusHeatmapDay = today
+            cachedFocusHeatmapValues = makeFocusHeatmapValues()
+        }
+        return cachedFocusHeatmapValues
+    }
+
     var needsPermissionAttention: Bool {
         [.notifications, .accessibility, .automation].contains { permission in
             focusGuard.status(for: permission).needsUserAction
         }
     }
 
-    var focusHeatmapValues: [Double] {
+    private func makeFocusHeatmapValues() -> [Double] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let days = (0..<28).compactMap { offset in
@@ -485,6 +532,10 @@ final class FocusGlassViewModel: ObservableObject {
 
     func tasks(for project: FocusProject) -> [FocusTask] {
         tasks.filter { $0.projectID == project.id }
+    }
+
+    func taskCount(for project: FocusProject) -> Int {
+        taskCountByProjectID[project.id, default: 0]
     }
 
     func sessions(for project: FocusProject) -> [FocusSessionRecord] {
@@ -1296,7 +1347,23 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     private func syncSnapshot() {
-        engineSnapshot = engine.snapshot
+        timerPresentation.update(engine.snapshot)
+    }
+
+    private func rebuildTaskCaches() {
+        activeTasks = tasks.filter { !$0.isDone && $0.projectID == activeProjectID }
+        taskCountByProjectID = tasks.reduce(into: [:]) { counts, task in
+            guard let projectID = task.projectID else { return }
+            counts[projectID, default: 0] += 1
+        }
+    }
+
+    private func rebuildAnalyticsCaches() {
+        dailySummary = AnalyticsEngine.summarize(recentSessions)
+        modeEffectivenessSummaries = AnalyticsEngine.summarizeByMode(recentSessions)
+        projectFocusSummaries = AnalyticsEngine.summarizeByProject(recentSessions)
+        cachedFocusHeatmapDay = Calendar.current.startOfDay(for: .now)
+        cachedFocusHeatmapValues = makeFocusHeatmapValues()
     }
 
     private func persist() {
@@ -1576,11 +1643,9 @@ final class FocusGlassViewModel: ObservableObject {
 
     private func syncActiveTaskSelection() {
         guard !isHydrating else { return }
-        if let activeTaskID,
-           activeTasks.contains(where: { $0.id == activeTaskID }) {
-            return
-        }
-        activeTaskID = nil
+        guard let activeTaskID else { return }
+        guard !activeTasks.contains(where: { $0.id == activeTaskID }) else { return }
+        self.activeTaskID = nil
     }
 
     private func selectOutcomeTaskIfAvailable(_ outcome: SessionOutcomePresentation) {
