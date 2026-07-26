@@ -19,6 +19,34 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the Product Design decision pass for custom timer presets,
+  strict-rule presets, and task-level analytics:
+  - Editable built-in timer presets are sufficient for the current stage.
+    Free-form custom preset creation is deferred until tester feedback proves a
+    need for multiple saved variants of the same mode.
+  - Strict-rule presets are deferred while the real rule set remains small and
+    app/browser dependencies are machine-specific. If revisited, they must be
+    safe suggestions with explicit preview, disabled rules by default, and no
+    `quitAfterOptIn`.
+  - Task-level analytics is approved as the next implementation chunk inside
+    the existing Analytics screen. The first pass groups existing session
+    records by `taskID` and shows project, session count, planned/honest time,
+    distractions, timed-task effectiveness, and last focus date without a new
+    persistence schema or sidebar route.
+  - Checklist sessions may show associated focus time but must never present it
+    as checklist completion progress. Removed tasks use their captured session
+    title; renamed existing tasks use the current title.
+  - Product Design/Build macOS Apps evidence and numbered decision audit:
+    `/private/tmp/focusglass-product-decisions-20260727-022057`.
+  - Used/validated with: Graphify, Product Design audit (no saved user
+    context), Build macOS Apps, Computer Use, current Swift models, real-data
+    copy, and packaged `.app`.
+  - Not done: task-level analytics implementation, VoiceOver audit,
+    Developer ID signing/notarization, release, tag, tester branch, or GitHub
+    Release.
+  - Next skill/workflow: task-level analytics starts Product Design-first,
+    adds focused AnalyticsEngine/ViewModel tests, and finishes with Build macOS
+    Apps packaged proof on empty, one-task, dense, RU, and EN states.
 - Completed the Product Design polish pass for accumulated Analytics and
   Strict History data without restructuring the finished screens:
   - The real-data baseline was taken from an isolated copy of
@@ -874,8 +902,9 @@ Started or partially started roadmap items:
   descriptions, preset editing, persisted task estimates, task timing modes,
   manual minute entry, and timed-task progress from completed sessions exist.
   The first outcome flow now uses planned vs honest time after session
-  completion. Still missing: a decision on whether built-in preset editing is
-  enough or whether true custom timer creation is needed.
+  completion. Product decision: built-in preset editing is sufficient for the
+  current stage; custom creation is deferred until tester feedback proves a
+  need for multiple variants of the same mode.
 - Session outcome: first implementation pass is complete.
   `FocusSessionRecord` stores project, planned seconds, honest focus seconds,
   distraction count, optional task ID/title, and sessions are recorded on
@@ -900,19 +929,19 @@ Started or partially started roadmap items:
   secondary-text contrast exist. The centered-timer cockpit now removes its
   extra context rail below 1680 pt. Compact proof below 980 pt, long RU/EN
   titles, theme readability, and Tab traversal with visible focus are complete.
-  The newest evidence is at
-  `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
+  Real-data Analytics/Strict readability polish is also complete. The newest
+  evidence is at
+  `/private/tmp/focusglass-real-data-polish-20260727-010950`.
 - Analytics: first requested implementation pass is complete. Daily summary,
   focus score, planned vs actual/effectiveness, recent sessions, mode
   effectiveness, project summaries, and distraction analytics by project/mode
-  are visible. Remaining work is Product Design polish against richer real
-  history and a decision on deeper task-level views.
+  are visible. Real-data polish is complete and task-level analytics is
+  approved as the next implementation chunk.
 
 Parked roadmap items for later:
 
-- Strict-rule presets.
-- Custom timer presets, if editable built-ins are not sufficient.
-- Deeper task-level analytics, if session/project summaries are not sufficient.
+- Strict-rule presets until repeated rule-set recreation is proven.
+- Custom timer presets until multiple same-mode variants are requested.
 - Dedicated VoiceOver/accessibility audit.
 - Signed/notarized distribution.
 
@@ -958,9 +987,10 @@ using the full current operating plan first, then the roadmap block.
    path, or post-session outcome. Use Build macOS Apps after Product Design to
    validate the live `.app`.
 6. The requested cockpit/Strict Mode/history/UI/analytics implementation and
-   its focused compact/keyboard/Strict live-QA pass are complete. The next
-   product decision is targeted Product Design polish against real tester data,
-   deeper task-level analytics, or custom timer/strict-rule presets.
+   its focused compact/keyboard/Strict and accumulated-data live-QA passes are
+   complete. Product decisions are now fixed: task-level analytics is the next
+   implementation chunk; custom timer and Strict presets remain deferred until
+   tester evidence meets their revisit criteria.
 7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
    remain explicit owner-controlled steps.
@@ -1646,9 +1676,9 @@ Skills research:
 6. Attached timed/checklist outcome proof is complete. Proof path:
    `/private/tmp/focusglass-outcome-attached-qa-20260627-181435`.
 7. Strict distraction history, the first broad UI/accessibility implementation
-   pass, and the requested analytics surfaces are now implemented. Follow-up
-   product work is targeted Product Design polish against real tester/history
-   data, not rebuilding those features from scratch.
+   pass, requested analytics surfaces, and accumulated-data Product Design
+   polish are complete. The next product implementation is task-level
+   analytics inside the current Analytics screen.
 8. Do not break the existing FocusGlass identity. App icon, Dock/Finder icon,
    menu bar glyph, launch animation, and visual style changes must improve the
    current FocusGlass Mac Glass OS / timer / focus direction, not create an
@@ -1659,8 +1689,9 @@ Skills research:
      exist, default presets cover all modes, mode descriptions are in Settings,
      presets can be edited with segments/duration/phase/auto-start, and task
      estimates persist with clamped progress. The first outcome flow uses
-     planned vs honest session data. Still needed: decide whether editing
-     built-in presets is enough or true custom preset creation is needed.
+     planned vs honest session data. Decision: editing built-ins is sufficient;
+     custom creation is deferred until tester feedback requests multiple saved
+     variants of one mode.
    - Session outcome first pass is built. Started/done: `FocusSessionRecord`
      stores project, planned seconds, honest focus seconds, distraction count,
      and sessions are inserted when a preset completes. Done: actual
@@ -1684,11 +1715,12 @@ Skills research:
    - Analytics first pass is complete: daily summary, focus score, planned vs
      actual/effectiveness, recent sessions, mode effectiveness, project
      summaries, unassigned handling, and distraction grouping by project/mode.
-     Later work is richer-data polish and optional task-level depth.
-   - Later roadmap items remain parked: strict-rule presets, deeper
-     task-level analytics, and signed/notarized distribution. The first
-     improved Menu Bar HUD, fullscreen task-flow, and Theme Studio readability
-     pass are complete in the zero-stage checkpoint.
+     Richer-data polish is complete. Task-level analytics is approved as the
+     next implementation chunk.
+   - Later roadmap items remain parked: conditional strict-rule/custom timer
+     presets, dedicated VoiceOver audit, and signed/notarized distribution.
+     The first improved Menu Bar HUD, fullscreen task-flow, and Theme Studio
+     readability pass are complete in the zero-stage checkpoint.
 10. Keep branch protection and GitHub Actions CI in the long-term backlog. Do
    not make them near-term work.
 11. Decide whether to set upstream locally later with
