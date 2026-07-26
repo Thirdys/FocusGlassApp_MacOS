@@ -1,5 +1,7 @@
 "app.version" = "Version";
 "app.build" = "build";
+"common.showMore" = "Show more";
+"common.showLess" = "Show less";
 
 "focus.today" = "Focus Today";
 "focus.subtitle" = "Plan the next session, protect attention, and keep honest focus visible.";

@@ -2071,17 +2071,21 @@ private struct ProjectGridCard: View {
 
 private struct AnalyticsScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var visibleSessionCount = 8
+    @State private var contentWidth: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 18) {
             AnalyticsStripView()
 
-            ViewThatFits(in: .horizontal) {
+            if contentWidth >= 900 {
                 HStack(alignment: .top, spacing: 18) {
                     plannedActualCard
+                        .frame(minWidth: 300, idealWidth: 330, maxWidth: 360)
                     modeEffectivenessCard
+                        .frame(minWidth: 500)
                 }
-
+            } else {
                 VStack(spacing: 18) {
                     plannedActualCard
                     modeEffectivenessCard
@@ -2091,6 +2095,17 @@ private struct AnalyticsScreen: View {
             projectBreakdownCard
             recentSessionsCard
             distractionBreakdownCard
+        }
+        .frame(maxWidth: .infinity)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: AnalyticsWidthPreferenceKey.self, value: proxy.size.width)
+            }
+        }
+        .onPreferenceChange(AnalyticsWidthPreferenceKey.self) { width in
+            Task { @MainActor in
+                contentWidth = width
+            }
         }
     }
 
@@ -2128,13 +2143,19 @@ private struct AnalyticsScreen: View {
                         detail: model.t("analytics.empty.detail")
                     )
                 } else {
-                    ForEach(model.modeEffectivenessSummaries) { summary in
-                        analyticsBreakdownRow(
-                            title: model.timerModeTitle(summary.mode),
-                            detail: "\(summary.sessionsCompleted) \(model.t("analytics.sessionsShort")) · \(summary.distractionCount) \(model.t("analytics.distractionsShort"))",
-                            value: summary.honestFocusSeconds.focusClock,
-                            progress: summary.effectiveness
-                        )
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 260), spacing: 10)],
+                        alignment: .leading,
+                        spacing: 10
+                    ) {
+                        ForEach(model.modeEffectivenessSummaries) { summary in
+                            analyticsBreakdownRow(
+                                title: model.timerModeTitle(summary.mode),
+                                detail: "\(summary.sessionsCompleted) \(model.t("analytics.sessionsShort")) · \(summary.distractionCount) \(model.t("analytics.distractionsShort"))",
+                                value: summary.honestFocusSeconds.focusClock,
+                                progress: summary.effectiveness
+                            )
+                        }
                     }
                 }
             }
@@ -2170,8 +2191,12 @@ private struct AnalyticsScreen: View {
     private var recentSessionsCard: some View {
         LiquidGlassPanel(radius: 20) {
             VStack(alignment: .leading, spacing: 12) {
-                Label(model.t("analytics.recentSessions"), systemImage: "clock.arrow.circlepath")
-                    .font(.system(size: 15, weight: .bold))
+                HStack {
+                    Label(model.t("analytics.recentSessions"), systemImage: "clock.arrow.circlepath")
+                        .font(.system(size: 15, weight: .bold))
+                    Spacer(minLength: 12)
+                    CompactCountBadge(value: model.recentSessions.count, color: model.theme.primary)
+                }
 
                 if model.recentSessions.isEmpty {
                     EmptyInlineState(
@@ -2180,7 +2205,7 @@ private struct AnalyticsScreen: View {
                         detail: model.t("analytics.empty.detail")
                     )
                 } else {
-                    ForEach(Array(model.recentSessions.prefix(8))) { session in
+                    ForEach(Array(model.recentSessions.prefix(visibleSessionCount))) { session in
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: session.mode.symbolName)
                                 .foregroundStyle(model.theme.primary)
@@ -2205,10 +2230,27 @@ private struct AnalyticsScreen: View {
                                 Text("\(model.t("analytics.planned")) \(session.plannedSeconds.focusClock)")
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(model.theme.mutedText)
+                                Text(ratioPercentText(session.honestFocusSeconds / max(1, session.plannedSeconds)))
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .foregroundStyle(model.theme.primary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(model.theme.primary.opacity(0.12), in: Capsule())
+                                    .accessibilityLabel(
+                                        "\(model.t("analytics.effectiveness")) \(ratioPercentText(session.honestFocusSeconds / max(1, session.plannedSeconds)))"
+                                    )
                             }
                         }
                         .padding(11)
                         .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    if model.recentSessions.count > 8 {
+                        expansionButton(
+                            visibleCount: $visibleSessionCount,
+                            totalCount: model.recentSessions.count,
+                            pageSize: 8
+                        )
                     }
                 }
             }
@@ -2268,9 +2310,14 @@ private struct AnalyticsScreen: View {
                         .foregroundStyle(model.theme.mutedText)
                 }
                 Spacer(minLength: 12)
-                Text(value)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(model.theme.primary)
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(value)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(model.theme.primary)
+                    Text(ratioPercentText(progress))
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(model.theme.mutedText)
+                }
             }
             ProgressView(value: progress)
                 .tint(model.theme.primary)
@@ -2325,8 +2372,44 @@ private struct AnalyticsScreen: View {
 
     private func effectivenessText(_ summary: DailyFocusSummary) -> String {
         guard summary.plannedSeconds > 0 else { return "0%" }
-        let percentage = Int((min(1, summary.honestFocusSeconds / summary.plannedSeconds) * 100).rounded())
-        return "\(percentage)%"
+        return ratioPercentText(summary.honestFocusSeconds / summary.plannedSeconds)
+    }
+
+    private func ratioPercentText(_ ratio: Double) -> String {
+        let clamped = min(1, max(0, ratio))
+        if clamped > 0, clamped < 0.01 {
+            return "<1%"
+        }
+        return "\(Int((clamped * 100).rounded()))%"
+    }
+
+    private func expansionButton(
+        visibleCount: Binding<Int>,
+        totalCount: Int,
+        pageSize: Int
+    ) -> some View {
+        let showsAll = visibleCount.wrappedValue >= totalCount
+        let remaining = min(pageSize, max(0, totalCount - visibleCount.wrappedValue))
+        let title = showsAll
+            ? model.t("common.showLess")
+            : "\(model.t("common.showMore")) (\(remaining))"
+
+        return Button {
+            withAnimation(.easeInOut(duration: model.theme.animationDuration(0.18))) {
+                visibleCount.wrappedValue = showsAll
+                    ? pageSize
+                    : min(totalCount, visibleCount.wrappedValue + pageSize)
+            }
+        } label: {
+            Label(title, systemImage: showsAll ? "chevron.up" : "chevron.down")
+                .font(.system(size: 11, weight: .bold))
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.compact)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(model.theme.mutedText)
+        .glassHover(theme: model.theme, radius: 10)
+        .accessibilityLabel(title)
     }
 }
 
@@ -2336,8 +2419,17 @@ private struct AnalyticsCountRow: Identifiable {
     let count: Int
 }
 
+private struct AnalyticsWidthPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 private struct StrictModeScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var visibleHistoryCount = 8
 
     var body: some View {
         VStack(spacing: 18) {
@@ -2437,12 +2529,24 @@ private struct StrictModeScreen: View {
                 HStack {
                     Label(model.t("strict.history"), systemImage: "clock.arrow.circlepath")
                         .font(.system(size: 15, weight: .bold))
-                    Spacer()
                     if !model.distractionHistory.isEmpty {
-                        Button(model.t("strict.history.clear"), role: .destructive) {
+                        CompactCountBadge(value: model.distractionHistory.count, color: model.theme.strict)
+                    }
+                    Spacer(minLength: 12)
+                    if !model.distractionHistory.isEmpty {
+                        Button(role: .destructive) {
                             model.clearDistractionHistory()
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 13, weight: .bold))
+                                .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
+                                .contentShape(Rectangle())
                         }
-                        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(model.theme.strict)
+                        .glassHover(theme: model.theme, radius: 10)
+                        .help(model.t("strict.history.clear"))
+                        .accessibilityLabel(model.t("strict.history.clear"))
                     }
                 }
 
@@ -2453,34 +2557,53 @@ private struct StrictModeScreen: View {
                         detail: model.t("strict.history.empty.detail")
                     )
                 } else {
-                    ForEach(Array(model.distractionHistory.prefix(12))) { event in
+                    ForEach(Array(model.distractionHistory.prefix(visibleHistoryCount))) { event in
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: actionSymbol(event.action))
                                 .foregroundStyle(actionColor(event.action))
                                 .frame(width: 30, height: 30)
                                 .background(actionColor(event.action).opacity(0.13), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(event.targetLabel)
-                                    .font(.system(size: 13, weight: .bold))
-                                    .lineLimit(2)
+                            VStack(alignment: .leading, spacing: 5) {
+                                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                    Text(event.targetLabel)
+                                        .font(.system(size: 13, weight: .bold))
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .layoutPriority(1)
+
+                                    Spacer(minLength: 0)
+
+                                    Image(systemName: event.targetKind == .app ? "app.badge" : "globe")
+                                        .foregroundStyle(model.theme.mutedText)
+                                        .accessibilityLabel(event.targetKind == .app ? model.t("strict.apps") : model.t("strict.sites"))
+                                }
+
                                 Text("\(model.actionTitle(event.action)) · \(event.occurredAt.formatted(date: .abbreviated, time: .shortened))")
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(model.theme.mutedText)
+                                    .foregroundStyle(actionColor(event.action))
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Text(historyContext(event))
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(.system(size: 11, weight: .semibold))
                                     .foregroundStyle(model.theme.mutedText)
                                     .lineLimit(2)
+
+                                if let taskTitle = event.taskTitle, !taskTitle.isEmpty {
+                                    Text(taskTitle)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(model.theme.mutedText)
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
-
-                            Spacer(minLength: 12)
-
-                            Image(systemName: event.targetKind == .app ? "app.badge" : "globe")
-                                .foregroundStyle(model.theme.mutedText)
-                                .accessibilityLabel(event.targetKind == .app ? model.t("strict.apps") : model.t("strict.sites"))
                         }
-                        .padding(11)
+                        .padding(12)
                         .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    if model.distractionHistory.count > 8 {
+                        historyExpansionButton
                     }
                 }
             }
@@ -2489,8 +2612,32 @@ private struct StrictModeScreen: View {
 
     private func historyContext(_ event: DistractionEventRecord) -> String {
         let project = event.projectName.isEmpty ? model.t("projects.unassigned") : event.projectName
-        let task = event.taskTitle.map { " · \($0)" } ?? ""
-        return "\(project) · \(model.timerModeTitle(event.mode))\(task)"
+        return "\(project) · \(model.timerModeTitle(event.mode))"
+    }
+
+    private var historyExpansionButton: some View {
+        let showsAll = visibleHistoryCount >= model.distractionHistory.count
+        let remaining = min(8, max(0, model.distractionHistory.count - visibleHistoryCount))
+        let title = showsAll
+            ? model.t("common.showLess")
+            : "\(model.t("common.showMore")) (\(remaining))"
+
+        return Button {
+            withAnimation(.easeInOut(duration: model.theme.animationDuration(0.18))) {
+                visibleHistoryCount = showsAll
+                    ? 8
+                    : min(model.distractionHistory.count, visibleHistoryCount + 8)
+            }
+        } label: {
+            Label(title, systemImage: showsAll ? "chevron.up" : "chevron.down")
+                .font(.system(size: 11, weight: .bold))
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.compact)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(model.theme.mutedText)
+        .glassHover(theme: model.theme, radius: 10)
+        .accessibilityLabel(title)
     }
 
     private func actionSymbol(_ action: DistractionAction) -> String {
@@ -2508,5 +2655,20 @@ private struct StrictModeScreen: View {
         case .hide: model.theme.primary
         case .pauseSession, .quitAfterOptIn: model.theme.strict
         }
+    }
+}
+
+private struct CompactCountBadge: View {
+    let value: Int
+    let color: Color
+
+    var body: some View {
+        Text("\(value)")
+            .font(.system(size: 11, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(color)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.12), in: Capsule())
     }
 }
