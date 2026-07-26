@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 
 ## Human Context
 
@@ -10,7 +10,7 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Latest Session Checkpoint
 
-Last checkpoint: 2026-07-26.
+Last checkpoint: 2026-07-27.
 
 Purpose: this section is the quick resume point for future sessions. Update it
 whenever work is completed, paused halfway, blocked, or intentionally deferred,
@@ -19,6 +19,43 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the Product Design polish pass for accumulated Analytics and
+  Strict History data without restructuring the finished screens:
+  - The real-data baseline was taken from an isolated copy of
+    `~/Library/Application Support/FocusGlass`: 2 projects, 7 tasks, 4 recent
+    sessions, 0 strict-history events, and 3 rules. The original user data was
+    never modified.
+  - A separate QA copy exercised 16 sessions, 15 strict-history events, all
+    six timer modes, all four strict actions, and long RU/EN titles.
+  - Analytics now uses a measured 900 pt breakpoint, stacks summary cards at
+    compact widths, and lays mode summaries out in adaptive columns. Project,
+    mode, and session rows show explicit effectiveness; non-zero values below
+    one percent render as `<1%`.
+  - Stale project IDs now normalize to the single unassigned bucket across
+    tasks, sessions, and distraction history. This removes duplicate
+    `Без проекта` rows while preserving valid project links.
+  - Recent sessions and Strict History show total counts and use progressive
+    show-more/show-less controls instead of silently clipping older records.
+    Strict event rows separate target, action/date, project/mode, and task
+    context; the destructive history action is now an icon with a 40 pt target,
+    help, and an accessibility label.
+  - Product Design/runtime proof and numbered audit:
+    `/private/tmp/focusglass-real-data-polish-20260727-010950`.
+    Final screenshots cover compact dense Analytics, expanded sessions,
+    compact/expanded Strict History, RU/EN, and the corrected real-data
+    unassigned grouping.
+  - Validation passed: isolated `swift build`, 72/72 SwiftPM tests, repeated
+    packaged `./script/build_and_run.sh --verify`, strict codesign, RU/EN
+    accessibility-tree checks, and `git diff --check`.
+  - Used/validated with: Graphify, Product Design audit (no saved user
+    context), Build macOS Apps, SwiftPM/test-triage, Computer Use, packaged
+    `.app`, and codesign.
+  - Not done: no `VERSION`, tag, tester branch, release archive, GitHub
+    Release, or tester synchronization.
+  - Next skill/workflow: tester feedback starts with SwiftPM/test-triage.
+    Further product work starts with Product Design against real data and ends
+    with Build macOS Apps packaged proof; choose the next roadmap decision
+    before adding another broad UI pass.
 - Completed a Product Design-led layout consistency fix for the five
   owner-reported screenshots:
   - The shared horizontal `FocusGlassScrollView` was accepting the full

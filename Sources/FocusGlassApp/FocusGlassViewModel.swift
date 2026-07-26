@@ -1734,6 +1734,7 @@ final class FocusGlassViewModel: ObservableObject {
 
         var projects = persisted.projects.filter { !removedProjectNames.contains($0.name) }
         let projectsByName = Dictionary(uniqueKeysWithValues: projects.map { ($0.name, $0.id) })
+        let projectsByID = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
         let projectNames = Set(projects.map(\.name))
         let tasks = persisted.tasks.filter { task in
             !starterTaskTitles.contains(task.title) && !removedProjectNames.contains(task.projectName)
@@ -1743,9 +1744,10 @@ final class FocusGlassViewModel: ObservableObject {
                 migrated.projectID = projectsByName[migrated.projectName]
             }
             if let projectID = migrated.projectID,
-               let project = projects.first(where: { $0.id == projectID }) {
+               let project = projectsByID[projectID] {
                 migrated.projectName = project.name
             } else {
+                migrated.projectID = nil
                 migrated.projectName = ""
             }
             return migrated
@@ -1758,9 +1760,24 @@ final class FocusGlassViewModel: ObservableObject {
                 migrated.projectID = projectsByName[migrated.projectName]
             }
             if let projectID = migrated.projectID,
-               let project = projects.first(where: { $0.id == projectID }) {
+               let project = projectsByID[projectID] {
                 migrated.projectName = project.name
-            } else if !projectNames.contains(migrated.projectName) {
+            } else {
+                migrated.projectID = nil
+                migrated.projectName = ""
+            }
+            return migrated
+        }
+        let distractionHistory = persisted.distractionHistory.map { event in
+            var migrated = event
+            if migrated.projectID == nil {
+                migrated.projectID = projectsByName[migrated.projectName]
+            }
+            if let projectID = migrated.projectID,
+               let project = projectsByID[projectID] {
+                migrated.projectName = project.name
+            } else {
+                migrated.projectID = nil
                 migrated.projectName = ""
             }
             return migrated
@@ -1809,7 +1826,7 @@ final class FocusGlassViewModel: ObservableObject {
             projects: projects,
             tasks: tasks,
             distractionRules: distractionRules,
-            distractionHistory: persisted.distractionHistory,
+            distractionHistory: distractionHistory,
             recentSessions: sessions
         )
     }

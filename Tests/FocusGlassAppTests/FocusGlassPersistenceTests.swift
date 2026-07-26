@@ -175,6 +175,100 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
+    func orphanProjectIDsNormalizeAcrossTasksSessionsAndHistory() throws {
+        let project = FocusProject(name: "Current", detail: "Active project", accentName: "aurora")
+        let orphanProjectID = UUID()
+        let ruleID = UUID()
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        store.save(
+            FocusGlassPersistedState(
+                schemaVersion: 6,
+                selectedThemeID: ThemeProfile.noirCrimsonID,
+                themeProfiles: ThemeProfile.builtIn,
+                language: .en,
+                strictModeEnabled: false,
+                intention: "",
+                activeProjectID: project.id,
+                activeProject: project.name,
+                projects: [project],
+                tasks: [
+                    FocusTask(
+                        title: "Orphan task",
+                        projectID: orphanProjectID,
+                        projectName: "Deleted",
+                        estimate: 25 * 60,
+                        completed: 0,
+                        isDone: false
+                    )
+                ],
+                distractionRules: [],
+                distractionHistory: [
+                    DistractionEventRecord(
+                        ruleID: ruleID,
+                        targetKind: .app,
+                        targetLabel: "Example",
+                        matchValue: "com.example.deleted",
+                        action: .warn,
+                        projectID: orphanProjectID,
+                        projectName: "Deleted",
+                        mode: .pomodoro
+                    ),
+                    DistractionEventRecord(
+                        ruleID: UUID(),
+                        targetKind: .site,
+                        targetLabel: "Current site",
+                        matchValue: "example.com",
+                        action: .hide,
+                        projectID: nil,
+                        projectName: project.name,
+                        mode: .flow
+                    )
+                ],
+                recentSessions: [
+                    FocusSessionRecord(
+                        projectID: orphanProjectID,
+                        projectName: "Deleted",
+                        mode: .pomodoro,
+                        startedAt: Date(timeIntervalSince1970: 30),
+                        endedAt: Date(timeIntervalSince1970: 60),
+                        plannedSeconds: 25 * 60,
+                        honestFocusSeconds: 15 * 60,
+                        distractionCount: 1
+                    ),
+                    FocusSessionRecord(
+                        projectID: nil,
+                        projectName: "",
+                        mode: .flow,
+                        startedAt: Date(timeIntervalSince1970: 90),
+                        endedAt: Date(timeIntervalSince1970: 120),
+                        plannedSeconds: 25 * 60,
+                        honestFocusSeconds: 20 * 60,
+                        distractionCount: 0
+                    )
+                ]
+            )
+        )
+
+        let model = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let task = try #require(model.tasks.first)
+        let session = try #require(model.recentSessions.first)
+        let event = try #require(model.distractionHistory.first)
+        let legacyEvent = try #require(model.distractionHistory.last)
+
+        #expect(task.projectID == nil)
+        #expect(task.projectName == "")
+        #expect(session.projectID == nil)
+        #expect(session.projectName == "")
+        #expect(event.projectID == nil)
+        #expect(event.projectName == "")
+        #expect(legacyEvent.projectID == project.id)
+        #expect(legacyEvent.projectName == project.name)
+        #expect(model.projectFocusSummaries.count == 1)
+        #expect(model.projectFocusSummaries.first?.projectID == nil)
+    }
+
+    @Test
+    @MainActor
     func activeTasksAreScopedToSelectedProjectWithoutFallback() {
         let firstProject = FocusProject(name: "Alpha", detail: "", accentName: "aurora")
         let secondProject = FocusProject(name: "Beta", detail: "", accentName: "aurora")
