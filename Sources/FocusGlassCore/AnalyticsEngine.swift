@@ -77,6 +77,24 @@ public struct ProjectFocusSummary: Identifiable, Equatable, Sendable {
     }
 }
 
+public struct TaskFocusSummary: Identifiable, Equatable, Sendable {
+    public var taskID: UUID
+    public var taskTitle: String
+    public var projectID: UUID?
+    public var projectName: String
+    public var sessionsCompleted: Int
+    public var plannedSeconds: TimeInterval
+    public var honestFocusSeconds: TimeInterval
+    public var distractionCount: Int
+    public var lastFocusedAt: Date
+
+    public var id: UUID { taskID }
+    public var effectiveness: Double {
+        guard plannedSeconds > 0 else { return 0 }
+        return min(1, max(0, honestFocusSeconds / plannedSeconds))
+    }
+}
+
 public enum AnalyticsEngine {
     public static func summarize(_ records: [FocusSessionRecord]) -> DailyFocusSummary {
         let planned = records.reduce(0) { $0 + $1.plannedSeconds }
@@ -145,6 +163,44 @@ public enum AnalyticsEngine {
             .sorted {
                 if $0.honestFocusSeconds == $1.honestFocusSeconds {
                     return $0.projectName.localizedCaseInsensitiveCompare($1.projectName) == .orderedAscending
+                }
+                return $0.honestFocusSeconds > $1.honestFocusSeconds
+            }
+    }
+
+    public static func summarizeByTask(_ records: [FocusSessionRecord]) -> [TaskFocusSummary] {
+        let linkedRecords = records.compactMap { record -> (taskID: UUID, record: FocusSessionRecord)? in
+            guard let taskID = record.taskID else { return nil }
+            return (taskID, record)
+        }
+
+        return Dictionary(grouping: linkedRecords, by: \.taskID)
+            .compactMap { taskID, entries in
+                let groupedRecords = entries.map(\.record)
+                guard let latestRecord = groupedRecords.max(by: {
+                    if $0.endedAt == $1.endedAt {
+                        return $0.startedAt < $1.startedAt
+                    }
+                    return $0.endedAt < $1.endedAt
+                }) else {
+                    return nil
+                }
+
+                return TaskFocusSummary(
+                    taskID: taskID,
+                    taskTitle: latestRecord.taskTitle ?? "",
+                    projectID: latestRecord.projectID,
+                    projectName: latestRecord.projectName,
+                    sessionsCompleted: groupedRecords.count,
+                    plannedSeconds: groupedRecords.reduce(0) { $0 + $1.plannedSeconds },
+                    honestFocusSeconds: groupedRecords.reduce(0) { $0 + $1.honestFocusSeconds },
+                    distractionCount: groupedRecords.reduce(0) { $0 + $1.distractionCount },
+                    lastFocusedAt: latestRecord.endedAt
+                )
+            }
+            .sorted {
+                if $0.honestFocusSeconds == $1.honestFocusSeconds {
+                    return $0.taskTitle.localizedCaseInsensitiveCompare($1.taskTitle) == .orderedAscending
                 }
                 return $0.honestFocusSeconds > $1.honestFocusSeconds
             }

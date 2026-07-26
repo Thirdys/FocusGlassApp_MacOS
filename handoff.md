@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-07-24
+Last updated: 2026-07-27
 
 ## Human Context
 
@@ -10,7 +10,7 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Latest Session Checkpoint
 
-Last checkpoint: 2026-07-24.
+Last checkpoint: 2026-07-27.
 
 Purpose: this section is the quick resume point for future sessions. Update it
 whenever work is completed, paused halfway, blocked, or intentionally deferred,
@@ -19,6 +19,30 @@ rereading the whole handoff.
 
 Last done:
 
+- Implemented task-level analytics inside the existing Analytics screen:
+  - `TaskFocusSummary` and `AnalyticsEngine.summarizeByTask(_:)` group only
+    task-linked sessions by task ID and calculate session count, planned time,
+    honest focus, distractions, and the latest focus date;
+  - current tasks use current title, project, and timing mode; deleted tasks
+    keep the newest historical session metadata;
+  - timed tasks show planned vs honest, effectiveness, and progress;
+    checklist and historical tasks show linked activity without misleading
+    time-based progress;
+  - the responsive section starts with six tasks and expands in batches of six
+    without adding another sidebar route.
+  - Product Design and packaged-app proof is stored in
+    `/private/tmp/focusglass-task-analytics-20260727-030240`.
+  - Covered states: empty analytics, one timed task, checklist plus historical
+    task, 12-task dense data, long RU/EN names, compact/wide layouts,
+    Light/Dark/custom themes, full pointer target, and accessibility labels.
+  - Validation: `swift build`, full Swift tests, packaged `.app`,
+    strict codesign, `git diff --check`, and `graphify update .`.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps,
+    SwiftPM/test-triage, Computer Use, packaged `.app`, and codesign.
+  - Not done: full VoiceOver traversal is the next dedicated audit; no
+    `VERSION`, tag, tester branch, release archive, or GitHub Release changes.
+  - Next skill/workflow: Product Design plus Build macOS Apps for the complete
+    VoiceOver/accessibility audit, then packaging/signing-notarization.
 - Completed the mandatory zero-stage design/runtime pass before any future
   tester synchronization:
   - Rebuilt launch motion around shared normalized

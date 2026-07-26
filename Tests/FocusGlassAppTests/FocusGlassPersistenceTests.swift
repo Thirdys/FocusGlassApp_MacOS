@@ -433,6 +433,92 @@ struct FocusGlassPersistenceTests {
 
     @Test
     @MainActor
+    func taskAnalyticsUsesCurrentMetadataAndHistoricalFallback() throws {
+        let model = FocusGlassViewModel(
+            store: FocusGlassStore(fileURL: temporaryStateURL()),
+            requestPermissionsOnLaunch: false
+        )
+        let project = model.addProject()
+        var timedTask = model.addQuickTask()
+        timedTask.title = "Current timed title"
+        model.updateTask(timedTask)
+
+        let checklistTask = FocusTask(
+            title: "Current checklist title",
+            projectID: project.id,
+            projectName: project.name,
+            timingMode: .checklist,
+            estimate: 0,
+            completed: 0,
+            isDone: false
+        )
+        model.tasks.append(checklistTask)
+
+        let deletedTaskID = UUID()
+        model.recentSessions = [
+            FocusSessionRecord(
+                projectID: project.id,
+                projectName: "Captured project",
+                taskID: timedTask.id,
+                taskTitle: "Captured timed title",
+                mode: .pomodoro,
+                startedAt: Date(timeIntervalSince1970: 10),
+                endedAt: Date(timeIntervalSince1970: 20),
+                plannedSeconds: 20,
+                honestFocusSeconds: 15,
+                distractionCount: 1
+            ),
+            FocusSessionRecord(
+                projectID: project.id,
+                projectName: "Captured project",
+                taskID: checklistTask.id,
+                taskTitle: "Captured checklist title",
+                mode: .stopwatch,
+                startedAt: Date(timeIntervalSince1970: 20),
+                endedAt: Date(timeIntervalSince1970: 30),
+                plannedSeconds: 0,
+                honestFocusSeconds: 10,
+                distractionCount: 0
+            ),
+            FocusSessionRecord(
+                projectName: "Deleted project",
+                taskID: deletedTaskID,
+                taskTitle: "Deleted task",
+                mode: .flow,
+                startedAt: Date(timeIntervalSince1970: 30),
+                endedAt: Date(timeIntervalSince1970: 40),
+                plannedSeconds: 20,
+                honestFocusSeconds: 5,
+                distractionCount: 2
+            )
+        ]
+
+        let timedSummary = try #require(model.taskFocusSummaries.first { $0.taskID == timedTask.id })
+        let timedPresentation = model.taskAnalyticsPresentation(for: timedSummary)
+        #expect(timedPresentation.title == "Current timed title")
+        #expect(timedPresentation.projectName == project.name)
+        #expect(timedPresentation.timingMode == .timed)
+        #expect(timedPresentation.showsEffectiveness)
+        #expect(!timedPresentation.isHistorical)
+
+        let checklistSummary = try #require(model.taskFocusSummaries.first { $0.taskID == checklistTask.id })
+        let checklistPresentation = model.taskAnalyticsPresentation(for: checklistSummary)
+        #expect(checklistPresentation.title == "Current checklist title")
+        #expect(checklistPresentation.timingMode == .checklist)
+        #expect(!checklistPresentation.showsEffectiveness)
+        #expect(!checklistPresentation.isHistorical)
+
+        let deletedSummary = try #require(model.taskFocusSummaries.first { $0.taskID == deletedTaskID })
+        let deletedPresentation = model.taskAnalyticsPresentation(for: deletedSummary)
+        #expect(deletedPresentation.title == "Deleted task")
+        #expect(deletedPresentation.projectName == "Deleted project")
+        #expect(deletedPresentation.timingMode == nil)
+        #expect(!deletedPresentation.showsEffectiveness)
+        #expect(deletedPresentation.isHistorical)
+    }
+
+    @Test
+    @MainActor
     func activeTaskIDPersistsAndClearsWhenScopeChanges() {
         let store = FocusGlassStore(fileURL: temporaryStateURL())
         let firstLaunch = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
