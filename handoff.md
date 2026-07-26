@@ -19,6 +19,40 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the first task-level analytics implementation inside the existing
+  Analytics screen:
+  - `FocusGlassCore` now exposes `TaskFocusSummary` and
+    `AnalyticsEngine.summarizeByTask(_:)`. Only records with `taskID` are
+    grouped; equal titles with different IDs remain separate; totals include
+    sessions, planned time, honest focus, distractions, and latest focus date.
+  - `FocusGlassViewModel` caches task summaries only when `recentSessions`
+    changes. Existing tasks use current title/project/timing mode; deleted
+    tasks keep the latest captured session context.
+  - Analytics shows six adaptive task cards first and expands in groups of six.
+    Timed tasks show planned vs honest, effectiveness, and progress. Checklist
+    and historical tasks show associated focus without progress or
+    effectiveness.
+  - The single-task state fills its row, task dates follow the selected
+    FocusGlass language, RU/EN strings are present, and each card exposes one
+    complete accessibility label.
+  - Product Design/Build macOS Apps proof covers empty, one timed task,
+    checklist, deleted history, 13-task density, long RU/EN titles,
+    compact/wide layouts, and custom Light/Dark variants:
+    `/private/tmp/focusglass-task-analytics-20260727-030240`.
+    Numbered audit notes are in `audit-notes.md`.
+  - Validation passed: isolated `swift build`, 75/75 SwiftPM tests, repeated
+    packaged `./script/build_and_run.sh --verify`, strict codesign, full-width
+    expansion target, RU/EN accessibility-tree checks, and `git diff --check`.
+  - Used/validated with: Graphify, Product Design audit (no saved user
+    context), Build macOS Apps, SwiftPM/test-triage, Computer Use, packaged
+    `.app`, and codesign.
+  - Not done: full VoiceOver/accessibility audit, Developer ID
+    signing/notarization, release, tag, tester branch, GitHub Release, custom
+    timer presets, or strict-rule presets.
+  - Next skill/workflow: run a dedicated Product Design + Build macOS Apps
+    VoiceOver/accessibility audit across all primary surfaces. After that, use
+    signing-entitlements and packaging-notarization for Developer ID
+    distribution readiness.
 - Completed the Product Design decision pass for custom timer presets,
   strict-rule presets, and task-level analytics:
   - Editable built-in timer presets are sufficient for the current stage.
@@ -28,7 +62,7 @@ Last done:
     app/browser dependencies are machine-specific. If revisited, they must be
     safe suggestions with explicit preview, disabled rules by default, and no
     `quitAfterOptIn`.
-  - Task-level analytics is approved as the next implementation chunk inside
+  - Task-level analytics was approved as the next implementation chunk inside
     the existing Analytics screen. The first pass groups existing session
     records by `taskID` and shows project, session count, planned/honest time,
     distractions, timed-task effectiveness, and last focus date without a new
@@ -41,12 +75,8 @@ Last done:
   - Used/validated with: Graphify, Product Design audit (no saved user
     context), Build macOS Apps, Computer Use, current Swift models, real-data
     copy, and packaged `.app`.
-  - Not done: task-level analytics implementation, VoiceOver audit,
-    Developer ID signing/notarization, release, tag, tester branch, or GitHub
-    Release.
-  - Next skill/workflow: task-level analytics starts Product Design-first,
-    adds focused AnalyticsEngine/ViewModel tests, and finishes with Build macOS
-    Apps packaged proof on empty, one-task, dense, RU, and EN states.
+  - This decision checkpoint is superseded by the completed task-level
+    analytics checkpoint above.
 - Completed the Product Design polish pass for accumulated Analytics and
   Strict History data without restructuring the finished screens:
   - The real-data baseline was taken from an isolated copy of
@@ -935,8 +965,8 @@ Started or partially started roadmap items:
 - Analytics: first requested implementation pass is complete. Daily summary,
   focus score, planned vs actual/effectiveness, recent sessions, mode
   effectiveness, project summaries, and distraction analytics by project/mode
-  are visible. Real-data polish is complete and task-level analytics is
-  approved as the next implementation chunk.
+  are visible. Real-data polish and task-level analytics are complete; the next
+  quality pass is the dedicated VoiceOver/accessibility audit.
 
 Parked roadmap items for later:
 
@@ -988,8 +1018,9 @@ using the full current operating plan first, then the roadmap block.
    validate the live `.app`.
 6. The requested cockpit/Strict Mode/history/UI/analytics implementation and
    its focused compact/keyboard/Strict and accumulated-data live-QA passes are
-   complete. Product decisions are now fixed: task-level analytics is the next
-   implementation chunk; custom timer and Strict presets remain deferred until
+   complete, including task-level analytics. The next work is the dedicated
+   VoiceOver/accessibility audit, followed by Developer ID
+   signing/notarization. Custom timer and Strict presets remain deferred until
    tester evidence meets their revisit criteria.
 7. Do not change the release process without a separate decision:
    `./Scripts/package-release.sh`, `VERSION`, public tags, and tester branches
@@ -1676,9 +1707,9 @@ Skills research:
 6. Attached timed/checklist outcome proof is complete. Proof path:
    `/private/tmp/focusglass-outcome-attached-qa-20260627-181435`.
 7. Strict distraction history, the first broad UI/accessibility implementation
-   pass, requested analytics surfaces, and accumulated-data Product Design
-   polish are complete. The next product implementation is task-level
-   analytics inside the current Analytics screen.
+   pass, accumulated-data Product Design polish, and task-level analytics are
+   complete. The next implementation-quality pass is the dedicated
+   VoiceOver/accessibility audit; Developer ID signing/notarization follows.
 8. Do not break the existing FocusGlass identity. App icon, Dock/Finder icon,
    menu bar glyph, launch animation, and visual style changes must improve the
    current FocusGlass Mac Glass OS / timer / focus direction, not create an
@@ -1715,8 +1746,8 @@ Skills research:
    - Analytics first pass is complete: daily summary, focus score, planned vs
      actual/effectiveness, recent sessions, mode effectiveness, project
      summaries, unassigned handling, and distraction grouping by project/mode.
-     Richer-data polish is complete. Task-level analytics is approved as the
-     next implementation chunk.
+     Richer-data polish and task-level analytics are complete, including
+     timed/checklist/historical presentation policy and progressive expansion.
    - Later roadmap items remain parked: conditional strict-rule/custom timer
      presets, dedicated VoiceOver audit, and signed/notarized distribution.
      The first improved Menu Bar HUD, fullscreen task-flow, and Theme Studio

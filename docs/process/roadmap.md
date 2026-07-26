@@ -69,11 +69,12 @@ VoiceOver/accessibility audit.
 - Реализованы daily summary, focus score, planned vs actual/effectiveness,
   recent sessions, mode effectiveness, project summaries и distraction
   analytics по проектам/режимам.
-
-Решение принято: task-level analytics является следующим продуктовым
-implementation chunk. Первый pass добавляется внутрь текущего Analytics screen,
-без новой sidebar route и без новой схемы хранения: session records уже содержат
-`taskID`, `taskTitle`, planned/honest time и distractions.
+- Task-level analytics группирует связанные session records по `taskID` и
+  показывает project, sessions, honest focus, distractions и last focus.
+- Актуальные timed-задачи показывают planned vs honest и effectiveness;
+  checklist и удалённые исторические задачи не получают time-progress.
+- Первый task analytics pass встроен в текущий Analytics screen без новой
+  sidebar route и без изменения persistence schema.
 
 ## Следующий порядок
 
@@ -107,10 +108,11 @@ implementation chunk. Первый pass добавляется внутрь те
 3. Продуктовые решения по custom timer presets, strict-rule presets и
    task-level analytics приняты. Decision audit:
    `/private/tmp/focusglass-product-decisions-20260727-022057`.
-4. Реализовать первый task-level analytics pass внутри текущего Analytics:
-   summary по задаче, session count, planned/honest time, distractions,
-   timed-task effectiveness, last focus date и корректное отображение
-   удалённых/checklist задач.
+4. Первый task-level analytics pass завершён: summary по задаче, session count,
+   planned/honest time, distractions, timed-task effectiveness, last focus
+   date и корректное отображение удалённых/checklist задач. Product
+   Design/packaged-app proof:
+   `/private/tmp/focusglass-task-analytics-20260727-030240`.
 5. Провести отдельный VoiceOver/accessibility audit всех основных surfaces.
 6. Подготовить Developer ID signing/notarization для более широкого
    распространения.
