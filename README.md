@@ -157,15 +157,16 @@ AppIcon/launch animation, lifecycle-managed Menu Bar panel и полный пр�
 Следующий performance-pass унифицировал все scroll surfaces, убрал hover/shadow
 churn во время движения и сократил одновременно открытый Theme Studio editor.
 Product Design pass на реальных накопленных данных улучшил плотность Analytics
-и Strict History, а следующий decision-pass выбрал task-level analytics как
-ближайший продуктовый блок.
+и Strict History. Следующий implementation-pass добавил task-level analytics:
+сводки по `taskID`, актуальный контекст существующих задач, исторический
+fallback удалённых задач и отдельную политику timed/checklist.
 Tester-сборка `0.0.4` остаётся отдельным историческим снимком и не включает
 изменения из секции `Unreleased`.
 
-Ближайший порядок: реализовать task-level analytics внутри текущего Analytics,
-провести отдельный VoiceOver-аудит и подготовить подписанный/notarized канал
-распространения. Custom timer presets и strict-rule presets отложены до
-подтверждённой потребности из tester feedback. Детальный порядок хранится в
+Ближайший порядок: провести отдельный полный VoiceOver/accessibility audit,
+затем подготовить Developer ID signing и notarized канал распространения.
+Custom timer presets и strict-rule presets отложены до подтверждённой
+потребности из tester feedback. Детальный порядок хранится в
 [roadmap](docs/process/roadmap.md) и [handoff](handoff.md).
 
 ## Принципы проекта

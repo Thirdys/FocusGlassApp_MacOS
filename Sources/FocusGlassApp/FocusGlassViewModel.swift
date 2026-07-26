@@ -117,6 +117,19 @@ struct SessionOutcomePresentation: Identifiable, Equatable {
     var id: UUID { record.id }
 }
 
+struct TaskAnalyticsPresentation: Identifiable, Equatable {
+    var summary: TaskFocusSummary
+    var title: String
+    var projectName: String
+    var timingMode: FocusTaskTimingMode?
+    var isHistorical: Bool
+
+    var id: UUID { summary.taskID }
+    var showsEffectiveness: Bool {
+        !isHistorical && timingMode == .timed
+    }
+}
+
 @MainActor
 final class FocusTimerPresentationState: ObservableObject {
     @Published private(set) var snapshot: TimerEngineSnapshot
@@ -242,6 +255,7 @@ final class FocusGlassViewModel: ObservableObject {
     private(set) var dailySummary = AnalyticsEngine.summarize([])
     private(set) var modeEffectivenessSummaries: [ModeEffectivenessSummary] = []
     private(set) var projectFocusSummaries: [ProjectFocusSummary] = []
+    private(set) var taskFocusSummaries: [TaskFocusSummary] = []
     private(set) var activeTasks: [FocusTask] = []
     private var taskCountByProjectID: [UUID: Int] = [:]
     private var cachedFocusHeatmapValues = Array(repeating: 0.0, count: 28)
@@ -545,6 +559,29 @@ final class FocusGlassViewModel: ObservableObject {
     func task(for taskID: UUID?) -> FocusTask? {
         guard let taskID else { return nil }
         return tasks.first { $0.id == taskID }
+    }
+
+    func taskAnalyticsPresentation(for summary: TaskFocusSummary) -> TaskAnalyticsPresentation {
+        if let currentTask = task(for: summary.taskID) {
+            return TaskAnalyticsPresentation(
+                summary: summary,
+                title: currentTask.title.isEmpty ? t("analytics.task.untitled") : currentTask.title,
+                projectName: displayProjectName(
+                    for: currentTask.projectID,
+                    legacyName: currentTask.projectName
+                ),
+                timingMode: currentTask.timingMode,
+                isHistorical: false
+            )
+        }
+
+        return TaskAnalyticsPresentation(
+            summary: summary,
+            title: summary.taskTitle.isEmpty ? t("analytics.task.untitled") : summary.taskTitle,
+            projectName: summary.projectName.isEmpty ? unassignedProjectTitle : summary.projectName,
+            timingMode: nil,
+            isHistorical: true
+        )
     }
 
     var unassignedSessions: [FocusSessionRecord] {
@@ -1374,6 +1411,7 @@ final class FocusGlassViewModel: ObservableObject {
         dailySummary = AnalyticsEngine.summarize(recentSessions)
         modeEffectivenessSummaries = AnalyticsEngine.summarizeByMode(recentSessions)
         projectFocusSummaries = AnalyticsEngine.summarizeByProject(recentSessions)
+        taskFocusSummaries = AnalyticsEngine.summarizeByTask(recentSessions)
         cachedFocusHeatmapDay = Calendar.current.startOfDay(for: .now)
         cachedFocusHeatmapValues = makeFocusHeatmapValues()
     }

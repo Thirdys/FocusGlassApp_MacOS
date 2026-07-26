@@ -13,6 +13,9 @@ tester-сборку `0.0.4`.
   сессией, проектом, задачей и режимом таймера.
 - Analytics первого прохода: planned vs actual, последние сессии,
   эффективность режимов, сводки проектов и отвлечения по проектам/режимам.
+- Task-level analytics: сводки по `taskID`, planned/honest focus,
+  distractions, last focus, актуальный контекст существующих задач и
+  исторический fallback удалённых задач.
 - Общая `FocusGlassMarkGeometry` для AppIcon и launch animation.
 - Явные Light/Dark палитры пользовательских тем и проверка импортируемых
   theme-файлов.
@@ -58,7 +61,7 @@ tester-сборку `0.0.4`.
 
 ### Проверено
 
-- Полный набор SwiftPM-тестов: 71/71.
+- Полный набор SwiftPM-тестов: 75/75.
 - Packaged-app QA главного окна, Settings, Theme Studio, Menu Bar, fullscreen,
   Strict Mode, launch animation, performance/UI-card и scroll-performance
   passes.
