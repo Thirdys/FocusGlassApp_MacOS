@@ -85,8 +85,19 @@ FocusGlass развивается без смены идеи проекта. Э�
 - Готов первый implementation pass: planned vs actual/effectiveness,
   последние сессии, эффективность режимов, сводка по проектам и отвлечения по
   проектам/режимам.
-- Осталось: Product Design polish на реальных накопленных данных и решение,
-  нужны ли отдельные task-level срезы сверх текущих session/project summaries.
+- Готово: task-level summary внутри Analytics. Сессии группируются по task ID;
+  timed-задачи показывают planned vs honest и эффективность, checklist-задачи
+  только связанную активность, а удалённые задачи сохраняются как исторические.
+- Осталось: Product Design polish на реальных накопленных данных.
+
+### 6. Accessibility и внешняя поставка
+
+- Следующий обязательный этап: полный VoiceOver/accessibility audit всех
+  основных пользовательских путей.
+- После него: Developer ID signing и notarization для нормальной внешней
+  установки.
+- Перед новой tester delivery повторить полную проверку packaged `.app` и
+  обновить cumulative tester-документы.
 
 ## Позже
 
@@ -96,7 +107,8 @@ FocusGlass развивается без смены идеи проекта. Э�
   выбор активной задачи в fullscreen.
 - Проверка читаемости Theme Studio. Частично начато: advanced color tokens
   получили живой preview.
-- Подготовка подписанного/notarized релиза.
+- Custom timer presets и strict-rule presets пересмотреть только после
+  подтверждённого tester feedback.
 
 ## Пока вне зоны
 

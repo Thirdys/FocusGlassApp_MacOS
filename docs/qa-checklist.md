@@ -235,6 +235,24 @@
   groups them correctly.
 - Trigger strict rules in at least two projects or modes and verify distraction
   analytics groups the persisted events by project and mode.
+- Complete a session with a selected task and verify `Focus by task` /
+  `Фокус по задачам` appears after project summaries and before recent
+  sessions.
+- Verify sessions with no selected task stay in project/recent-session
+  analytics and do not create a task summary.
+- Rename an existing task and project, then verify the task summary uses their
+  current names while retaining all historical totals.
+- Delete a task with linked sessions and verify it remains as a historical
+  summary using the latest captured title/project context.
+- Verify timed tasks show planned vs honest focus, effectiveness, and a
+  progress bar.
+- Verify checklist and historical tasks show associated focus and sessions but
+  never show time-progress or effectiveness.
+- Seed at least 12 task summaries and verify `Show more` / `Показать ещё`
+  reveals six at a time, the final remainder, and then `Show less` /
+  `Свернуть`.
+- Check long RU/EN task titles, compact/wide grids, Light/Dark/custom themes,
+  the full-width expansion target, and complete accessibility labels.
 
 ## Layout and localization
 

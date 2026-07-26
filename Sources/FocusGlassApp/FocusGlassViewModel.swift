@@ -117,6 +117,19 @@ struct SessionOutcomePresentation: Identifiable, Equatable {
     var id: UUID { record.id }
 }
 
+struct TaskAnalyticsPresentation: Identifiable, Equatable {
+    var summary: TaskFocusSummary
+    var title: String
+    var projectName: String
+    var timingMode: FocusTaskTimingMode?
+    var isHistorical: Bool
+
+    var id: UUID { summary.taskID }
+    var showsEffectiveness: Bool {
+        !isHistorical && timingMode == .timed
+    }
+}
+
 @MainActor
 final class FocusGlassViewModel: ObservableObject {
     static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("FocusGlass.main")
@@ -177,7 +190,12 @@ final class FocusGlassViewModel: ObservableObject {
     @Published var tasks: [FocusTask] = [] { didSet { syncActiveTaskSelection(); persist() } }
     @Published var distractionRules: [DistractionRuleSpec] = [] { didSet { persist() } }
     @Published var distractionHistory: [DistractionEventRecord] = [] { didSet { persist() } }
-    @Published var recentSessions: [FocusSessionRecord] = [] { didSet { persist() } }
+    @Published var recentSessions: [FocusSessionRecord] = [] {
+        didSet {
+            taskFocusSummaries = AnalyticsEngine.summarizeByTask(recentSessions)
+            persist()
+        }
+    }
     @Published private(set) var pendingSessionOutcome: SessionOutcomePresentation?
 
     private var timer: Timer?
@@ -196,6 +214,7 @@ final class FocusGlassViewModel: ObservableObject {
     private var runtimeIconTask: Task<Void, Never>?
     private var isApplyingThemeMutation = false
     private var lastRuntimeIconUpdateDuration: TimeInterval = 0
+    private(set) var taskFocusSummaries: [TaskFocusSummary] = []
 
     init(store: FocusGlassStore = FocusGlassStore(), requestPermissionsOnLaunch: Bool = true) {
         self.store = store
@@ -244,6 +263,7 @@ final class FocusGlassViewModel: ObservableObject {
         engine.configure(selectedPreset)
         syncActiveProjectName()
         syncActiveTaskSelection()
+        taskFocusSummaries = AnalyticsEngine.summarizeByTask(recentSessions)
         installAppearanceObserver()
         updateSystemAppearance()
         updateRuntimeIcons()
@@ -494,6 +514,29 @@ final class FocusGlassViewModel: ObservableObject {
     func task(for taskID: UUID?) -> FocusTask? {
         guard let taskID else { return nil }
         return tasks.first { $0.id == taskID }
+    }
+
+    func taskAnalyticsPresentation(for summary: TaskFocusSummary) -> TaskAnalyticsPresentation {
+        if let currentTask = task(for: summary.taskID) {
+            return TaskAnalyticsPresentation(
+                summary: summary,
+                title: currentTask.title.isEmpty ? t("analytics.task.untitled") : currentTask.title,
+                projectName: displayProjectName(
+                    for: currentTask.projectID,
+                    legacyName: currentTask.projectName
+                ),
+                timingMode: currentTask.timingMode,
+                isHistorical: false
+            )
+        }
+
+        return TaskAnalyticsPresentation(
+            summary: summary,
+            title: summary.taskTitle.isEmpty ? t("analytics.task.untitled") : summary.taskTitle,
+            projectName: summary.projectName.isEmpty ? unassignedProjectTitle : summary.projectName,
+            timingMode: nil,
+            isHistorical: true
+        )
     }
 
     var unassignedSessions: [FocusSessionRecord] {

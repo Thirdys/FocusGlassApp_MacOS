@@ -187,6 +187,7 @@
 "strict.history.empty.detail" = "Здесь появятся совпавшие правила, действие, время, сессия, проект и режим.";
 
 "analytics.plannedVsActual" = "План и факт";
+"analytics.byTask" = "Фокус по задачам";
 "analytics.planned" = "План";
 "analytics.actual" = "Факт";
 "analytics.effectiveness" = "Эффективность";
@@ -198,6 +199,12 @@
 "analytics.noDistractionHistory" = "Истории строгого режима пока нет";
 "analytics.noDistractionHistory.detail" = "Разбивка по проектам и режимам появится после срабатывания правила.";
 "analytics.byMode" = "По режимам";
+"analytics.task.empty.title" = "Нет связанных задач";
+"analytics.task.empty.detail" = "Задачи появятся здесь после завершенной сессии с выбранной задачей.";
+"analytics.task.historical" = "История";
+"analytics.task.associatedFocus" = "Связанное время";
+"analytics.task.lastFocus" = "Последний фокус";
+"analytics.task.untitled" = "Без названия";
 
 "menu.blockedCount" = "Активные правила";
 "menu.openApp" = "Открыть приложение";

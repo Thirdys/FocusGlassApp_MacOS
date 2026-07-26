@@ -187,6 +187,7 @@
 "strict.history.empty.detail" = "Matched rules will appear here with their action, time, session, project, and mode.";
 
 "analytics.plannedVsActual" = "Planned vs actual";
+"analytics.byTask" = "Focus by task";
 "analytics.planned" = "Planned";
 "analytics.actual" = "Actual";
 "analytics.effectiveness" = "Effectiveness";
@@ -198,6 +199,12 @@
 "analytics.noDistractionHistory" = "No strict-mode history yet";
 "analytics.noDistractionHistory.detail" = "Project and mode breakdowns appear after a distraction rule is triggered.";
 "analytics.byMode" = "By mode";
+"analytics.task.empty.title" = "No linked tasks";
+"analytics.task.empty.detail" = "Tasks appear here after a completed session with a selected task.";
+"analytics.task.historical" = "Historical";
+"analytics.task.associatedFocus" = "Associated focus";
+"analytics.task.lastFocus" = "Last focus";
+"analytics.task.untitled" = "Untitled task";
 
 "menu.blockedCount" = "Enabled rules";
 "menu.openApp" = "Open App";
