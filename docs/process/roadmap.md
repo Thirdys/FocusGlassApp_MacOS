@@ -21,8 +21,9 @@ FocusGlass развивается без смены идеи проекта. Э�
   проекта/задачи и действия complete/continue/start next.
 - Project notes заменили глобальное поле intention.
 
-Открытое решение: достаточно ли редактирования встроенных presets или нужны
-отдельные пользовательские timer presets.
+Решение принято: на текущем этапе достаточно редактирования встроенных
+presets. Отдельные пользовательские presets возвращаются в план только если
+tester feedback покажет потребность хранить несколько вариантов одного режима.
 
 ### Strict Mode
 
@@ -37,7 +38,10 @@ FocusGlass развивается без смены идеи проекта. Э�
 - Packaged-app proof покрывает реальные app rules, Safari Automation site rule
   и отмену опасного quit.
 
-Открытое решение: нужны ли пользователю наборы strict-rule presets.
+Решение принято: strict-rule presets пока не нужны. Текущий поштучный flow
+достаточен для небольшого локального набора правил. Если повторяющиеся наборы
+появятся в tester feedback, проектировать только безопасные suggestions:
+предпросмотр всех правил, disabled по умолчанию и без `quitAfterOptIn`.
 
 ### UI, темы и системные поверхности
 
@@ -57,8 +61,8 @@ FocusGlass развивается без смены идеи проекта. Э�
   analytics summaries и heatmap не пересчитываются на каждом тике. Project
   cards держат длинные RU/EN названия внутри полной selectable surface.
 
-Открыто: отдельный VoiceOver-аудит и точечный Product Design polish на реальных
-пользовательских данных.
+Product Design polish на реальных накопленных данных завершён. Открыт отдельный
+VoiceOver/accessibility audit.
 
 ### Аналитика
 
@@ -66,8 +70,10 @@ FocusGlass развивается без смены идеи проекта. Э�
   recent sessions, mode effectiveness, project summaries и distraction
   analytics по проектам/режимам.
 
-Открытое решение: нужны ли отдельные task-level срезы сверх текущих session и
-project summaries.
+Решение принято: task-level analytics является следующим продуктовым
+implementation chunk. Первый pass добавляется внутрь текущего Analytics screen,
+без новой sidebar route и без новой схемы хранения: session records уже содержат
+`taskID`, `taskTitle`, planned/honest time и distractions.
 
 ## Следующий порядок
 
@@ -95,13 +101,18 @@ project summaries.
 1. Получить и разобрать обратную связь по tester-сборке. `tester/0.0.4` является
    историческим снимком; следующая tester delivery создаётся только по команде
    владельца и получает новую версию, cumulative checklist и новые документы.
-2. Провести Product Design polish на реальных накопленных session/history data,
-   не перестраивая уже реализованные outcome, Strict history и analytics с
-   нуля.
-3. Принять продуктовые решения по custom timer presets, strict-rule presets и
-   task-level analytics.
-4. Провести отдельный VoiceOver/accessibility audit всех основных surfaces.
-5. Подготовить Developer ID signing/notarization для более широкого
+2. Product Design polish на реальных накопленных session/history data завершён
+   без перестройки outcome, Strict history и analytics. Proof:
+   `/private/tmp/focusglass-real-data-polish-20260727-010950`.
+3. Продуктовые решения по custom timer presets, strict-rule presets и
+   task-level analytics приняты. Decision audit:
+   `/private/tmp/focusglass-product-decisions-20260727-022057`.
+4. Реализовать первый task-level analytics pass внутри текущего Analytics:
+   summary по задаче, session count, planned/honest time, distractions,
+   timed-task effectiveness, last focus date и корректное отображение
+   удалённых/checklist задач.
+5. Провести отдельный VoiceOver/accessibility audit всех основных surfaces.
+6. Подготовить Developer ID signing/notarization для более широкого
    распространения.
 
 ## QA-инструменты позже

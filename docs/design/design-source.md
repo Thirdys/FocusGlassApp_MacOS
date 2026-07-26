@@ -188,8 +188,9 @@ source of truth.
 - Scroll motion should remain visually quiet: controls do not pulse, scale, or
   rebuild moving shadows merely because a stationary pointer crosses them
   during scrolling. Hover feedback resumes when the surface becomes idle.
-- Remaining design work is data-driven Product Design polish and a dedicated
-  VoiceOver audit, not a replacement of the current information architecture.
+- Real-data Product Design polish is complete. Remaining design work is the
+  task-level Analytics pass and a dedicated VoiceOver audit, not a replacement
+  of the current information architecture.
 - Automated high-refresh launch recording remains a QA-tooling concern on
   current macOS because the legacy CoreGraphics window capture API is
   unavailable. Keep the DEBUG launch-delay argument only for local proof; it
