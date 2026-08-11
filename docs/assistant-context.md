@@ -455,7 +455,8 @@ runtime samples are under
 
 The follow-up scroll-performance pass is also complete. Every app scroll
 surface uses `FocusGlassScrollView`, which propagates active scroll state,
-suppresses hover/material/shadow churn while moving, and supports macOS 14
+applies hover changes without animated interpolation while moving, preserves
+material/shadow brightness, and supports macOS 14
 through a narrow AppKit live-scroll bridge. Theme Studio advanced groups render
 independently and continuous slider/color edits must not increment the global
 theme transition token. Fullscreen task metadata belongs below the title so it

@@ -10,7 +10,6 @@ enum LiquidGlassDepth {
 
 struct LiquidGlassPanel<Content: View>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
-    @Environment(\.focusGlassIsScrolling) private var isScrolling
 
     var radius: CGFloat?
     var padding: CGFloat
@@ -45,18 +44,18 @@ struct LiquidGlassPanel<Content: View>: View {
                     readabilityScrimOpacity: readabilityScrimOpacity,
                     glintMultiplier: glintMultiplier,
                     strokeMultiplier: strokeMultiplier,
-                    material: isScrolling ? nil : material
+                    material: material
                 )
             }
             .shadow(
-                color: Color.black.opacity(model.theme.shadowDepth * scrollShadowMultiplier),
-                radius: shadowRadius * scrollShadowMultiplier,
+                color: Color.black.opacity(model.theme.shadowDepth),
+                radius: shadowRadius,
                 x: 0,
-                y: shadowY * scrollShadowMultiplier
+                y: shadowY
             )
             .shadow(
-                color: model.theme.glow.opacity(model.theme.specularOpacity * glowShadowOpacity * scrollShadowMultiplier),
-                radius: glowShadowRadius * scrollShadowMultiplier,
+                color: model.theme.glow.opacity(model.theme.specularOpacity * glowShadowOpacity),
+                radius: glowShadowRadius,
                 x: -4,
                 y: 0
             )
@@ -150,9 +149,6 @@ struct LiquidGlassPanel<Content: View>: View {
         }
     }
 
-    private var scrollShadowMultiplier: Double {
-        isScrolling ? 0.18 : 1
-    }
 }
 
 private struct LiquidGlassPanelBackground: View {
@@ -165,7 +161,7 @@ private struct LiquidGlassPanelBackground: View {
     let readabilityScrimOpacity: Double
     let glintMultiplier: Double
     let strokeMultiplier: Double
-    let material: Material?
+    let material: Material
 
     var body: some View {
         ZStack {
@@ -198,11 +194,7 @@ private struct LiquidGlassPanelBackground: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .background {
-                if let material {
-                    panelShape.fill(material)
-                }
-            }
+            .background(panelShape.fill(material))
     }
 
     private var readabilityLayer: some View {
@@ -312,7 +304,7 @@ struct LiquidGlassButtonStyle: ButtonStyle {
 
         var body: some View {
             let pressed = configuration.isPressed
-            let hovered = isHovering && !isScrolling
+            let hovered = isHovering
 
             configuration.label
             .font(.system(size: 13, weight: .bold))
@@ -322,12 +314,10 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             .frame(minHeight: FocusGlassHitTarget.compact)
             .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .background(background(isPressed: pressed, isHovering: hovered), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .background {
-                if !isScrolling {
-                    RoundedRectangle(cornerRadius: radius, style: .continuous)
-                        .fill(.thinMaterial)
-                }
-            }
+            .background(
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .fill(.thinMaterial)
+            )
             .overlay(alignment: .topLeading) {
                 LinearGradient(
                     colors: [
@@ -366,18 +356,16 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             .scaleEffect(pressed ? 0.985 : (hovered ? 1.008 : 1))
             .brightness(pressed ? -0.025 : (hovered ? 0.018 : 0))
             .onHover { hovering in
-                guard !isScrolling else { return }
-                withAnimation(motion.animation(.micro)) {
+                if isScrolling {
                     isHovering = hovering
-                }
-            }
-            .onChange(of: isScrolling) { _, scrolling in
-                if scrolling {
-                    isHovering = false
+                } else {
+                    withAnimation(motion.animation(.micro)) {
+                        isHovering = hovering
+                    }
                 }
             }
             .animation(motion.animation(.selection), value: pressed)
-            .animation(motion.animation(.micro), value: isHovering)
+            .animation(isScrolling ? nil : motion.animation(.micro), value: isHovering)
         }
 
         private var foreground: Color {
@@ -510,17 +498,15 @@ struct GlassHoverHighlight: ViewModifier {
             .shadow(color: shadow, radius: isFocused ? 12 : (isHovering ? 10 : 0), x: 0, y: isFocused || isHovering ? 5 : 0)
             .brightness(isHovering ? 0.024 : 0)
             .onHover { hovering in
-                guard !isScrolling else { return }
-                withAnimation(motion.animation(.micro)) {
+                if isScrolling {
                     isHovering = hovering
+                } else {
+                    withAnimation(motion.animation(.micro)) {
+                        isHovering = hovering
+                    }
                 }
             }
-            .onChange(of: isScrolling) { _, scrolling in
-                if scrolling {
-                    isHovering = false
-                }
-            }
-            .animation(motion.animation(.micro), value: isHovering)
+            .animation(isScrolling ? nil : motion.animation(.micro), value: isHovering)
             .animation(motion.animation(.selection), value: isActive)
     }
 
@@ -788,7 +774,7 @@ struct GlassSelect<Value: Hashable>: View {
     @State private var isHovering = false
 
     var body: some View {
-        let hovered = isHovering && !isScrolling
+        let hovered = isHovering
 
         Button {
             withAnimation(motion.animation(.selection)) {
@@ -830,12 +816,10 @@ struct GlassSelect<Value: Hashable>: View {
                 ),
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous)
             )
-            .background {
-                if !isScrolling {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(.thinMaterial)
-                }
-            }
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.thinMaterial)
+            )
             .overlay(alignment: .top) {
                 Capsule()
                     .fill(model.theme.highlight.opacity(model.theme.specularOpacity * (hovered ? 0.42 : 0.28)))
@@ -862,14 +846,12 @@ struct GlassSelect<Value: Hashable>: View {
         .buttonStyle(.plain)
         .glassHover(theme: model.theme, radius: 12)
         .onHover { hovering in
-            guard !isScrolling else { return }
-            withAnimation(motion.animation(.micro)) {
+            if isScrolling {
                 isHovering = hovering
-            }
-        }
-        .onChange(of: isScrolling) { _, scrolling in
-            if scrolling {
-                isHovering = false
+            } else {
+                withAnimation(motion.animation(.micro)) {
+                    isHovering = hovering
+                }
             }
         }
         .help(title(selection))
