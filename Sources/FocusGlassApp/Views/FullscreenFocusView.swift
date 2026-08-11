@@ -5,6 +5,7 @@ struct FullscreenFocusView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
     @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.focusGlassMotion) private var motion
     @State private var isHoveringControls = false
 
     var body: some View {
@@ -52,8 +53,10 @@ struct FullscreenFocusView: View {
                                 Capsule()
                                     .stroke(model.theme.strict.opacity(0.28), lineWidth: 1)
                             }
+                            .transition(motion.transition(.toast))
                         }
                     }
+                    .animation(motion.animation(.emphasis), value: model.focusGuard.lastDistractionMessage)
                     .padding(.bottom, min(34, proxy.size.height * 0.04))
                 }
                 .padding(.horizontal, min(44, max(22, proxy.size.width * 0.035)))
@@ -119,13 +122,13 @@ struct FullscreenFocusView: View {
                     }
                     .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(motion.transition(.content))
             }
         }
         .frame(height: 76)
         .contentShape(Rectangle())
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.18)) {
+            withAnimation(motion.animation(.selection)) {
                 isHoveringControls = hovering
             }
         }
@@ -193,7 +196,9 @@ struct FullscreenFocusView: View {
                     LazyVStack(spacing: 10) {
                         ForEach(model.activeTasks) { task in
                             Button {
-                                model.selectTaskForSession(task)
+                                withAnimation(motion.animation(.selection)) {
+                                    model.selectTaskForSession(task)
+                                }
                             } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: model.activeTaskID == task.id ? "target" : "circle")
@@ -246,7 +251,7 @@ struct FullscreenFocusView: View {
     private var segmentRail: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                ForEach(Array(timerPresentation.snapshot.preset.segments.enumerated()), id: \.offset) { index, segment in
+                ForEach(Array(timerPresentation.snapshot.preset.segments.enumerated()), id: \.element.id) { index, segment in
                     VStack(spacing: 7) {
                         Capsule()
                             .fill(index <= timerPresentation.snapshot.activeSegmentIndex ? model.theme.primary : .white.opacity(0.14))
@@ -258,6 +263,7 @@ struct FullscreenFocusView: View {
                     }
                 }
             }
+            .animation(motion.animation(.selection), value: timerPresentation.snapshot.activeSegmentIndex)
             .frame(maxWidth: 720)
         }
     }

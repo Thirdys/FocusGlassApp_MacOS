@@ -88,6 +88,24 @@ source of truth.
   finite numeric values, clamped effect ranges, and repaired text contrast.
 - Contrast is checked separately for the selected Light or Dark palette.
 
+## Motion Runtime Contract
+
+- All routine interface motion uses `FocusGlassMotion`; screens must not invent
+  unrelated timings or install a global `.animation` on a root view tree.
+- Timing families are: micro feedback `100...140 ms`, selection/status
+  `160...220 ms`, disclosure/list changes `220...280 ms`, navigation
+  `260...320 ms`, and outcome/emphasis `320...420 ms`.
+- The default curve is calm and precise (`0.20, 0, 0, 1`). Do not add bounce,
+  ambient pulse, large travel, or animated background decoration.
+- Theme Studio `motion` may scale duration only inside `0.8...1.15`; it must not
+  change choreography, trigger app-wide animation on every slider step, or
+  animate timer digits every second.
+- Reduce Motion removes movement, draw, and pulse. State changes use a short
+  fade or become immediate; progress changes may become immediate.
+- Scroll surfaces suppress moving material/shadow/hover churn and restore full
+  visual depth when scrolling stops. This optimization must not flatten idle
+  surfaces or change the Mac Glass OS identity.
+
 ## Window Surfaces
 
 - The Menu Bar HUD is hosted in a lifecycle-managed nonactivating `NSPanel`,
@@ -188,9 +206,10 @@ source of truth.
 - Scroll motion should remain visually quiet: controls do not pulse, scale, or
   rebuild moving shadows merely because a stationary pointer crosses them
   during scrolling. Hover feedback resumes when the surface becomes idle.
-- Real-data Product Design polish is complete. Remaining design work is the
-  task-level Analytics pass and a dedicated VoiceOver audit, not a replacement
-  of the current information architecture.
+- Real-data Product Design polish, task-level Analytics, and the unified
+  motion/performance pass are complete. Remaining design work is the dedicated
+  VoiceOver/accessibility audit, not a replacement of the current information
+  architecture.
 - Automated high-refresh launch recording remains a QA-tooling concern on
   current macOS because the legacy CoreGraphics window capture API is
   unavailable. Keep the DEBUG launch-delay argument only for local proof; it

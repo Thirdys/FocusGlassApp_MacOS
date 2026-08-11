@@ -6,6 +6,7 @@ struct MenuBarPanel: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.focusGlassMotion) private var motion
 
     var openMainWindow: (() -> Void)?
     var openFocusWindow: (() -> Void)?
@@ -45,6 +46,8 @@ struct MenuBarPanel: View {
                 }
                 .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .primary))
                 .help(primaryTitle)
+                .contentTransition(.opacity)
+                .animation(motion.animation(.selection), value: timerPresentation.snapshot.status)
 
                 strictStatus
 
@@ -86,6 +89,7 @@ struct MenuBarPanel: View {
         }
         .shadow(color: .black.opacity(model.theme.shadowDepth), radius: 30, x: 0, y: 18)
         .shadow(color: model.theme.glow.opacity(model.theme.specularOpacity * 0.08), radius: 22, x: -4, y: 0)
+        .animation(motion.animation(.selection), value: model.strictModeEnabled)
     }
 
     private var header: some View {

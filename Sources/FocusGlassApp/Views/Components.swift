@@ -2,141 +2,6 @@ import AppKit
 import SwiftUI
 import FocusGlassCore
 
-private struct FocusGlassScrollActivityKey: EnvironmentKey {
-    static let defaultValue = false
-}
-
-extension EnvironmentValues {
-    var focusGlassIsScrolling: Bool {
-        get { self[FocusGlassScrollActivityKey.self] }
-        set { self[FocusGlassScrollActivityKey.self] = newValue }
-    }
-}
-
-struct FocusGlassScrollView<Content: View>: View {
-    @Environment(\.focusGlassIsScrolling) private var parentIsScrolling
-    @State private var isScrolling = false
-
-    private let axes: Axis.Set
-    private let showsIndicators: Bool
-    private let content: Content
-
-    init(
-        _ axes: Axis.Set = .vertical,
-        showsIndicators: Bool = true,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.axes = axes
-        self.showsIndicators = showsIndicators
-        self.content = content()
-    }
-
-    @ViewBuilder
-    var body: some View {
-        if #available(macOS 15.0, *) {
-            scrollView
-                .onScrollPhaseChange { _, newPhase in
-                    isScrolling = newPhase.isScrolling
-                }
-        } else {
-            scrollView
-        }
-    }
-
-    private var scrollView: some View {
-        ScrollView(axes, showsIndicators: showsIndicators) {
-            content
-                .environment(\.focusGlassIsScrolling, parentIsScrolling || isScrolling)
-                .background {
-                    FocusGlassLegacyScrollActivityMonitor(isScrolling: $isScrolling)
-                        .frame(width: 0, height: 0)
-                }
-        }
-    }
-}
-
-private struct FocusGlassLegacyScrollActivityMonitor: NSViewRepresentable {
-    @Binding var isScrolling: Bool
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(isScrolling: $isScrolling)
-    }
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        context.coordinator.attach(to: view)
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        context.coordinator.isScrolling = $isScrolling
-        context.coordinator.attach(to: nsView)
-    }
-
-    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
-        coordinator.stopObserving()
-    }
-
-    @MainActor
-    final class Coordinator: @unchecked Sendable {
-        var isScrolling: Binding<Bool>
-
-        private weak var scrollView: NSScrollView?
-        private var observers: [NSObjectProtocol] = []
-        private var isAttachScheduled = false
-
-        init(isScrolling: Binding<Bool>) {
-            self.isScrolling = isScrolling
-        }
-
-        func attach(to view: NSView) {
-            guard scrollView == nil, !isAttachScheduled else { return }
-            isAttachScheduled = true
-            DispatchQueue.main.async { [weak self, weak view] in
-                guard let self else { return }
-                self.isAttachScheduled = false
-                guard let scrollView = view?.enclosingScrollView else { return }
-                self.observe(scrollView)
-            }
-        }
-
-        func stopObserving() {
-            for observer in observers {
-                NotificationCenter.default.removeObserver(observer)
-            }
-            observers.removeAll()
-            scrollView = nil
-        }
-
-        private func observe(_ scrollView: NSScrollView) {
-            guard self.scrollView !== scrollView else { return }
-            stopObserving()
-            self.scrollView = scrollView
-
-            observers = [
-                NotificationCenter.default.addObserver(
-                    forName: NSScrollView.willStartLiveScrollNotification,
-                    object: scrollView,
-                    queue: .main
-                ) { [weak self] _ in
-                    Task { @MainActor [weak self] in
-                        self?.isScrolling.wrappedValue = true
-                    }
-                },
-                NotificationCenter.default.addObserver(
-                    forName: NSScrollView.didEndLiveScrollNotification,
-                    object: scrollView,
-                    queue: .main
-                ) { [weak self] _ in
-                    Task { @MainActor [weak self] in
-                        self?.isScrolling.wrappedValue = false
-                    }
-                }
-            ]
-        }
-    }
-}
-
 enum LiquidGlassDepth {
     case primary
     case secondary
@@ -180,7 +45,7 @@ struct LiquidGlassPanel<Content: View>: View {
                     readabilityScrimOpacity: readabilityScrimOpacity,
                     glintMultiplier: glintMultiplier,
                     strokeMultiplier: strokeMultiplier,
-                    material: material
+                    material: isScrolling ? nil : material
                 )
             }
             .shadow(
@@ -300,7 +165,7 @@ private struct LiquidGlassPanelBackground: View {
     let readabilityScrimOpacity: Double
     let glintMultiplier: Double
     let strokeMultiplier: Double
-    let material: Material
+    let material: Material?
 
     var body: some View {
         ZStack {
@@ -333,7 +198,11 @@ private struct LiquidGlassPanelBackground: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .background(material, in: panelShape)
+            .background {
+                if let material {
+                    panelShape.fill(material)
+                }
+            }
     }
 
     private var readabilityLayer: some View {
@@ -439,6 +308,7 @@ struct LiquidGlassButtonStyle: ButtonStyle {
         @State private var isHovering = false
         @Environment(\.isFocused) private var isFocused
         @Environment(\.focusGlassIsScrolling) private var isScrolling
+        @Environment(\.focusGlassMotion) private var motion
 
         var body: some View {
             let pressed = configuration.isPressed
@@ -493,11 +363,11 @@ struct LiquidGlassButtonStyle: ButtonStyle {
                 x: 0,
                 y: pressed ? 3 : (hovered ? 9 : 8)
             )
-            .scaleEffect(pressed ? 0.975 : (hovered ? 1.018 : 1))
+            .scaleEffect(pressed ? 0.985 : (hovered ? 1.008 : 1))
             .brightness(pressed ? -0.025 : (hovered ? 0.018 : 0))
             .onHover { hovering in
                 guard !isScrolling else { return }
-                withAnimation(.easeInOut(duration: theme.animationDuration(0.16))) {
+                withAnimation(motion.animation(.micro)) {
                     isHovering = hovering
                 }
             }
@@ -506,8 +376,8 @@ struct LiquidGlassButtonStyle: ButtonStyle {
                     isHovering = false
                 }
             }
-            .animation(.spring(response: theme.animationDuration(0.22), dampingFraction: 0.84), value: pressed)
-            .animation(.easeInOut(duration: theme.animationDuration(0.16)), value: isHovering)
+            .animation(motion.animation(.selection), value: pressed)
+            .animation(motion.animation(.micro), value: isHovering)
         }
 
         private var foreground: Color {
@@ -617,6 +487,7 @@ struct GlassHoverHighlight: ViewModifier {
     @State private var isHovering = false
     @Environment(\.isFocused) private var isFocused
     @Environment(\.focusGlassIsScrolling) private var isScrolling
+    @Environment(\.focusGlassMotion) private var motion
 
     func body(content: Content) -> some View {
         content
@@ -640,7 +511,7 @@ struct GlassHoverHighlight: ViewModifier {
             .brightness(isHovering ? 0.024 : 0)
             .onHover { hovering in
                 guard !isScrolling else { return }
-                withAnimation(.easeInOut(duration: theme.animationDuration(0.15))) {
+                withAnimation(motion.animation(.micro)) {
                     isHovering = hovering
                 }
             }
@@ -649,6 +520,8 @@ struct GlassHoverHighlight: ViewModifier {
                     isHovering = false
                 }
             }
+            .animation(motion.animation(.micro), value: isHovering)
+            .animation(motion.animation(.selection), value: isActive)
     }
 
     private var background: LinearGradient {
@@ -763,6 +636,7 @@ extension View {
 
 struct GlassDisclosureSection<Label: View, Content: View>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     @Binding var isExpanded: Bool
     private let label: Label
@@ -781,7 +655,7 @@ struct GlassDisclosureSection<Label: View, Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.easeInOut(duration: model.theme.animationDuration(0.18))) {
+                withAnimation(motion.animation(.disclosure)) {
                     isExpanded.toggle()
                 }
             } label: {
@@ -804,15 +678,16 @@ struct GlassDisclosureSection<Label: View, Content: View>: View {
 
             if isExpanded {
                 content
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .transition(motion.transition(.disclosure))
             }
         }
-        .animation(.easeInOut(duration: model.theme.animationDuration(0.18)), value: isExpanded)
+        .animation(motion.animation(.disclosure), value: isExpanded)
     }
 }
 
-struct GlassSegmentedControl<Value: Equatable>: View {
+struct GlassSegmentedControl<Value: Hashable>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     @Binding var selection: Value
     let options: [Value]
@@ -821,10 +696,10 @@ struct GlassSegmentedControl<Value: Equatable>: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+            ForEach(options, id: \.self) { option in
                 let isSelected = option == selection
                 Button {
-                    withAnimation(.easeInOut(duration: model.theme.animationDuration(0.16))) {
+                    withAnimation(motion.animation(.selection)) {
                         selection = option
                     }
                 } label: {
@@ -855,6 +730,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                 .glassHover(theme: model.theme, radius: 11, isActive: isSelected)
                 .help(title(option))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .animation(motion.animation(.selection), value: isSelected)
             }
         }
         .padding(model.theme.spacing(5))
@@ -896,9 +772,10 @@ struct GlassSegmentedControl<Value: Equatable>: View {
     }
 }
 
-struct GlassSelect<Value: Equatable>: View {
+struct GlassSelect<Value: Hashable>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @Environment(\.focusGlassIsScrolling) private var isScrolling
+    @Environment(\.focusGlassMotion) private var motion
 
     @Binding var selection: Value
     let options: [Value]
@@ -914,7 +791,9 @@ struct GlassSelect<Value: Equatable>: View {
         let hovered = isHovering && !isScrolling
 
         Button {
-            isPresented.toggle()
+            withAnimation(motion.animation(.selection)) {
+                isPresented.toggle()
+            }
         } label: {
             HStack(spacing: 9) {
                 if let symbolName = symbol(selection) {
@@ -984,7 +863,7 @@ struct GlassSelect<Value: Equatable>: View {
         .glassHover(theme: model.theme, radius: 12)
         .onHover { hovering in
             guard !isScrolling else { return }
-            withAnimation(.easeInOut(duration: 0.16)) {
+            withAnimation(motion.animation(.micro)) {
                 isHovering = hovering
             }
         }
@@ -996,10 +875,12 @@ struct GlassSelect<Value: Equatable>: View {
         .help(title(selection))
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             VStack(alignment: .leading, spacing: 6) {
-                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                ForEach(options, id: \.self) { option in
                     Button {
-                        selection = option
-                        isPresented = false
+                        withAnimation(motion.animation(.selection)) {
+                            selection = option
+                            isPresented = false
+                        }
                     } label: {
                         HStack(spacing: 10) {
                             if let symbolName = symbol(option) {
@@ -1111,10 +992,12 @@ struct GlassStepper: View {
 
 struct GlassSlider: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var isDragging = false
 
     @Binding var value: Double
     let range: ClosedRange<Double>
     var step: Double = 0.01
+    var onEditingChanged: (Bool) -> Void = { _ in }
 
     var body: some View {
         GeometryReader { proxy in
@@ -1180,7 +1063,16 @@ struct GlassSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { drag in
+                        if !isDragging {
+                            isDragging = true
+                            onEditingChanged(true)
+                        }
                         updateValue(locationX: Double(drag.location.x), width: Double(width))
+                    }
+                    .onEnded { drag in
+                        updateValue(locationX: Double(drag.location.x), width: Double(width))
+                        isDragging = false
+                        onEditingChanged(false)
                     }
             )
         }
@@ -1419,6 +1311,7 @@ struct MetricTile: View {
 
 struct ModeChip: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     let title: String
     let symbolName: String
@@ -1475,6 +1368,7 @@ struct ModeChip: View {
         .buttonStyle(.plain)
         .glassHover(theme: model.theme, radius: 12, isActive: isSelected)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .animation(motion.animation(.selection), value: isSelected)
     }
 
     private var chipFillColors: [Color] {
@@ -1511,6 +1405,8 @@ struct ModeChip: View {
 }
 
 struct CircularTimerView: View {
+    @Environment(\.focusGlassMotion) private var motion
+
     let clockText: String
     let phase: String
     let progress: Double
@@ -1545,12 +1441,15 @@ struct CircularTimerView: View {
                 )
                 .rotationEffect(.degrees(-90))
                 .shadow(color: theme.glow.opacity(0.36), radius: 16, x: 0, y: 0)
+                .animation(motion.animation(.progress), value: progress)
 
             VStack(spacing: 12) {
                 Text(phase)
                     .font(.system(size: 13, weight: .bold))
                     .textCase(.uppercase)
                     .foregroundStyle(theme.primary)
+                    .contentTransition(.opacity)
+                    .animation(motion.animation(.selection), value: phase)
                 Text(clockText)
                     .font(.system(size: clockSize, weight: .semibold, design: .rounded))
                     .monospacedDigit()
@@ -1559,6 +1458,8 @@ struct CircularTimerView: View {
                 Text(statusText)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
+                    .animation(motion.animation(.selection), value: statusText)
             }
             .padding(34)
         }
@@ -1587,22 +1488,30 @@ struct HeatmapMiniView: View {
     var body: some View {
         let cells = normalizedCells
         LazyVGrid(columns: Array(repeating: GridItem(.fixed(12), spacing: 5), count: 14), spacing: 5) {
-            ForEach(Array(cells.enumerated()), id: \.offset) { _, value in
+            ForEach(cells) { cell in
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(value == 0 ? low.opacity(0.34) : low.mix(with: high, by: value))
+                    .fill(cell.value == 0 ? low.opacity(0.34) : low.mix(with: high, by: cell.value))
                     .frame(width: 12, height: 12)
             }
         }
     }
 
-    private var normalizedCells: [Double] {
+    private var normalizedCells: [HeatmapCell] {
         let prefix = Array(values.prefix(28))
-        if prefix.count == 28 { return prefix }
-        return prefix + Array(repeating: 0, count: 28 - prefix.count)
+        let padded = prefix.count == 28
+            ? prefix
+            : prefix + Array(repeating: 0, count: 28 - prefix.count)
+        return padded.enumerated().map { HeatmapCell(id: $0.offset, value: $0.element) }
+    }
+
+    private struct HeatmapCell: Identifiable {
+        let id: Int
+        let value: Double
     }
 }
 
 struct ThemeSwatch: View {
+    @Environment(\.focusGlassMotion) private var motion
     let profile: ThemeProfile
     let isSelected: Bool
     let action: () -> Void
@@ -1649,6 +1558,7 @@ struct ThemeSwatch: View {
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
         .glassHover(theme: profile, radius: 10, isActive: isSelected)
+        .animation(motion.animation(.selection), value: isSelected)
     }
 }
 

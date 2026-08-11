@@ -21,6 +21,10 @@ tester-сборку `0.0.4`.
   theme-файлов.
 - Общие интерактивные зоны `FocusGlassHitTarget` и disclosure surface, у
   которых работает вся визуально выделенная область.
+- Единая `FocusGlassMotion` policy для micro feedback, selection, disclosure,
+  navigation, emphasis и progress с bounded Theme Studio scale и Reduce Motion.
+- Instruments signposts для route/settings changes, theme commit, Menu Bar
+  presentation и outcome presentation.
 
 ### Изменено
 
@@ -47,6 +51,12 @@ tester-сборку `0.0.4`.
 - Theme Studio открывает advanced-группы отдельно, не держит все ColorPicker и
   slider surfaces одновременно и не запускает app-wide transition animation
   на каждом шаге непрерывного редактирования.
+- Theme Studio throttles интерактивные slider commits до 30 Hz и делает один
+  финальный commit при завершении drag; route/list/status transitions используют
+  value-scoped motion без spring/bounce и секундной анимации timer digits.
+- На macOS 15 scroll tracking использует только системную scroll phase, а
+  AppKit live-scroll fallback остаётся только для macOS 14. Во время прокрутки
+  glass сохраняет статическую глубину без дорогого material compositing.
 
 ### Исправлено
 
@@ -61,10 +71,12 @@ tester-сборку `0.0.4`.
 
 ### Проверено
 
-- Полный набор SwiftPM-тестов: 75/75.
+- Полный набор SwiftPM-тестов: 79/79.
 - Packaged-app QA главного окна, Settings, Theme Studio, Menu Bar, fullscreen,
   Strict Mode, launch animation, performance/UI-card и scroll-performance
   passes.
+- Product Design/Build macOS Apps motion audit и Instruments traces:
+  `/private/tmp/focusglass-motion-performance-20260811-154559`.
 - `codesign --verify --deep --strict build/FocusGlass.app`.
 
 ## [0.0.4] - 2026-06-27

@@ -97,8 +97,21 @@ VoiceOver/accessibility audit.
    - fullscreen task metadata больше не сжимается рядом с длинным заголовком;
    - proof:
      `/private/tmp/focusglass-scroll-performance-20260726-044203`.
-   Полный Instruments trace остаётся optional follow-up при установленном
-   полном Xcode или при появлении воспроизводимого jank.
+   Нулевой unified motion/performance pass также завершён:
+   - `FocusGlassMotion` задаёт bounded timing families, calm easing и Reduce
+     Motion policy для всех основных surfaces;
+   - Theme Studio slider commits throttled до 30 Hz, route/list/status motion
+     value-scoped, timer digits не анимируются каждую секунду;
+   - scroll surfaces отключают material compositing во время движения, а
+     legacy AppKit fallback не устанавливается на macOS 15;
+   - добавлены Instruments signposts для route, settings, theme commit, Menu
+     Bar и outcome;
+   - полный Xcode Instruments pass выполнен. Финальный 55.124 s trace не
+     показал hangs или широкую AttributeGraph invalidation; hitch lane был
+     загрязнён Computer Use screenshot capture, поэтому zero-hitch claim не
+     делается;
+   - proof и ограничения:
+     `/private/tmp/focusglass-motion-performance-20260811-154559/audit-notes.md`.
 1. Получить и разобрать обратную связь по tester-сборке. `tester/0.0.4` является
    историческим снимком; следующая tester delivery создаётся только по команде
    владельца и получает новую версию, cumulative checklist и новые документы.

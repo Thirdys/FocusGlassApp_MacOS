@@ -203,8 +203,18 @@ final class FocusGlassViewModel: ObservableObject {
         }
     }
     @Published var activeTaskID: UUID? = nil { didSet { persist() } }
-    @Published var selectedSidebarItem = SidebarItem.focusToday
-    @Published var selectedSettingsTab = SettingsTab.general
+    @Published var selectedSidebarItem = SidebarItem.focusToday {
+        didSet {
+            guard oldValue != selectedSidebarItem else { return }
+            FocusGlassPerformance.routeChanged(selectedSidebarItem.rawValue)
+        }
+    }
+    @Published var selectedSettingsTab = SettingsTab.general {
+        didSet {
+            guard oldValue != selectedSettingsTab else { return }
+            FocusGlassPerformance.settingsTabChanged(selectedSettingsTab.rawValue)
+        }
+    }
     @Published var focusGuard = FocusGuardService()
     @Published var lastThemeMessage: String?
     @Published private(set) var storageWarnings: [String] = []
@@ -232,7 +242,12 @@ final class FocusGlassViewModel: ObservableObject {
             persist()
         }
     }
-    @Published private(set) var pendingSessionOutcome: SessionOutcomePresentation?
+    @Published private(set) var pendingSessionOutcome: SessionOutcomePresentation? {
+        didSet {
+            guard (oldValue == nil) != (pendingSessionOutcome == nil) else { return }
+            FocusGlassPerformance.outcomeChanged(isPresented: pendingSessionOutcome != nil)
+        }
+    }
 
     let timerPresentation: FocusTimerPresentationState
 
@@ -346,8 +361,11 @@ final class FocusGlassViewModel: ObservableObject {
         effectiveTheme(for: resolvedAppearance)
     }
 
-    var themeTransitionAnimation: Animation {
-        .easeInOut(duration: theme.animationDuration(0.42))
+    var themeTransitionAnimation: Animation? {
+        FocusGlassMotion(
+            theme: theme,
+            reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        ).animation(.emphasis)
     }
 
     var preferredColorScheme: ColorScheme? {
@@ -1481,6 +1499,7 @@ final class FocusGlassViewModel: ObservableObject {
                     themeTransitionID &+= 1
                 }
             }
+            FocusGlassPerformance.themeCommitted(reason: reason)
         } else {
             mutate()
         }

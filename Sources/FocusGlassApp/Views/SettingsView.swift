@@ -19,6 +19,7 @@ struct SettingsView: View {
 
 struct SettingsContentView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     var showsHeader = true
 
     var body: some View {
@@ -42,18 +43,23 @@ struct SettingsContentView: View {
 
             SettingsTabSummary(tab: model.selectedSettingsTab)
 
-            switch model.selectedSettingsTab {
-            case .general:
-                GeneralSettingsSection()
-            case .timers:
-                PresetSettingsSection()
-            case .strictMode:
-                StrictModeSettingsSection()
-            case .permissions:
-                PermissionsAutomationSettingsSection()
-            case .appearance:
-                ThemeStudioView()
+            Group {
+                switch model.selectedSettingsTab {
+                case .general:
+                    GeneralSettingsSection()
+                case .timers:
+                    PresetSettingsSection()
+                case .strictMode:
+                    StrictModeSettingsSection()
+                case .permissions:
+                    PermissionsAutomationSettingsSection()
+                case .appearance:
+                    ThemeStudioView()
+                }
             }
+            .id(model.selectedSettingsTab)
+            .transition(motion.transition(.content))
+            .animation(motion.animation(.navigation), value: model.selectedSettingsTab)
         }
     }
 }
@@ -401,6 +407,7 @@ private struct PresetSettingsSection: View {
 
 private struct PresetEditor: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     let preset: TimerPreset
 
     var body: some View {
@@ -473,7 +480,9 @@ private struct PresetEditor: View {
 
                 ForEach(Array(preset.segments.enumerated()), id: \.element.id) { index, segment in
                     PresetSegmentEditor(presetID: preset.id, index: index, segment: segment, canDelete: preset.segments.count > 1)
+                        .transition(motion.transition(.listItem))
                 }
+                .animation(motion.animation(.disclosure), value: preset.segments.map(\.id))
             }
         }
     }
@@ -700,6 +709,7 @@ private struct StrictRulesEditor: View {
 
 private struct StrictRuleGroup: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     let title: String
     let emptyTitle: String
@@ -717,9 +727,11 @@ private struct StrictRuleGroup: View {
             } else {
                 ForEach(rules) { rule in
                     StrictRuleRow(rule: rule)
+                        .transition(motion.transition(.listItem))
                 }
             }
         }
+        .animation(motion.animation(.disclosure), value: rules.map(\.id))
     }
 }
 
@@ -1042,6 +1054,7 @@ private struct PermissionSetupRow: View {
 
 struct ThemeStudioView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var showsAdvanced = false
     @State private var previewSurface = ThemePreviewSurface.mainWindow
     @State private var editingAppearance = AppResolvedAppearance.dark
@@ -1189,6 +1202,9 @@ struct ThemeStudioView: View {
                 theme: model.effectiveTheme(for: editingAppearance),
                 surface: previewSurface
             )
+            .id(previewSurface)
+            .transition(motion.transition(.emphasis))
+            .animation(motion.animation(.selection), value: previewSurface)
         }
     }
 
@@ -1204,8 +1220,10 @@ struct ThemeStudioView: View {
                     .padding(.vertical, 6)
                     .background(model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18), in: Capsule())
                     .help(message)
+                    .transition(motion.transition(.listItem))
             }
         }
+        .animation(motion.animation(.selection), value: statusMessages)
     }
 
     private var statusMessages: [String] {
@@ -1491,7 +1509,26 @@ private struct ThemeSliderField: View {
     var displayMode: DisplayMode = .decimal
 
     @State private var draftText = ""
+    @State private var sliderValue: Double
+    @State private var isSliderEditing = false
+    @State private var lastSliderCommitUptime = 0.0
+    @State private var pendingSliderCommit: Task<Void, Never>?
     @FocusState private var isFocused: Bool
+
+    init(
+        title: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        step: Double = 0.01,
+        displayMode: DisplayMode = .decimal
+    ) {
+        self.title = title
+        _value = value
+        self.range = range
+        self.step = step
+        self.displayMode = displayMode
+        _sliderValue = State(initialValue: value.wrappedValue)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -1514,10 +1551,6 @@ private struct ThemeSliderField: View {
                     .onSubmit {
                         commitDraft()
                     }
-                    .onChange(of: draftText) { _, _ in
-                        guard isFocused else { return }
-                        commitDraft()
-                    }
                     .onChange(of: isFocused) { _, focused in
                         if focused {
                             syncDraft()
@@ -1527,7 +1560,12 @@ private struct ThemeSliderField: View {
                         }
                     }
             }
-            GlassSlider(value: $value, range: range, step: step)
+            GlassSlider(
+                value: $sliderValue,
+                range: range,
+                step: step,
+                onEditingChanged: sliderEditingChanged
+            )
         }
         .padding(11)
         .background(
@@ -1547,11 +1585,24 @@ private struct ThemeSliderField: View {
                 .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.70), lineWidth: 1)
         }
         .onAppear {
+            sliderValue = value
             syncDraft()
         }
         .onChange(of: value) { _, _ in
-            guard !isFocused else { return }
+            guard !isFocused, !isSliderEditing else { return }
+            sliderValue = value
             syncDraft()
+        }
+        .onChange(of: sliderValue) { _, _ in
+            guard isSliderEditing else { return }
+            syncDraft()
+            commitSliderValueWhenDue()
+        }
+        .onDisappear {
+            pendingSliderCommit?.cancel()
+            if isSliderEditing {
+                value = sliderValue
+            }
         }
         .help("\(title): \(formattedValue)")
     }
@@ -1559,9 +1610,9 @@ private struct ThemeSliderField: View {
     private var formattedValue: String {
         switch displayMode {
         case .decimal:
-            return String(format: "%.2f", value)
+            return String(format: "%.2f", sliderValue)
         case .integer:
-            return String(format: "%.0f", value)
+            return String(format: "%.0f", sliderValue)
         }
     }
 
@@ -1573,7 +1624,47 @@ private struct ThemeSliderField: View {
         let normalized = draftText.replacingOccurrences(of: ",", with: ".")
         guard let parsed = Double(normalized) else { return }
         let stepped = step > 0 ? (parsed / step).rounded() * step : parsed
-        value = min(range.upperBound, max(range.lowerBound, stepped))
+        let committedValue = min(range.upperBound, max(range.lowerBound, stepped))
+        sliderValue = committedValue
+        value = committedValue
+        lastSliderCommitUptime = ProcessInfo.processInfo.systemUptime
+    }
+
+    private func sliderEditingChanged(_ isEditing: Bool) {
+        isSliderEditing = isEditing
+        if isEditing {
+            pendingSliderCommit?.cancel()
+            lastSliderCommitUptime = 0
+            return
+        }
+
+        pendingSliderCommit?.cancel()
+        value = sliderValue
+        lastSliderCommitUptime = ProcessInfo.processInfo.systemUptime
+        syncDraft()
+    }
+
+    private func commitSliderValueWhenDue() {
+        let now = ProcessInfo.processInfo.systemUptime
+        let minimumInterval = 1.0 / 30.0
+        let elapsed = now - lastSliderCommitUptime
+
+        if elapsed >= minimumInterval {
+            pendingSliderCommit?.cancel()
+            value = sliderValue
+            lastSliderCommitUptime = now
+            return
+        }
+
+        pendingSliderCommit?.cancel()
+        let pendingValue = sliderValue
+        let delay = minimumInterval - elapsed
+        pendingSliderCommit = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            value = pendingValue
+            lastSliderCommitUptime = ProcessInfo.processInfo.systemUptime
+        }
     }
 }
 
@@ -1699,6 +1790,7 @@ private struct ThemePreviewCard: View {
 
 private struct ThemeEditorSection<Content: View>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var isExpanded: Bool
 
     let title: String
@@ -1720,7 +1812,7 @@ private struct ThemeEditorSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Button {
-                withAnimation(.easeInOut(duration: model.theme.animationDuration(0.16))) {
+                withAnimation(motion.animation(.disclosure)) {
                     isExpanded.toggle()
                 }
             } label: {
@@ -1750,7 +1842,7 @@ private struct ThemeEditorSection<Content: View>: View {
 
             if isExpanded {
                 content
-                    .transition(.opacity)
+                    .transition(motion.transition(.disclosure))
             }
         }
         .padding(14)

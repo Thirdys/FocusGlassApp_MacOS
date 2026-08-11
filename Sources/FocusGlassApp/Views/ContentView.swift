@@ -5,6 +5,7 @@ import FocusGlassCore
 struct ContentView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @Environment(\.focusGlassMotion) private var motion
     @State private var hiddenToastMessage: String?
     @State private var toastGeneration = 0
     @State private var showsLaunchSequence = FocusGlassLaunchSession.shouldPresent
@@ -82,9 +83,10 @@ struct ContentView: View {
                 DistractionToast(message: message)
                     .environmentObject(model)
                     .padding(.bottom, 24)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(motion.transition(.toast))
             }
         }
+        .animation(motion.animation(.emphasis), value: model.focusGuard.lastDistractionMessage)
         .onReceive(model.focusGuard.$lastDistractionMessage) { message in
             hiddenToastMessage = nil
             guard let message else { return }
@@ -94,7 +96,7 @@ struct ContentView: View {
                 try? await Task.sleep(for: .seconds(4))
                 if model.focusGuard.lastDistractionMessage == message,
                    toastGeneration == generation {
-                    withAnimation(.easeInOut(duration: 0.20)) {
+                    withAnimation(motion.animation(.selection)) {
                         hiddenToastMessage = message
                     }
                 }
@@ -116,6 +118,8 @@ struct ContentView: View {
                     PermissionBannerView()
                 }
                 RouteContentView()
+                    .id(model.selectedSidebarItem)
+                    .transition(motion.transition(.content))
                 if showsContextRail && model.selectedSidebarItem == .focusToday {
                     FocusContextRailView()
                 }
@@ -129,6 +133,7 @@ struct ContentView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollIndicators(.hidden)
+        .animation(motion.animation(.navigation), value: model.selectedSidebarItem)
     }
 
     private func runLaunchSequenceIfNeeded() async {
@@ -630,6 +635,7 @@ private struct PermissionBannerView: View {
 private struct HeaderView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.focusGlassMotion) private var motion
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -653,11 +659,14 @@ private struct HeaderView: View {
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
+                .contentTransition(.opacity)
             Text(subtitle)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(model.theme.mutedText)
                 .fixedSize(horizontal: false, vertical: true)
+                .contentTransition(.opacity)
         }
+        .animation(motion.animation(.navigation), value: model.selectedSidebarItem)
     }
 
     private var headerControls: some View {
@@ -728,13 +737,16 @@ private struct RouteContentView: View {
 
 private struct CompactNavBar: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     var body: some View {
         FocusGlassScrollView(.horizontal) {
             LazyHStack(spacing: 8) {
                 ForEach(SidebarItem.allCases) { item in
                     Button {
-                        model.selectedSidebarItem = item
+                        withAnimation(motion.animation(.navigation)) {
+                            model.selectedSidebarItem = item
+                        }
                     } label: {
                         Label(model.sidebarTitle(item), systemImage: item.symbolName)
                             .font(.system(size: 12, weight: .bold))
@@ -763,6 +775,7 @@ private struct CompactNavBar: View {
 
 private struct SidebarView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -785,7 +798,9 @@ private struct SidebarView: View {
             VStack(spacing: 7) {
                 ForEach(SidebarItem.allCases) { item in
                     Button {
-                        model.selectedSidebarItem = item
+                        withAnimation(motion.animation(.navigation)) {
+                            model.selectedSidebarItem = item
+                        }
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: item.symbolName)
@@ -827,7 +842,9 @@ private struct SidebarView: View {
 
                 ForEach(model.projects) { project in
                     Button {
-                        model.selectProject(project)
+                        withAnimation(motion.animation(.selection)) {
+                            model.selectProject(project)
+                        }
                     } label: {
                         HStack(spacing: 10) {
                             Circle()
@@ -883,6 +900,7 @@ private struct SidebarView: View {
 
 private struct FocusTodayView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     var body: some View {
         VStack(spacing: 22) {
@@ -891,7 +909,7 @@ private struct FocusTodayView: View {
 
                 if let outcome = model.pendingSessionOutcome {
                     SessionOutcomeCard(outcome: outcome)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .transition(motion.transition(.emphasis))
                 }
 
                 focusLayout
@@ -899,6 +917,7 @@ private struct FocusTodayView: View {
 
             AnalyticsStripView()
         }
+        .animation(motion.animation(.emphasis), value: model.pendingSessionOutcome?.id)
     }
 
     private var focusLayout: some View {
@@ -1103,6 +1122,7 @@ private struct FocusProjectPanel: View {
 
 private struct FocusTaskPanel: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var editingTask: FocusTask?
 
     private var secondaryTasks: [FocusTask] {
@@ -1207,8 +1227,10 @@ private struct FocusTaskPanel: View {
                             FocusTaskCardRow(task: task) {
                                 editingTask = task
                             }
+                            .transition(motion.transition(.listItem))
                         }
                     }
+                    .animation(motion.animation(.disclosure), value: secondaryTasks.map(\.id))
                     .padding(.trailing, 2)
                 }
                 .frame(maxHeight: 360)
@@ -1290,6 +1312,7 @@ private struct TimerControlRow: View {
 private struct FocusTaskCardRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @Environment(\.focusGlassIsScrolling) private var isScrolling
+    @Environment(\.focusGlassMotion) private var motion
     @State private var isHovering = false
 
     let task: FocusTask
@@ -1376,7 +1399,7 @@ private struct FocusTaskCardRow: View {
         .glassHover(theme: model.theme, radius: 15, isActive: isSelected)
         .onHover { hovering in
             guard !isScrolling else { return }
-            withAnimation(.easeInOut(duration: 0.14)) {
+            withAnimation(motion.animation(.micro)) {
                 isHovering = hovering
             }
         }
@@ -1942,6 +1965,7 @@ private struct TimeEstimatePicker: View {
 
 private struct ProjectsScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var editingProject: FocusProject?
 
     var body: some View {
@@ -1974,8 +1998,10 @@ private struct ProjectsScreen: View {
                             ) {
                                 editingProject = project
                             }
+                            .transition(motion.transition(.listItem))
                         }
                     }
+                    .animation(motion.animation(.disclosure), value: model.projects.map(\.id))
                 }
             }
         }
@@ -2071,6 +2097,7 @@ private struct ProjectGridCard: View {
 
 private struct AnalyticsScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var visibleTaskCount = 6
     @State private var visibleSessionCount = 8
     @State private var contentWidth: CGFloat = 0
@@ -2445,7 +2472,7 @@ private struct AnalyticsScreen: View {
             : "\(model.t("common.showMore")) (\(remaining))"
 
         return Button {
-            withAnimation(.easeInOut(duration: model.theme.animationDuration(0.18))) {
+            withAnimation(motion.animation(.disclosure)) {
                 visibleCount.wrappedValue = showsAll
                     ? pageSize
                     : min(totalCount, visibleCount.wrappedValue + pageSize)
@@ -2638,6 +2665,7 @@ private struct AnalyticsWidthPreferenceKey: PreferenceKey {
 
 private struct StrictModeScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var visibleHistoryCount = 8
 
     var body: some View {
@@ -2832,7 +2860,7 @@ private struct StrictModeScreen: View {
             : "\(model.t("common.showMore")) (\(remaining))"
 
         return Button {
-            withAnimation(.easeInOut(duration: model.theme.animationDuration(0.18))) {
+            withAnimation(motion.animation(.disclosure)) {
                 visibleHistoryCount = showsAll
                     ? 8
                     : min(model.distractionHistory.count, visibleHistoryCount + 8)

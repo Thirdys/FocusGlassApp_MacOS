@@ -160,6 +160,11 @@ Product Design pass на реальных накопленных данных у
 и Strict History. Следующий implementation-pass добавил task-level analytics:
 сводки по `taskID`, актуальный контекст существующих задач, исторический
 fallback удалённых задач и отдельную политику timed/checklist.
+Нулевой motion/performance pass добавил единую `FocusGlassMotion` policy,
+value-scoped transitions, Reduce Motion fallback, throttled Theme Studio
+sliders, облегчённый glass во время прокрутки и Instruments signposts. Live
+packaged-app и Instruments proof хранится в
+`/private/tmp/focusglass-motion-performance-20260811-154559`.
 Tester-сборка `0.0.4` остаётся отдельным историческим снимком и не включает
 изменения из секции `Unreleased`.
 

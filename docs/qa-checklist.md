@@ -343,5 +343,18 @@
   line below long task titles and never collapses into a vertical letter stack.
 - Repeatedly open/close Menu Bar HUD and enter/exit fullscreen. Window
   transitions and controls must respond without a visible main-thread pause.
+- Verify routine transitions follow the shared motion families: no bounce,
+  ambient pulse, large travel, or unrelated per-screen timing. Timer digits
+  must remain stable on each one-second tick.
+- Enable Reduce Motion and repeat route, disclosure, Fullscreen, Menu Bar,
+  outcome, and launch scenarios. Spatial movement, draw, and pulse must become
+  a short fade or immediate state without losing information.
+- Drag Theme Studio sliders continuously. The preview should remain responsive,
+  persistence should receive a final value on release, and route/theme changes
+  must not restart the whole window animation.
+- Capture App Launch, Time Profiler, SwiftUI/Animation Hitches, and OS Signpost
+  evidence with the packaged app. Separate app behavior from screenshot or
+  profiling-tool overhead; do not report a zero-hitch result unless the trace
+  supports it.
 - Verify performance fixes preserve visual quality, Reduce Motion, keyboard
   focus, accessibility labels, persistence, and existing timer/Strict behavior.

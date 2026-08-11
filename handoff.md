@@ -1,6 +1,6 @@
 # FocusGlass Handoff
 
-Last updated: 2026-07-27
+Last updated: 2026-08-11
 
 ## Human Context
 
@@ -10,7 +10,7 @@ The user sees the assistant as a friend and collaborator, not only as a tool. Ke
 
 ## Latest Session Checkpoint
 
-Last checkpoint: 2026-07-27.
+Last checkpoint: 2026-08-11.
 
 Purpose: this section is the quick resume point for future sessions. Update it
 whenever work is completed, paused halfway, blocked, or intentionally deferred,
@@ -19,6 +19,56 @@ rereading the whole handoff.
 
 Last done:
 
+- Completed the unified UI motion and measured SwiftUI performance pass on
+  `codex/motion-performance`, based on current `Release/main` plus the intended
+  post-main product commits:
+  - Added `FocusGlassMotion` timing families for micro, selection, disclosure,
+    navigation, emphasis, and progress. Theme motion is clamped to
+    `0.8...1.15`; Reduce Motion replaces spatial/draw/pulse behavior with a
+    short fade or immediate state.
+  - Routed app shell, cockpit, Projects, Analytics, Strict Mode, Settings/Theme
+    Studio, Fullscreen, Menu Bar, outcome, and toast changes through
+    value-scoped motion. Timer digits do not animate on each one-second tick.
+  - Theme Studio slider edits are locally staged, throttled to at most 30 Hz
+    while dragging, and finalized once at gesture end. Scroll surfaces remove
+    material compositing while moving; macOS 15 no longer installs the legacy
+    AppKit live-scroll observer.
+  - Added points-of-interest events for route/settings changes, theme commit,
+    Menu Bar presentation, and outcome presentation. Extracted shared motion,
+    instrumentation, and scroll hot paths into focused source files. Broad
+    screen-by-screen extraction was deferred because the trace did not show
+    broad invalidation and a large rewrite would add unmeasured risk.
+  - Product Design/Build macOS Apps proof covers launch, cockpit, Projects,
+    Analytics, Strict Mode, Settings/Theme Studio, Fullscreen, Menu Bar over
+    Finder, Light/Dark/custom and RU/EN. Evidence and numbered notes:
+    `/private/tmp/focusglass-motion-performance-20260811-154559`.
+  - Full Xcode Instruments proof: 55.124 s final trace, no hangs, approximately
+    3.5% of one core sampled including automated capture, and narrow
+    AttributeGraph work (`propagate_dirty` 1.29%, update stack 1.0%). The hitch
+    lane contains 361 events dominated by Computer Use/CoreGraphics capture,
+    so no false zero-hitch claim is made. The template exported no SwiftUI
+    cause-graph or custom signpost events; rerun with an OS Signpost-enabled
+    template when direct signpost proof is needed.
+  - App Launch trace measured process creation 253.94 ms, AppKit scene creation
+    431.61 ms, initial frame rendering 107.47 ms, and first-frame completion at
+    about 919 ms from trace start. The coherent launch overlay then completes
+    its intentional approximately 800 ms sequence.
+  - Local ignored skills were installed and read: UI UX Pro Max, SwiftUI Expert
+    Skill, and Motion Design Skill. Generic landing-page/rebrand suggestions
+    were rejected; only motion, contrast, focus-target, responsive, and Reduce
+    Motion checks were applied. No skill-install files are tracked.
+  - Validation passed: `swift build`, 79/79 SwiftPM tests, packaged
+    `./script/build_and_run.sh --verify`, strict codesign, and live `.app` QA.
+  - Used/validated with: Graphify, Product Design, Build macOS Apps, SwiftUI
+    Expert Skill, Motion Design Skill, UI UX Pro Max, SwiftPM/test-triage,
+    Computer Use, full Xcode Instruments, packaged `.app`, and codesign.
+  - Not done: the dedicated VoiceOver/accessibility audit, Developer ID
+    signing/notarization, release, version/tag, tester branch, or GitHub
+    Release. macOS Full Keyboard Access was disabled on the QA host, so a full
+    visible keyboard-focus traversal is not claimed by this pass.
+  - Next skill/workflow: Product Design + Build macOS Apps for the dedicated
+    VoiceOver/accessibility audit. Then use signing-entitlements and
+    packaging-notarization for Developer ID distribution readiness.
 - Completed the first task-level analytics implementation inside the existing
   Analytics screen:
   - `FocusGlassCore` now exposes `TaskFocusSummary` and
@@ -841,10 +891,10 @@ Previous tester-fix validation still relevant:
 
 Remaining after the newest implementation checkpoint:
 
-- The first interface-performance pass and the owner-reported project-card
-  selection/text overflow defect are closed. Full Instruments profiling is not
-  required unless a reproducible lag remains; it needs full Xcode rather than
-  the current Command Line Tools.
+- The first interface-performance pass, scroll follow-up, owner-reported
+  project-card selection/text overflow defect, and unified motion/Instruments
+  pass are closed. The latest proof and honest trace limits are documented in
+  `/private/tmp/focusglass-motion-performance-20260811-154559/audit-notes.md`.
 - The requested compact, keyboard-focus, real `warn`, real `pauseSession`,
   Safari site-rule, and safe `quitAfterOptIn` live-QA limits are closed. The
   proof folder is `/private/tmp/focusglass-step1-live-qa-AliHYHWx`.
@@ -986,14 +1036,12 @@ item, also show "what is going on with the roadmap" from
 `Roadmap Status Snapshot`. If this plan later grows beyond seven items, keep
 using the full current operating plan first, then the roadmap block.
 
-0. The first dedicated interface-performance pass is complete. Timer ticks are
-   isolated from the broad app model, derived task/analytics work is cached,
-   redundant active-task publications are removed, and project cards keep
-   long RU/EN content inside their full selected surfaces. Packaged-app proof
-   and runtime samples are under
-   `/private/tmp/focusglass-performance-pass-20260726-034829`. A full
-   Instruments trace is optional when full Xcode is available or a reproducible
-   jank remains.
+0. The interface-performance sequence is complete. Timer ticks are isolated,
+   derived task/analytics work is cached, project cards remain adaptive, shared
+   scroll surfaces suppress compositing churn, `FocusGlassMotion` provides one
+   Reduce Motion-aware policy, and Theme Studio continuous edits are throttled.
+   Full Xcode App Launch/SwiftUI/Time Profiler evidence and limitations are in
+   `/private/tmp/focusglass-motion-performance-20260811-154559/audit-notes.md`.
 1. Use Graphify before broad project/status/codebase questions and after code
    changes: start with `graphify query "<question>"` when the graph exists, and
    finish code changes with `graphify update .`.
