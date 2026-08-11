@@ -46,8 +46,8 @@ tester-сборку `0.0.4`.
   отдельной зоной редактирования и адаптивной шириной для длинных RU/EN
   названий.
 - Все scrollable surfaces используют общий scroll-phase-aware wrapper:
-  ленивые стеки, hover/shadow suppression во время движения и совместимый с
-  macOS 14 fallback через `NSScrollView` live-scroll notifications.
+  ленивые стеки, hover changes без animated interpolation во время движения и
+  совместимый с macOS 14 fallback через `NSScrollView` live-scroll notifications.
 - Theme Studio открывает advanced-группы отдельно, не держит все ColorPicker и
   slider surfaces одновременно и не запускает app-wide transition animation
   на каждом шаге непрерывного редактирования.
@@ -56,10 +56,16 @@ tester-сборку `0.0.4`.
   value-scoped motion без spring/bounce и секундной анимации timer digits.
 - На macOS 15 scroll tracking использует только системную scroll phase, а
   AppKit live-scroll fallback остаётся только для macOS 14. Во время прокрутки
-  glass сохраняет статическую глубину без дорогого material compositing.
+  glass сохраняет материал, тени и яркость; hover changes применяются без
+  animated interpolation.
 
 ### Исправлено
 
+- Удалено дублирующее объявление `TaskAnalyticsCard`, попавшее в squash merge
+  PR #9 и блокировавшее сборку `Release/main`.
+- Glass-панели больше не темнеют во время прокрутки: material и внутренняя
+  яркость, тени и control surfaces остаются стабильными, а scroll optimization
+  ограничена отключением интерполяции hover-переходов.
 - Все найденные кнопки, disclosure-заголовки, строки навигации, карточки и
   компактные icon actions реагируют на нажатие по полной видимой области, а не
   только по тексту или SF Symbol.

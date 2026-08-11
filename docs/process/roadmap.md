@@ -91,7 +91,7 @@ VoiceOver/accessibility audit.
    - proof: `/private/tmp/focusglass-performance-pass-20260726-034829`.
    Продолжение performance-pass также завершено:
    - все app scroll surfaces используют общий scroll-phase-aware wrapper,
-     ленивые стеки и подавление hover/shadow/material cost во время движения;
+     ленивые стеки и hover changes без animated interpolation во время движения;
    - Theme Studio advanced-группы раскрываются отдельно, а непрерывные
      slider/color edits не запускают app-wide transition на каждом шаге;
    - fullscreen task metadata больше не сжимается рядом с длинным заголовком;
@@ -102,8 +102,9 @@ VoiceOver/accessibility audit.
      Motion policy для всех основных surfaces;
    - Theme Studio slider commits throttled до 30 Hz, route/list/status motion
      value-scoped, timer digits не анимируются каждую секунду;
-   - scroll surfaces отключают material compositing во время движения, а
-     legacy AppKit fallback не устанавливается на macOS 15;
+   - scroll surfaces сохраняют material, тени и яркость во время движения;
+     hover changes применяются без animated interpolation, а legacy AppKit
+     fallback не устанавливается на macOS 15;
    - добавлены Instruments signposts для route, settings, theme commit, Menu
      Bar и outcome;
    - полный Xcode Instruments pass выполнен. Финальный 55.124 s trace не

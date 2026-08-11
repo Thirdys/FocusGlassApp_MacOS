@@ -238,7 +238,7 @@ and batch multi-step theme mutations:
 All app `ScrollView` surfaces go through `FocusGlassScrollView`. It propagates
 live-scroll state through the environment, uses SwiftUI scroll phase on macOS
 15+, and a narrow `NSScrollView` notification bridge on macOS 14. Shared glass
-buttons/rows suppress hover animation and expensive moving shadows/material
+buttons/rows apply hover changes without animated interpolation
 layers only while scrolling; nested scroll surfaces inherit the parent state.
 
 Do not reintroduce synchronous custom icon persistence into every Theme Studio

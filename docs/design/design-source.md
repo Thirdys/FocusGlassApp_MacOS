@@ -102,9 +102,10 @@ source of truth.
   animate timer digits every second.
 - Reduce Motion removes movement, draw, and pulse. State changes use a short
   fade or become immediate; progress changes may become immediate.
-- Scroll surfaces suppress moving material/shadow/hover churn and restore full
-  visual depth when scrolling stops. This optimization must not flatten idle
-  surfaces or change the Mac Glass OS identity.
+- Scroll surfaces preserve the same material, fill, shadows, and perceived
+  brightness throughout the gesture. Hover state may update without animated
+  interpolation while scrolling, but performance optimizations must not visibly
+  darken, flatten, flash, or recolor any surface at scroll start or end.
 
 ## Window Surfaces
 

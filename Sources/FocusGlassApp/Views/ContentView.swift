@@ -1380,7 +1380,7 @@ private struct FocusTaskCardRow: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(model.theme.mutedText)
-            .opacity((isHovering && !isScrolling) || isSelected ? 1 : 0.58)
+            .opacity(isHovering || isSelected ? 1 : 0.58)
             .glassHover(theme: model.theme, radius: 8)
             .help(model.t("tasks.edit"))
         }
@@ -1398,14 +1398,12 @@ private struct FocusTaskCardRow: View {
         }
         .glassHover(theme: model.theme, radius: 15, isActive: isSelected)
         .onHover { hovering in
-            guard !isScrolling else { return }
-            withAnimation(motion.animation(.micro)) {
+            if isScrolling {
                 isHovering = hovering
-            }
-        }
-        .onChange(of: isScrolling) { _, scrolling in
-            if scrolling {
-                isHovering = false
+            } else {
+                withAnimation(motion.animation(.micro)) {
+                    isHovering = hovering
+                }
             }
         }
     }
@@ -2487,165 +2485,6 @@ private struct AnalyticsScreen: View {
         .foregroundStyle(model.theme.mutedText)
         .glassHover(theme: model.theme, radius: 10)
         .accessibilityLabel(title)
-    }
-}
-
-private struct TaskAnalyticsCard: View {
-    @EnvironmentObject private var model: FocusGlassViewModel
-
-    let presentation: TaskAnalyticsPresentation
-
-    private var summary: TaskFocusSummary {
-        presentation.summary
-    }
-
-    private var kindTitle: String {
-        if presentation.isHistorical {
-            return model.t("analytics.task.historical")
-        }
-        return presentation.timingMode.map(model.taskTimingModeTitle) ?? model.t("analytics.task.historical")
-    }
-
-    private var focusMetricTitle: String {
-        presentation.showsEffectiveness
-            ? model.t("analytics.actual")
-            : model.t("analytics.task.associatedFocus")
-    }
-
-    private var lastFocusText: String {
-        summary.lastFocusedAt.formatted(
-            Date.FormatStyle(
-                date: .abbreviated,
-                time: .omitted,
-                locale: Locale(identifier: model.language.resolvedCode)
-            )
-        )
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: presentation.isHistorical ? "clock.arrow.circlepath" : taskSymbol)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(presentation.isHistorical ? model.theme.mutedText : model.theme.primary)
-                    .frame(width: 30, height: 30)
-                    .background(
-                        (presentation.isHistorical ? model.theme.mutedText : model.theme.primary).opacity(0.12),
-                        in: RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(presentation.title)
-                        .font(.system(size: 14, weight: .bold))
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(presentation.projectName)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(model.theme.mutedText)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 8)
-
-                Text(kindTitle)
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(presentation.isHistorical ? model.theme.mutedText : model.theme.primary)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 4)
-                    .background(
-                        (presentation.isHistorical ? model.theme.mutedText : model.theme.primary).opacity(0.12),
-                        in: Capsule()
-                    )
-            }
-
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 16) {
-                    metric(focusMetricTitle, value: summary.honestFocusSeconds.focusClock)
-                    metric(model.t("analytics.sessionsShort"), value: "\(summary.sessionsCompleted)")
-                    metric(model.t("analytics.distractionsShort"), value: "\(summary.distractionCount)")
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    metric(focusMetricTitle, value: summary.honestFocusSeconds.focusClock)
-                    HStack(spacing: 16) {
-                        metric(model.t("analytics.sessionsShort"), value: "\(summary.sessionsCompleted)")
-                        metric(model.t("analytics.distractionsShort"), value: "\(summary.distractionCount)")
-                    }
-                }
-            }
-
-            if presentation.showsEffectiveness {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack {
-                        Text("\(model.t("analytics.planned")) \(summary.plannedSeconds.focusClock)")
-                        Spacer(minLength: 8)
-                        Text("\(model.t("analytics.effectiveness")) \(effectivenessText)")
-                    }
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(model.theme.mutedText)
-
-                    ProgressView(value: summary.effectiveness)
-                        .tint(model.theme.primary)
-                }
-            }
-
-            HStack(spacing: 5) {
-                Image(systemName: "calendar")
-                Text("\(model.t("analytics.task.lastFocus")) \(lastFocusText)")
-            }
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(model.theme.mutedText)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
-        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityText)
-    }
-
-    private var taskSymbol: String {
-        presentation.timingMode == .checklist ? "checklist.checked" : "timer"
-    }
-
-    private var effectivenessText: String {
-        let clamped = min(1, max(0, summary.effectiveness))
-        if clamped > 0, clamped < 0.01 {
-            return "<1%"
-        }
-        return "\(Int((clamped * 100).rounded()))%"
-    }
-
-    private var accessibilityText: String {
-        var parts = [
-            presentation.title,
-            presentation.projectName,
-            kindTitle,
-            "\(focusMetricTitle) \(summary.honestFocusSeconds.focusClock)",
-            "\(summary.sessionsCompleted) \(model.t("analytics.sessionsShort"))",
-            "\(summary.distractionCount) \(model.t("analytics.distractionsShort"))",
-            "\(model.t("analytics.task.lastFocus")) \(lastFocusText)"
-        ]
-        if presentation.showsEffectiveness {
-            parts.append("\(model.t("analytics.planned")) \(summary.plannedSeconds.focusClock)")
-            parts.append("\(model.t("analytics.effectiveness")) \(effectivenessText)")
-        }
-        return parts.joined(separator: ", ")
-    }
-
-    private func metric(_ title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title)
-                .font(.system(size: 9, weight: .bold))
-                .foregroundStyle(model.theme.mutedText)
-                .lineLimit(1)
-            Text(value)
-                .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundStyle(model.theme.text)
-                .monospacedDigit()
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

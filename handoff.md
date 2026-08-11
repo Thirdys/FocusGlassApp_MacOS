@@ -19,6 +19,17 @@ rereading the whole handoff.
 
 Last done:
 
+- Rechecked `Release/main` after PR #9 was squash-merged. The merge contained
+  two identical `TaskAnalyticsCard` declarations and therefore did not build;
+  the duplicate declaration was removed in the focused post-merge follow-up
+  together with the scroll-state brightness fix.
+- Fixed the scroll-state brightness regression found after the unified motion
+  pass: `LiquidGlassPanel` now keeps the same material, fill, and readability
+  layers, shadows, and control materials before, during, and after scrolling.
+  Scroll-state now only disables animated interpolation for real hover changes,
+  so panels and controls no longer darken or flash when a gesture starts or
+  ends. The design contract and QA checklist explicitly forbid visible
+  scroll-state recoloring.
 - Completed the unified UI motion and measured SwiftUI performance pass on
   `codex/motion-performance`, based on current `Release/main` plus the intended
   post-main product commits:
@@ -30,9 +41,9 @@ Last done:
     Studio, Fullscreen, Menu Bar, outcome, and toast changes through
     value-scoped motion. Timer digits do not animate on each one-second tick.
   - Theme Studio slider edits are locally staged, throttled to at most 30 Hz
-    while dragging, and finalized once at gesture end. Scroll surfaces remove
-    material compositing while moving; macOS 15 no longer installs the legacy
-    AppKit live-scroll observer.
+    while dragging, and finalized once at gesture end. Scroll surfaces preserve
+    material, shadows, and brightness while hover changes skip animated
+    interpolation; macOS 15 no longer installs the legacy AppKit observer.
   - Added points-of-interest events for route/settings changes, theme commit,
     Menu Bar presentation, and outcome presentation. Extracted shared motion,
     instrumentation, and scroll hot paths into focused source files. Broad

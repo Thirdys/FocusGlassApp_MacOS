@@ -333,6 +333,10 @@
 - Keep the pointer over interactive rows while scrolling. Hover scale, glow,
   material, and shadow effects must not repeatedly animate as rows pass under
   the stationary pointer; they should resume after scrolling stops.
+- While scrolling, compare panel interiors before, during, and after the
+  gesture. Material, fill, text contrast, and perceived brightness must remain
+  stable. Panel shadows and control materials must not blink at scroll start or
+  end; only hover interpolation may be disabled during movement.
 - Leave the timer running while interacting with unrelated surfaces. The
   one-second tick must not visibly reset controls, interrupt scrolling, or
   invalidate the entire window.
