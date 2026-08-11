@@ -73,20 +73,17 @@ swift build --disable-sandbox
 swift test --disable-sandbox --scratch-path /tmp/FocusGlassApp_MacOS-swift-test
 ```
 
-Быстрый запуск как SwiftPM executable:
+Основной dev-loop для ручного тестирования реальной macOS `.app`:
 
 ```sh
-swift run FocusGlass
+FOCUSGLASS_DATA_DIR=/private/tmp/focusglass-qa-data ./script/build_and_run.sh --verify
 ```
 
-Сборка локального `.app` для ручного тестирования:
-
-```sh
-./Scripts/package-app.sh
-open build/FocusGlass.app
-```
-
-`swift run` полезен для быстрых UI-проверок, но macOS не считает такой процесс полноценным приложением. Для permissions QA используй `build/FocusGlass.app`.
+Скрипт использует `./Scripts/package-app.sh` как источник логики упаковки,
+перезапускает `build/FocusGlass.app` и поддерживает `--logs`, `--telemetry` и
+`--debug`. `swift run FocusGlass` допустим только для узкой отладки: macOS не
+считает такой процесс полноценным приложением, поэтому permissions, Menu Bar,
+fullscreen и packaged-app UI проверяются через `.app`.
 
 Сборка zip-артефакта для ручной передачи тестеру:
 
@@ -94,8 +91,8 @@ open build/FocusGlass.app
 ./Scripts/package-release.sh
 ```
 
-Номер версии хранится в `VERSION`, например `0.0.2`. Для публично отмеченной
-сборки commit дополнительно помечается tag вида `v0.0.2`; если текущий commit
+Номер версии хранится в `VERSION`, например `0.0.4`. Для публично отмеченной
+сборки commit дополнительно помечается tag вида `v0.0.4`; если текущий commit
 стоит ровно на таком tag, скрипты берут версию из tag. Скрипт создаёт
 `FocusGlass.app`, `FocusGlass-<version>.zip` и `.sha256` под
 `build/releases/<version>/`. Папка `build/` остаётся локальным generated output
@@ -126,8 +123,9 @@ VERSION                # текущий понятный номер сборки
 - [QA Checklist](docs/qa-checklist.md) - ручная и автоматическая проверка.
 - [GitHub Workflow](docs/process/github-workflow.md) - ветки, коммиты, теги, релизы и правила работы.
 - [Roadmap](docs/process/roadmap.md) - ближайшее развитие без смены идеи проекта.
-- [Tester Checklist](docs/process/tester-checklist.md) - компактный чеклист для ручной проверки tester-сборки.
-- [Tester Report Template](docs/process/tester-report-template.md) - шаблон отчёта тестера со screenshots и severity.
+- [Tester Checklist](docs/process/tester-checklist.md) - снимок полного ручного прохода для tester-сборки `0.0.4`.
+- [Tester Rules](docs/process/tester-rules.md) - правила, словарь терминов и критерии blocker для тестера.
+- [Tester Report Template](docs/process/tester-report-template.md) - снимок шаблона отчёта для `0.0.4` со screenshots и severity.
 
 Документация считается частью реализации. Если меняется поведение, структура данных, permissions, UI, сборка или QA, соответствующий документ обновляется в том же изменении.
 
@@ -136,7 +134,9 @@ VERSION                # текущий понятный номер сборки
 Проект ведётся по аккуратному GitHub-процессу:
 
 - `main` - стабильная ветка.
-- `feature/...` - новые возможности.
+- `codex/next` - основная ветка работы ассистента.
+- `feature/next` - рабочая ветка владельца, когда она нужна.
+- `codex/<topic>` / `feature/<topic>` - изолированные изменения.
 - `fix/...` - исправления.
 - `chore/...` - инфраструктура и уборка.
 - `docs/...` - документация.
@@ -148,17 +148,31 @@ VERSION                # текущий понятный номер сборки
 
 ## Текущий статус
 
-Проект находится в активной разработке. Это уже не пустой MVP, но ещё не финальный публичный релиз. Ближайший фокус:
+Проект находится в активной разработке. В текущей ветке уже реализованы
+post-session outcome, project notes, persistent strict distraction history,
+planned-vs-actual analytics, явные Light/Dark варианты тем, общий знак
+AppIcon/launch animation, lifecycle-managed Menu Bar panel и полный проход зон
+нажатия. Первый interface-performance pass изолировал секундный timer state,
+закэшировал task/analytics summaries и исправил адаптивные project cards.
+Следующий performance-pass унифицировал все scroll surfaces, убрал hover/shadow
+churn во время движения и сократил одновременно открытый Theme Studio editor.
+Product Design pass на реальных накопленных данных улучшил плотность Analytics
+и Strict History. Следующий implementation-pass добавил task-level analytics:
+сводки по `taskID`, актуальный контекст существующих задач, исторический
+fallback удалённых задач и отдельную политику timed/checklist.
+Нулевой motion/performance pass добавил единую `FocusGlassMotion` policy,
+value-scoped transitions, Reduce Motion fallback, throttled Theme Studio
+sliders, облегчённый glass во время прокрутки и Instruments signposts. Live
+packaged-app и Instruments proof хранится в
+`/private/tmp/focusglass-motion-performance-20260811-154559`.
+Tester-сборка `0.0.4` остаётся отдельным историческим снимком и не включает
+изменения из секции `Unreleased`.
 
-- провести полный VoiceOver/accessibility audit;
-- подготовить Developer ID signing и notarization;
-- проверить task-level analytics на накопленных пользовательских сессиях;
-- разбирать feedback по tester-сборке `0.0.4` по мере поступления.
-
-Task-level analytics уже доступна в общем экране Analytics: отдельные задачи
-получают сводку по сессиям, planned и honest focus time, отвлечениям и последней
-дате фокуса. Checklist-задачи показывают связанную активность без ложной
-эффективности, а удалённые задачи сохраняются как исторические записи.
+Ближайший порядок: провести отдельный полный VoiceOver/accessibility audit,
+затем подготовить Developer ID signing и notarized канал распространения.
+Custom timer presets и strict-rule presets отложены до подтверждённой
+потребности из tester feedback. Детальный порядок хранится в
+[roadmap](docs/process/roadmap.md) и [handoff](handoff.md).
 
 ## Принципы проекта
 

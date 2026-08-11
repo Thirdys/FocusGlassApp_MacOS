@@ -11,8 +11,8 @@
   `build/FocusGlass.app`, forwards `FOCUSGLASS_DATA_DIR` as a launch argument,
   and can also stream `--logs` or `--telemetry`.
 - Before tester handoff, check that `VERSION`, public tag, zip name, and tester
-  branch name describe the same visible version, for example `0.0.2` and
-  `v0.0.2`.
+  branch name describe the same visible version, for example `X.Y.Z` and
+  `vX.Y.Z`.
 - For release handoff, run `./Scripts/package-release.sh` and verify the zip
   plus `.sha256` appear under `build/releases/<version>/`.
 - In the main window, verify the bottom-right badge shows the app version and
@@ -114,6 +114,11 @@
 
 - Create a project from empty state.
 - Select the active project from the cockpit project dropdown.
+- On the Projects screen, use long RU and EN project names/descriptions at
+  narrow and medium widths. Title, description, task count, and selected label
+  must stay inside the selected border with visible internal padding.
+- Click the empty lower area of a project card and verify the project becomes
+  active. The independent pencil target must still open only the editor.
 - Verify the wide cockpit layout keeps project context on the left, the timer in
   the center, and active/project tasks on the right.
 - Verify the old top-level intention field is not visible in cockpit, menu bar,
@@ -184,6 +189,13 @@
   steppers.
 - Verify project/task edit buttons respond when clicking the full 44x44 hover
   area around the pencil icon.
+- Expand and collapse Theme Studio advanced settings by clicking the title,
+  empty row padding, and chevron separately; all points in the highlighted
+  disclosure header must work.
+- Repeat the full-surface check for project notes and other disclosure rows.
+- Verify compact icon actions have at least a 40 pt target and regular
+  controls/rows at least 44 pt. The pointer target and hover/pressed surface
+  must describe the same area.
 - Verify Settings text fields use glass styling instead of rounded-border
   stock controls.
 - Verify long RU/EN values such as "Как в macOS", "Универсальный доступ", and
@@ -204,11 +216,20 @@
   persists after the debounce, without visible UI stalls during dragging.
 - Check Appearance for the theme side-effect status/performance message.
 - Confirm advanced Theme Studio is collapsed by default.
-- Expand advanced Theme Studio and verify background top/mid/bottom, surface,
-  elevated surface, text, and muted text can be changed through color pickers,
-  not manual hex typing, and changes are visible in the single live preview.
+- Expand advanced Theme Studio. Verify `Стекло и движение` opens initially,
+  while accent, foundation, and readability are separate full-row disclosure
+  targets. Expand each group from its text, empty padding, and chevron.
+- Verify background top/mid/bottom, surface, elevated surface, text, and muted
+  text can be changed through color pickers, not manual hex typing, and changes
+  are visible in the single live preview.
 - Duplicate or import a custom theme and verify `Удалить тему` appears only for
   that custom theme. Verify built-in themes show `Сбросить`, not delete.
+- Export/import a theme with malformed colors, non-finite numeric values, and
+  out-of-range opacity/motion/density values; invalid data must be rejected or
+  repaired without corrupting the selected profile.
+- In each Light and Dark variant, change `glassOpacity`, `density`, and
+  `motion`; verify each token visibly affects the real main, Menu Bar,
+  fullscreen, or launch surface rather than preview only.
 
 ## Fullscreen focus
 
@@ -221,6 +242,20 @@
 - Skip segment is available in fullscreen hover controls with the same disabled
   behavior as the main screen.
 - Escape or close control exits focus mode.
+- Use a long five-line RU/EN task name at narrow and wide sizes. The timer must
+  remain the visual anchor and the complete title must remain available through
+  wrapping and accessibility/help.
+
+## Menu bar HUD
+
+- Open the HUD while another application is active; it must appear without
+  first activating the desktop or FocusGlass main window.
+- Open it over a fullscreen Space and verify the lifecycle-managed panel is
+  visible and interactive.
+- Verify an actual outside click closes it, while interacting with its controls
+  does not dismiss it prematurely.
+- Close/reopen the main window from Menu Bar and verify launch animation does
+  not replay during the same process.
 
 ## Analytics
 
@@ -285,3 +320,41 @@
 - Switch appearance between system/light/dark and verify the app follows macOS
   when set to system while keeping the selected accent theme.
 - Verify the menu bar panel reads as a compact HUD, not a large square card.
+
+## Interface performance
+
+- Capture a before/after baseline from the packaged `.app`, not only a debug
+  SwiftPM executable.
+- Test launch and launch-animation handoff at compact, medium, and wide window
+  sizes without a visible freeze or broken intermediate frame.
+- With realistic projects, tasks, sessions, and distraction history, scroll and
+  resize the cockpit, Projects, Analytics, Settings, and Strict history without
+  repeated stalls.
+- Keep the pointer over interactive rows while scrolling. Hover scale, glow,
+  material, and shadow effects must not repeatedly animate as rows pass under
+  the stationary pointer; they should resume after scrolling stops.
+- Leave the timer running while interacting with unrelated surfaces. The
+  one-second tick must not visibly reset controls, interrupt scrolling, or
+  invalidate the entire window.
+- Drag Theme Studio sliders and switch Light/Dark/custom themes rapidly. Pointer
+  interaction must remain responsive while persistence and icon side effects
+  complete through their existing deferred paths.
+- In fullscreen, verify checklist/timed metadata stays on a separate readable
+  line below long task titles and never collapses into a vertical letter stack.
+- Repeatedly open/close Menu Bar HUD and enter/exit fullscreen. Window
+  transitions and controls must respond without a visible main-thread pause.
+- Verify routine transitions follow the shared motion families: no bounce,
+  ambient pulse, large travel, or unrelated per-screen timing. Timer digits
+  must remain stable on each one-second tick.
+- Enable Reduce Motion and repeat route, disclosure, Fullscreen, Menu Bar,
+  outcome, and launch scenarios. Spatial movement, draw, and pulse must become
+  a short fade or immediate state without losing information.
+- Drag Theme Studio sliders continuously. The preview should remain responsive,
+  persistence should receive a final value on release, and route/theme changes
+  must not restart the whole window animation.
+- Capture App Launch, Time Profiler, SwiftUI/Animation Hitches, and OS Signpost
+  evidence with the packaged app. Separate app behavior from screenshot or
+  profiling-tool overhead; do not report a zero-hitch result unless the trace
+  supports it.
+- Verify performance fixes preserve visual quality, Reduce Motion, keyboard
+  focus, accessibility labels, persistence, and existing timer/Strict behavior.

@@ -5,6 +5,7 @@ import FocusGlassCore
 struct ContentView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @Environment(\.focusGlassMotion) private var motion
     @State private var hiddenToastMessage: String?
     @State private var toastGeneration = 0
     @State private var showsLaunchSequence = FocusGlassLaunchSession.shouldPresent
@@ -82,9 +83,10 @@ struct ContentView: View {
                 DistractionToast(message: message)
                     .environmentObject(model)
                     .padding(.bottom, 24)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(motion.transition(.toast))
             }
         }
+        .animation(motion.animation(.emphasis), value: model.focusGuard.lastDistractionMessage)
         .onReceive(model.focusGuard.$lastDistractionMessage) { message in
             hiddenToastMessage = nil
             guard let message else { return }
@@ -94,7 +96,7 @@ struct ContentView: View {
                 try? await Task.sleep(for: .seconds(4))
                 if model.focusGuard.lastDistractionMessage == message,
                    toastGeneration == generation {
-                    withAnimation(.easeInOut(duration: 0.20)) {
+                    withAnimation(motion.animation(.selection)) {
                         hiddenToastMessage = message
                     }
                 }
@@ -109,13 +111,15 @@ struct ContentView: View {
     }
 
     private func contentScroll(horizontalPadding: CGFloat, verticalPadding: CGFloat, showsContextRail: Bool) -> some View {
-        ScrollView {
-            VStack(spacing: 22) {
+        FocusGlassScrollView {
+            LazyVStack(spacing: 22) {
                 HeaderView()
                 if model.needsPermissionAttention {
                     PermissionBannerView()
                 }
                 RouteContentView()
+                    .id(model.selectedSidebarItem)
+                    .transition(motion.transition(.content))
                 if showsContextRail && model.selectedSidebarItem == .focusToday {
                     FocusContextRailView()
                 }
@@ -129,6 +133,7 @@ struct ContentView: View {
             .frame(maxWidth: .infinity)
         }
         .scrollIndicators(.hidden)
+        .animation(motion.animation(.navigation), value: model.selectedSidebarItem)
     }
 
     private func runLaunchSequenceIfNeeded() async {
@@ -630,6 +635,7 @@ private struct PermissionBannerView: View {
 private struct HeaderView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.focusGlassMotion) private var motion
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -653,11 +659,14 @@ private struct HeaderView: View {
                 .font(.system(size: 34, weight: .bold, design: .rounded))
                 .lineLimit(2)
                 .minimumScaleFactor(0.82)
+                .contentTransition(.opacity)
             Text(subtitle)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(model.theme.mutedText)
                 .fixedSize(horizontal: false, vertical: true)
+                .contentTransition(.opacity)
         }
+        .animation(motion.animation(.navigation), value: model.selectedSidebarItem)
     }
 
     private var headerControls: some View {
@@ -728,20 +737,25 @@ private struct RouteContentView: View {
 
 private struct CompactNavBar: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 8) {
+        FocusGlassScrollView(.horizontal) {
+            LazyHStack(spacing: 8) {
                 ForEach(SidebarItem.allCases) { item in
                     Button {
-                        model.selectedSidebarItem = item
+                        withAnimation(motion.animation(.navigation)) {
+                            model.selectedSidebarItem = item
+                        }
                     } label: {
                         Label(model.sidebarTitle(item), systemImage: item.symbolName)
                             .font(.system(size: 12, weight: .bold))
                             .padding(.horizontal, 12)
                             .padding(.vertical, 9)
+                            .frame(minHeight: FocusGlassHitTarget.compact)
                             .fixedSize(horizontal: true, vertical: false)
                             .foregroundStyle(model.selectedSidebarItem == item ? model.theme.text : model.theme.mutedText)
+                            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .fixedSize(horizontal: true, vertical: false)
@@ -753,6 +767,7 @@ private struct CompactNavBar: View {
             .padding(.vertical, 12)
         }
         .scrollIndicators(.hidden)
+        .frame(height: 64)
         .background(model.theme.surface.opacity(0.20))
         .background(.ultraThinMaterial)
     }
@@ -760,6 +775,7 @@ private struct CompactNavBar: View {
 
 private struct SidebarView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -782,7 +798,9 @@ private struct SidebarView: View {
             VStack(spacing: 7) {
                 ForEach(SidebarItem.allCases) { item in
                     Button {
-                        model.selectedSidebarItem = item
+                        withAnimation(motion.animation(.navigation)) {
+                            model.selectedSidebarItem = item
+                        }
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: item.symbolName)
@@ -824,7 +842,9 @@ private struct SidebarView: View {
 
                 ForEach(model.projects) { project in
                     Button {
-                        model.selectProject(project)
+                        withAnimation(motion.animation(.selection)) {
+                            model.selectProject(project)
+                        }
                     } label: {
                         HStack(spacing: 10) {
                             Circle()
@@ -880,6 +900,7 @@ private struct SidebarView: View {
 
 private struct FocusTodayView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     var body: some View {
         VStack(spacing: 22) {
@@ -888,7 +909,7 @@ private struct FocusTodayView: View {
 
                 if let outcome = model.pendingSessionOutcome {
                     SessionOutcomeCard(outcome: outcome)
-                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .transition(motion.transition(.emphasis))
                 }
 
                 focusLayout
@@ -896,6 +917,7 @@ private struct FocusTodayView: View {
 
             AnalyticsStripView()
         }
+        .animation(motion.animation(.emphasis), value: model.pendingSessionOutcome?.id)
     }
 
     private var focusLayout: some View {
@@ -904,7 +926,7 @@ private struct FocusTodayView: View {
                 FocusProjectPanel()
                     .frame(width: 360)
 
-                timerStack(size: 360, clockSize: 72)
+                FocusTimerStack(size: 360, clockSize: 72)
                     .frame(minWidth: 360)
 
                 FocusTaskPanel()
@@ -912,7 +934,7 @@ private struct FocusTodayView: View {
             }
 
             VStack(spacing: 18) {
-                timerStack(size: 318, clockSize: 62)
+                FocusTimerStack(size: 318, clockSize: 62)
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 16) {
                         FocusProjectPanel()
@@ -927,15 +949,23 @@ private struct FocusTodayView: View {
             }
         }
     }
+}
 
-    private func timerStack(size: CGFloat, clockSize: CGFloat) -> some View {
+private struct FocusTimerStack: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
+
+    let size: CGFloat
+    let clockSize: CGFloat
+
+    var body: some View {
         VStack(spacing: 18) {
             CircularTimerView(
-                clockText: model.primaryClockText,
-                phase: model.phaseTitle(model.engineSnapshot.activeSegment.phase),
-                progress: model.engineSnapshot.progress,
+                clockText: timerPresentation.primaryClockText,
+                phase: model.phaseTitle(timerPresentation.snapshot.activeSegment.phase),
+                progress: timerPresentation.snapshot.progress,
                 theme: model.theme,
-                statusText: model.statusTitle(model.engineSnapshot.status),
+                statusText: model.statusTitle(timerPresentation.snapshot.status),
                 size: size,
                 clockSize: clockSize
             )
@@ -1031,13 +1061,7 @@ private struct FocusProjectPanel: View {
     @ViewBuilder
     private var projectNotes: some View {
         if activeProject != nil {
-            DisclosureGroup(isExpanded: $isNotesExpanded) {
-                TextField(model.t("projects.notes.placeholder"), text: activeProjectNotesBinding, axis: .vertical)
-                    .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
-                    .font(.system(size: 12, weight: .medium))
-                    .lineLimit(3...7)
-                    .padding(.top, 8)
-            } label: {
+            GlassDisclosureSection(isExpanded: $isNotesExpanded) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Image(systemName: "note.text")
@@ -1056,8 +1080,15 @@ private struct FocusProjectPanel: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                .padding(13)
+            } content: {
+                TextField(model.t("projects.notes.placeholder"), text: activeProjectNotesBinding, axis: .vertical)
+                    .textFieldStyle(GlassTextFieldStyle(theme: model.theme))
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(3...7)
+                    .padding(.horizontal, 13)
+                    .padding(.bottom, 13)
             }
-            .padding(13)
             .background(Color.white.opacity(0.04), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -1091,6 +1122,7 @@ private struct FocusProjectPanel: View {
 
 private struct FocusTaskPanel: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var editingTask: FocusTask?
 
     private var secondaryTasks: [FocusTask] {
@@ -1130,7 +1162,8 @@ private struct FocusTaskPanel: View {
                         editingTask = task
                     } label: {
                         Image(systemName: "pencil")
-                            .frame(width: 28, height: 28)
+                            .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(model.theme.mutedText)
@@ -1172,6 +1205,7 @@ private struct FocusTaskPanel: View {
                     .stroke(model.theme.primary.opacity(0.42), lineWidth: 1)
             }
             .shadow(color: model.theme.primary.opacity(0.16), radius: 22, x: 0, y: 14)
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -1187,14 +1221,16 @@ private struct FocusTaskPanel: View {
                     detail: model.t("tasks.empty.detail")
                 )
             } else if !secondaryTasks.isEmpty {
-                ScrollView {
+                FocusGlassScrollView {
                     LazyVStack(spacing: 10) {
                         ForEach(secondaryTasks) { task in
                             FocusTaskCardRow(task: task) {
                                 editingTask = task
                             }
+                            .transition(motion.transition(.listItem))
                         }
                     }
+                    .animation(motion.animation(.disclosure), value: secondaryTasks.map(\.id))
                     .padding(.trailing, 2)
                 }
                 .frame(maxHeight: 360)
@@ -1228,6 +1264,7 @@ private struct FocusTaskPanel: View {
 
 private struct TimerControlRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
 
     var body: some View {
         HStack(spacing: 14) {
@@ -1257,14 +1294,14 @@ private struct TimerControlRow: View {
                     .frame(width: 34, height: 34)
             }
             .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
-            .disabled(!model.canSkipSegment)
-            .opacity(model.canSkipSegment ? 1 : 0.42)
+            .disabled(!timerPresentation.canSkipSegment)
+            .opacity(timerPresentation.canSkipSegment ? 1 : 0.42)
             .help(model.t("help.timerSkip"))
         }
     }
 
     private var primaryTitle: String {
-        switch model.engineSnapshot.status {
+        switch timerPresentation.snapshot.status {
         case .running: model.t("timer.pause")
         case .paused: model.t("timer.resume")
         case .idle, .completed: model.t("timer.start")
@@ -1274,6 +1311,8 @@ private struct TimerControlRow: View {
 
 private struct FocusTaskCardRow: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassIsScrolling) private var isScrolling
+    @Environment(\.focusGlassMotion) private var motion
     @State private var isHovering = false
 
     let task: FocusTask
@@ -1290,7 +1329,7 @@ private struct FocusTaskCardRow: View {
             } label: {
                 Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 16, weight: .bold))
-                    .frame(width: 30, height: 30)
+                    .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
                     .contentShape(Rectangle())
                     .foregroundStyle(task.isDone ? model.theme.primary : model.theme.mutedText)
             }
@@ -1324,7 +1363,8 @@ private struct FocusTaskCardRow: View {
                             .tint(model.theme.primary)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .buttonStyle(.plain)
             .glassHover(theme: model.theme, radius: 12, isActive: isSelected)
@@ -1335,17 +1375,18 @@ private struct FocusTaskCardRow: View {
                 onEdit()
             } label: {
                 Image(systemName: "pencil")
-                    .frame(width: 28, height: 28)
+                    .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .foregroundStyle(model.theme.mutedText)
-            .opacity(isHovering || isSelected ? 1 : 0.58)
+            .opacity((isHovering && !isScrolling) || isSelected ? 1 : 0.58)
             .glassHover(theme: model.theme, radius: 8)
             .help(model.t("tasks.edit"))
         }
         .padding(13)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .fixedSize(horizontal: false, vertical: true)
         .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
         .background(
             (isSelected ? model.theme.primary.opacity(0.13) : Color.white.opacity(0.052)),
@@ -1357,8 +1398,14 @@ private struct FocusTaskCardRow: View {
         }
         .glassHover(theme: model.theme, radius: 15, isActive: isSelected)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.14)) {
+            guard !isScrolling else { return }
+            withAnimation(motion.animation(.micro)) {
                 isHovering = hovering
+            }
+        }
+        .onChange(of: isScrolling) { _, scrolling in
+            if scrolling {
+                isHovering = false
             }
         }
     }
@@ -1651,6 +1698,7 @@ private struct AnalyticsStripView: View {
 
 private struct FocusContextRailView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1660,7 +1708,7 @@ private struct FocusContextRailView: View {
                         Label(model.presetTitle(model.selectedPreset), systemImage: model.selectedPreset.mode.symbolName)
                             .font(.system(size: 13, weight: .bold))
                         Spacer()
-                        Text(model.statusTitle(model.engineSnapshot.status))
+                        Text(model.statusTitle(timerPresentation.snapshot.status))
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(model.theme.primary)
                     }
@@ -1670,11 +1718,11 @@ private struct FocusContextRailView: View {
                             .font(.system(size: 11, weight: .semibold))
                             .foregroundStyle(model.theme.mutedText)
                         Spacer()
-                        Text(model.phaseTitle(model.engineSnapshot.activeSegment.phase))
+                        Text(model.phaseTitle(timerPresentation.snapshot.activeSegment.phase))
                             .font(.system(size: 12, weight: .bold))
                     }
 
-                    ProgressView(value: model.engineSnapshot.progress)
+                    ProgressView(value: timerPresentation.snapshot.progress)
                         .tint(model.theme.primary)
                 }
             }
@@ -1917,6 +1965,7 @@ private struct TimeEstimatePicker: View {
 
 private struct ProjectsScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var editingProject: FocusProject?
 
     var body: some View {
@@ -1941,61 +1990,18 @@ private struct ProjectsScreen: View {
                         detail: model.t("projects.empty.detail")
                     )
                 } else {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 14)], spacing: 14) {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 340), spacing: 14)], spacing: 14) {
                         ForEach(model.projects) { project in
-                            HStack(alignment: .top, spacing: 10) {
-                                Button {
-                                    model.selectProject(project)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        HStack {
-                                            Circle()
-                                                .fill(project.id == model.activeProjectID ? model.theme.primary : model.theme.secondary)
-                                                .frame(width: 10, height: 10)
-                                            if project.id == model.activeProjectID {
-                                                Text(model.t("projects.selected"))
-                                                    .font(.system(size: 10, weight: .bold))
-                                                    .foregroundStyle(model.theme.primary)
-                                            }
-                                            Spacer()
-                                        }
-
-                                        Text(project.name)
-                                            .font(.system(size: 19, weight: .bold, design: .rounded))
-                                            .lineLimit(2)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                        Text(project.detail)
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundStyle(model.theme.mutedText)
-                                            .lineLimit(3)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                        Text("\(model.tasks(for: project).count) \(model.t("projects.tasks"))")
-                                            .font(.system(size: 11, weight: .semibold))
-                                            .foregroundStyle(model.theme.mutedText)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .glassHover(theme: model.theme, radius: 12, isActive: project.id == model.activeProjectID)
-                                .accessibilityAddTraits(project.id == model.activeProjectID ? .isSelected : [])
-
-                                Button {
-                                    editingProject = project
-                                } label: {
-                                    Image(systemName: "pencil")
-                                        .frame(width: 28, height: 28)
-                                }
-                                .buttonStyle(.plain)
-                                .foregroundStyle(model.theme.mutedText)
-                                .glassHover(theme: model.theme, radius: 9)
-                                .help(model.t("projects.edit"))
-                                .accessibilityLabel("\(model.t("projects.edit")): \(project.name)")
+                            ProjectGridCard(
+                                project: project,
+                                taskCount: model.taskCount(for: project)
+                            ) {
+                                editingProject = project
                             }
-                            .padding(16)
-                            .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .transition(motion.transition(.listItem))
                         }
                     }
+                    .animation(motion.animation(.disclosure), value: model.projects.map(\.id))
                 }
             }
         }
@@ -2012,20 +2018,102 @@ private struct ProjectsScreen: View {
     }
 }
 
+private struct ProjectGridCard: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    let project: FocusProject
+    let taskCount: Int
+    let onEdit: () -> Void
+
+    private var isSelected: Bool {
+        project.id == model.activeProjectID
+    }
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Button {
+                model.selectProject(project)
+            } label: {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(isSelected ? model.theme.primary : model.theme.secondary)
+                            .frame(width: 10, height: 10)
+                        if isSelected {
+                            Text(model.t("projects.selected"))
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(model.theme.primary)
+                                .lineLimit(1)
+                        }
+                        Spacer(minLength: 0)
+                    }
+
+                    Text(project.name)
+                        .font(.system(size: 19, weight: .bold, design: .rounded))
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .layoutPriority(1)
+
+                    Text(project.detail)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(model.theme.mutedText)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Spacer(minLength: 0)
+
+                    Text("\(taskCount) \(model.t("projects.tasks"))")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(model.theme.mutedText)
+                        .lineLimit(1)
+                }
+                .padding(16)
+                .padding(.trailing, 48)
+                .frame(maxWidth: .infinity, minHeight: 178, alignment: .topLeading)
+                .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .glassHover(theme: model.theme, radius: 16, isActive: isSelected)
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+            .help("\(project.name)\n\(project.detail)")
+
+            Button {
+                onEdit()
+            } label: {
+                Image(systemName: "pencil")
+                    .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(model.theme.mutedText)
+            .glassHover(theme: model.theme, radius: 10)
+            .help(model.t("projects.edit"))
+            .accessibilityLabel("\(model.t("projects.edit")): \(project.name)")
+            .padding(10)
+        }
+        .background(.white.opacity(0.055), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
 private struct AnalyticsScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var visibleTaskCount = 6
+    @State private var visibleSessionCount = 8
+    @State private var contentWidth: CGFloat = 0
 
     var body: some View {
         VStack(spacing: 18) {
             AnalyticsStripView()
 
-            ViewThatFits(in: .horizontal) {
+            if contentWidth >= 900 {
                 HStack(alignment: .top, spacing: 18) {
                     plannedActualCard
+                        .frame(minWidth: 300, idealWidth: 330, maxWidth: 360)
                     modeEffectivenessCard
+                        .frame(minWidth: 500)
                 }
-
+            } else {
                 VStack(spacing: 18) {
                     plannedActualCard
                     modeEffectivenessCard
@@ -2036,6 +2124,17 @@ private struct AnalyticsScreen: View {
             taskBreakdownCard
             recentSessionsCard
             distractionBreakdownCard
+        }
+        .frame(maxWidth: .infinity)
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(key: AnalyticsWidthPreferenceKey.self, value: proxy.size.width)
+            }
+        }
+        .onPreferenceChange(AnalyticsWidthPreferenceKey.self) { width in
+            Task { @MainActor in
+                contentWidth = width
+            }
         }
     }
 
@@ -2073,13 +2172,19 @@ private struct AnalyticsScreen: View {
                         detail: model.t("analytics.empty.detail")
                     )
                 } else {
-                    ForEach(model.modeEffectivenessSummaries) { summary in
-                        analyticsBreakdownRow(
-                            title: model.timerModeTitle(summary.mode),
-                            detail: "\(summary.sessionsCompleted) \(model.t("analytics.sessionsShort")) · \(summary.distractionCount) \(model.t("analytics.distractionsShort"))",
-                            value: summary.honestFocusSeconds.focusClock,
-                            progress: summary.effectiveness
-                        )
+                    LazyVGrid(
+                        columns: [GridItem(.adaptive(minimum: 260), spacing: 10)],
+                        alignment: .leading,
+                        spacing: 10
+                    ) {
+                        ForEach(model.modeEffectivenessSummaries) { summary in
+                            analyticsBreakdownRow(
+                                title: model.timerModeTitle(summary.mode),
+                                detail: "\(summary.sessionsCompleted) \(model.t("analytics.sessionsShort")) · \(summary.distractionCount) \(model.t("analytics.distractionsShort"))",
+                                value: summary.honestFocusSeconds.focusClock,
+                                progress: summary.effectiveness
+                            )
+                        }
                     }
                 }
             }
@@ -2115,8 +2220,12 @@ private struct AnalyticsScreen: View {
     private var recentSessionsCard: some View {
         LiquidGlassPanel(radius: 20) {
             VStack(alignment: .leading, spacing: 12) {
-                Label(model.t("analytics.recentSessions"), systemImage: "clock.arrow.circlepath")
-                    .font(.system(size: 15, weight: .bold))
+                HStack {
+                    Label(model.t("analytics.recentSessions"), systemImage: "clock.arrow.circlepath")
+                        .font(.system(size: 15, weight: .bold))
+                    Spacer(minLength: 12)
+                    CompactCountBadge(value: model.recentSessions.count, color: model.theme.primary)
+                }
 
                 if model.recentSessions.isEmpty {
                     EmptyInlineState(
@@ -2125,7 +2234,7 @@ private struct AnalyticsScreen: View {
                         detail: model.t("analytics.empty.detail")
                     )
                 } else {
-                    ForEach(Array(model.recentSessions.prefix(8))) { session in
+                    ForEach(Array(model.recentSessions.prefix(visibleSessionCount))) { session in
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: session.mode.symbolName)
                                 .foregroundStyle(model.theme.primary)
@@ -2150,10 +2259,27 @@ private struct AnalyticsScreen: View {
                                 Text("\(model.t("analytics.planned")) \(session.plannedSeconds.focusClock)")
                                     .font(.system(size: 10, weight: .semibold))
                                     .foregroundStyle(model.theme.mutedText)
+                                Text(ratioPercentText(session.honestFocusSeconds / max(1, session.plannedSeconds)))
+                                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                                    .foregroundStyle(model.theme.primary)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 3)
+                                    .background(model.theme.primary.opacity(0.12), in: Capsule())
+                                    .accessibilityLabel(
+                                        "\(model.t("analytics.effectiveness")) \(ratioPercentText(session.honestFocusSeconds / max(1, session.plannedSeconds)))"
+                                    )
                             }
                         }
                         .padding(11)
                         .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    if model.recentSessions.count > 8 {
+                        expansionButton(
+                            visibleCount: $visibleSessionCount,
+                            totalCount: model.recentSessions.count,
+                            pageSize: 8
+                        )
                     }
                 }
             }
@@ -2167,12 +2293,7 @@ private struct AnalyticsScreen: View {
                     Label(model.t("analytics.byTask"), systemImage: "checklist")
                         .font(.system(size: 15, weight: .bold))
                     Spacer(minLength: 12)
-                    Text("\(model.taskFocusSummaries.count)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundStyle(model.theme.primary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(model.theme.primary.opacity(0.12), in: Capsule())
+                    CompactCountBadge(value: model.taskFocusSummaries.count, color: model.theme.primary)
                 }
 
                 if model.taskFocusSummaries.isEmpty {
@@ -2195,7 +2316,11 @@ private struct AnalyticsScreen: View {
                     }
 
                     if model.taskFocusSummaries.count > 6 {
-                        taskExpansionButton
+                        expansionButton(
+                            visibleCount: $visibleTaskCount,
+                            totalCount: model.taskFocusSummaries.count,
+                            pageSize: 6
+                        )
                     }
                 }
             }
@@ -2207,30 +2332,6 @@ private struct AnalyticsScreen: View {
             return [GridItem(.flexible())]
         }
         return [GridItem(.adaptive(minimum: 300), spacing: 10)]
-    }
-
-    private var taskExpansionButton: some View {
-        let totalCount = model.taskFocusSummaries.count
-        let showsAll = visibleTaskCount >= totalCount
-        let remaining = min(6, max(0, totalCount - visibleTaskCount))
-        let title = showsAll
-            ? model.t("common.showLess")
-            : "\(model.t("common.showMore")) (\(remaining))"
-
-        return Button {
-            withAnimation(.easeInOut(duration: model.theme.animationDuration(0.18))) {
-                visibleTaskCount = showsAll ? 6 : min(totalCount, visibleTaskCount + 6)
-            }
-        } label: {
-            Label(title, systemImage: showsAll ? "chevron.up" : "chevron.down")
-                .font(.system(size: 11, weight: .bold))
-                .frame(maxWidth: .infinity, minHeight: 40)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(model.theme.mutedText)
-        .glassHover(theme: model.theme, radius: 10)
-        .accessibilityLabel(title)
     }
 
     private var distractionBreakdownCard: some View {
@@ -2286,9 +2387,14 @@ private struct AnalyticsScreen: View {
                         .foregroundStyle(model.theme.mutedText)
                 }
                 Spacer(minLength: 12)
-                Text(value)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundStyle(model.theme.primary)
+                VStack(alignment: .trailing, spacing: 3) {
+                    Text(value)
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                        .foregroundStyle(model.theme.primary)
+                    Text(ratioPercentText(progress))
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .foregroundStyle(model.theme.mutedText)
+                }
             }
             ProgressView(value: progress)
                 .tint(model.theme.primary)
@@ -2343,8 +2449,203 @@ private struct AnalyticsScreen: View {
 
     private func effectivenessText(_ summary: DailyFocusSummary) -> String {
         guard summary.plannedSeconds > 0 else { return "0%" }
-        let percentage = Int((min(1, summary.honestFocusSeconds / summary.plannedSeconds) * 100).rounded())
-        return "\(percentage)%"
+        return ratioPercentText(summary.honestFocusSeconds / summary.plannedSeconds)
+    }
+
+    private func ratioPercentText(_ ratio: Double) -> String {
+        let clamped = min(1, max(0, ratio))
+        if clamped > 0, clamped < 0.01 {
+            return "<1%"
+        }
+        return "\(Int((clamped * 100).rounded()))%"
+    }
+
+    private func expansionButton(
+        visibleCount: Binding<Int>,
+        totalCount: Int,
+        pageSize: Int
+    ) -> some View {
+        let showsAll = visibleCount.wrappedValue >= totalCount
+        let remaining = min(pageSize, max(0, totalCount - visibleCount.wrappedValue))
+        let title = showsAll
+            ? model.t("common.showLess")
+            : "\(model.t("common.showMore")) (\(remaining))"
+
+        return Button {
+            withAnimation(motion.animation(.disclosure)) {
+                visibleCount.wrappedValue = showsAll
+                    ? pageSize
+                    : min(totalCount, visibleCount.wrappedValue + pageSize)
+            }
+        } label: {
+            Label(title, systemImage: showsAll ? "chevron.up" : "chevron.down")
+                .font(.system(size: 11, weight: .bold))
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.compact)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(model.theme.mutedText)
+        .glassHover(theme: model.theme, radius: 10)
+        .accessibilityLabel(title)
+    }
+}
+
+private struct TaskAnalyticsCard: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+
+    let presentation: TaskAnalyticsPresentation
+
+    private var summary: TaskFocusSummary {
+        presentation.summary
+    }
+
+    private var kindTitle: String {
+        if presentation.isHistorical {
+            return model.t("analytics.task.historical")
+        }
+        return presentation.timingMode.map(model.taskTimingModeTitle) ?? model.t("analytics.task.historical")
+    }
+
+    private var focusMetricTitle: String {
+        presentation.showsEffectiveness
+            ? model.t("analytics.actual")
+            : model.t("analytics.task.associatedFocus")
+    }
+
+    private var lastFocusText: String {
+        summary.lastFocusedAt.formatted(
+            Date.FormatStyle(
+                date: .abbreviated,
+                time: .omitted,
+                locale: Locale(identifier: model.language.resolvedCode)
+            )
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: presentation.isHistorical ? "clock.arrow.circlepath" : taskSymbol)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(presentation.isHistorical ? model.theme.mutedText : model.theme.primary)
+                    .frame(width: 30, height: 30)
+                    .background(
+                        (presentation.isHistorical ? model.theme.mutedText : model.theme.primary).opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(presentation.title)
+                        .font(.system(size: 14, weight: .bold))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(presentation.projectName)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(model.theme.mutedText)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 8)
+
+                Text(kindTitle)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(presentation.isHistorical ? model.theme.mutedText : model.theme.primary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(
+                        (presentation.isHistorical ? model.theme.mutedText : model.theme.primary).opacity(0.12),
+                        in: Capsule()
+                    )
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) {
+                    metric(focusMetricTitle, value: summary.honestFocusSeconds.focusClock)
+                    metric(model.t("analytics.sessionsShort"), value: "\(summary.sessionsCompleted)")
+                    metric(model.t("analytics.distractionsShort"), value: "\(summary.distractionCount)")
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    metric(focusMetricTitle, value: summary.honestFocusSeconds.focusClock)
+                    HStack(spacing: 16) {
+                        metric(model.t("analytics.sessionsShort"), value: "\(summary.sessionsCompleted)")
+                        metric(model.t("analytics.distractionsShort"), value: "\(summary.distractionCount)")
+                    }
+                }
+            }
+
+            if presentation.showsEffectiveness {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("\(model.t("analytics.planned")) \(summary.plannedSeconds.focusClock)")
+                        Spacer(minLength: 8)
+                        Text("\(model.t("analytics.effectiveness")) \(effectivenessText)")
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(model.theme.mutedText)
+
+                    ProgressView(value: summary.effectiveness)
+                        .tint(model.theme.primary)
+                }
+            }
+
+            HStack(spacing: 5) {
+                Image(systemName: "calendar")
+                Text("\(model.t("analytics.task.lastFocus")) \(lastFocusText)")
+            }
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(model.theme.mutedText)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, minHeight: 170, alignment: .topLeading)
+        .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var taskSymbol: String {
+        presentation.timingMode == .checklist ? "checklist.checked" : "timer"
+    }
+
+    private var effectivenessText: String {
+        let clamped = min(1, max(0, summary.effectiveness))
+        if clamped > 0, clamped < 0.01 {
+            return "<1%"
+        }
+        return "\(Int((clamped * 100).rounded()))%"
+    }
+
+    private var accessibilityText: String {
+        var parts = [
+            presentation.title,
+            presentation.projectName,
+            kindTitle,
+            "\(focusMetricTitle) \(summary.honestFocusSeconds.focusClock)",
+            "\(summary.sessionsCompleted) \(model.t("analytics.sessionsShort"))",
+            "\(summary.distractionCount) \(model.t("analytics.distractionsShort"))",
+            "\(model.t("analytics.task.lastFocus")) \(lastFocusText)"
+        ]
+        if presentation.showsEffectiveness {
+            parts.append("\(model.t("analytics.planned")) \(summary.plannedSeconds.focusClock)")
+            parts.append("\(model.t("analytics.effectiveness")) \(effectivenessText)")
+        }
+        return parts.joined(separator: ", ")
+    }
+
+    private func metric(_ title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(model.theme.mutedText)
+                .lineLimit(1)
+            Text(value)
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundStyle(model.theme.text)
+                .monospacedDigit()
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -2513,8 +2814,18 @@ private struct AnalyticsCountRow: Identifiable {
     let count: Int
 }
 
+private struct AnalyticsWidthPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 private struct StrictModeScreen: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
+    @State private var visibleHistoryCount = 8
 
     var body: some View {
         VStack(spacing: 18) {
@@ -2614,12 +2925,24 @@ private struct StrictModeScreen: View {
                 HStack {
                     Label(model.t("strict.history"), systemImage: "clock.arrow.circlepath")
                         .font(.system(size: 15, weight: .bold))
-                    Spacer()
                     if !model.distractionHistory.isEmpty {
-                        Button(model.t("strict.history.clear"), role: .destructive) {
+                        CompactCountBadge(value: model.distractionHistory.count, color: model.theme.strict)
+                    }
+                    Spacer(minLength: 12)
+                    if !model.distractionHistory.isEmpty {
+                        Button(role: .destructive) {
                             model.clearDistractionHistory()
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.system(size: 13, weight: .bold))
+                                .frame(width: FocusGlassHitTarget.compact, height: FocusGlassHitTarget.compact)
+                                .contentShape(Rectangle())
                         }
-                        .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .secondary))
+                        .buttonStyle(.plain)
+                        .foregroundStyle(model.theme.strict)
+                        .glassHover(theme: model.theme, radius: 10)
+                        .help(model.t("strict.history.clear"))
+                        .accessibilityLabel(model.t("strict.history.clear"))
                     }
                 }
 
@@ -2630,34 +2953,53 @@ private struct StrictModeScreen: View {
                         detail: model.t("strict.history.empty.detail")
                     )
                 } else {
-                    ForEach(Array(model.distractionHistory.prefix(12))) { event in
+                    ForEach(Array(model.distractionHistory.prefix(visibleHistoryCount))) { event in
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: actionSymbol(event.action))
                                 .foregroundStyle(actionColor(event.action))
                                 .frame(width: 30, height: 30)
                                 .background(actionColor(event.action).opacity(0.13), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(event.targetLabel)
-                                    .font(.system(size: 13, weight: .bold))
-                                    .lineLimit(2)
+                            VStack(alignment: .leading, spacing: 5) {
+                                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                    Text(event.targetLabel)
+                                        .font(.system(size: 13, weight: .bold))
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                        .layoutPriority(1)
+
+                                    Spacer(minLength: 0)
+
+                                    Image(systemName: event.targetKind == .app ? "app.badge" : "globe")
+                                        .foregroundStyle(model.theme.mutedText)
+                                        .accessibilityLabel(event.targetKind == .app ? model.t("strict.apps") : model.t("strict.sites"))
+                                }
+
                                 Text("\(model.actionTitle(event.action)) · \(event.occurredAt.formatted(date: .abbreviated, time: .shortened))")
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundStyle(model.theme.mutedText)
+                                    .foregroundStyle(actionColor(event.action))
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Text(historyContext(event))
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(.system(size: 11, weight: .semibold))
                                     .foregroundStyle(model.theme.mutedText)
                                     .lineLimit(2)
+
+                                if let taskTitle = event.taskTitle, !taskTitle.isEmpty {
+                                    Text(taskTitle)
+                                        .font(.system(size: 11, weight: .medium))
+                                        .foregroundStyle(model.theme.mutedText)
+                                        .lineLimit(2)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
-
-                            Spacer(minLength: 12)
-
-                            Image(systemName: event.targetKind == .app ? "app.badge" : "globe")
-                                .foregroundStyle(model.theme.mutedText)
-                                .accessibilityLabel(event.targetKind == .app ? model.t("strict.apps") : model.t("strict.sites"))
                         }
-                        .padding(11)
+                        .padding(12)
                         .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    if model.distractionHistory.count > 8 {
+                        historyExpansionButton
                     }
                 }
             }
@@ -2666,8 +3008,32 @@ private struct StrictModeScreen: View {
 
     private func historyContext(_ event: DistractionEventRecord) -> String {
         let project = event.projectName.isEmpty ? model.t("projects.unassigned") : event.projectName
-        let task = event.taskTitle.map { " · \($0)" } ?? ""
-        return "\(project) · \(model.timerModeTitle(event.mode))\(task)"
+        return "\(project) · \(model.timerModeTitle(event.mode))"
+    }
+
+    private var historyExpansionButton: some View {
+        let showsAll = visibleHistoryCount >= model.distractionHistory.count
+        let remaining = min(8, max(0, model.distractionHistory.count - visibleHistoryCount))
+        let title = showsAll
+            ? model.t("common.showLess")
+            : "\(model.t("common.showMore")) (\(remaining))"
+
+        return Button {
+            withAnimation(motion.animation(.disclosure)) {
+                visibleHistoryCount = showsAll
+                    ? 8
+                    : min(model.distractionHistory.count, visibleHistoryCount + 8)
+            }
+        } label: {
+            Label(title, systemImage: showsAll ? "chevron.up" : "chevron.down")
+                .font(.system(size: 11, weight: .bold))
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.compact)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(model.theme.mutedText)
+        .glassHover(theme: model.theme, radius: 10)
+        .accessibilityLabel(title)
     }
 
     private func actionSymbol(_ action: DistractionAction) -> String {
@@ -2685,5 +3051,20 @@ private struct StrictModeScreen: View {
         case .hide: model.theme.primary
         case .pauseSession, .quitAfterOptIn: model.theme.strict
         }
+    }
+}
+
+private struct CompactCountBadge: View {
+    let value: Int
+    let color: Color
+
+    var body: some View {
+        Text("\(value)")
+            .font(.system(size: 11, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(color)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(color.opacity(0.12), in: Capsule())
     }
 }

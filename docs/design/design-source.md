@@ -88,6 +88,24 @@ source of truth.
   finite numeric values, clamped effect ranges, and repaired text contrast.
 - Contrast is checked separately for the selected Light or Dark palette.
 
+## Motion Runtime Contract
+
+- All routine interface motion uses `FocusGlassMotion`; screens must not invent
+  unrelated timings or install a global `.animation` on a root view tree.
+- Timing families are: micro feedback `100...140 ms`, selection/status
+  `160...220 ms`, disclosure/list changes `220...280 ms`, navigation
+  `260...320 ms`, and outcome/emphasis `320...420 ms`.
+- The default curve is calm and precise (`0.20, 0, 0, 1`). Do not add bounce,
+  ambient pulse, large travel, or animated background decoration.
+- Theme Studio `motion` may scale duration only inside `0.8...1.15`; it must not
+  change choreography, trigger app-wide animation on every slider step, or
+  animate timer digits every second.
+- Reduce Motion removes movement, draw, and pulse. State changes use a short
+  fade or become immediate; progress changes may become immediate.
+- Scroll surfaces suppress moving material/shadow/hover churn and restore full
+  visual depth when scrolling stops. This optimization must not flatten idle
+  surfaces or change the Mac Glass OS identity.
+
 ## Window Surfaces
 
 - The Menu Bar HUD is hosted in a lifecycle-managed nonactivating `NSPanel`,
@@ -122,6 +140,10 @@ source of truth.
   project summary or project tasks in the right context rail.
 - Project and task editing happens in sheets, not inline inside dense cards.
   Task estimate controls use minute presets plus a compact stepper.
+- Project-grid cards are one full selectable surface with content padding
+  inside the selected/hover shape. Reserve trailing space for the independent
+  edit action, keep an adaptive minimum width of 340 pt, and allow project names
+  up to three lines so RU/EN text never crosses or sits on the selection border.
 - Empty states must be paired with explicit primary actions in the surrounding
   surface, such as create project, add task, or configure mode.
 - Permission UX is soft: notification prompt once on app-bundle launch,
@@ -143,6 +165,12 @@ source of truth.
   must stay legible across FocusGlass themes and macOS light/dark appearance.
 - Checkbox toggles use the FocusGlass glass checkbox treatment. Pointer targets
   follow the full highlighted route/card surface, not only the visible label.
+- Disclosure headers such as Theme Studio advanced settings and project notes
+  use `GlassDisclosureSection`; clicking the title, empty padding, or chevron
+  performs the same action.
+- Compact icon actions provide at least a 40 pt target and regular rows/actions
+  target 44 pt. Visual hover/pressed feedback covers the same area that accepts
+  input.
 - The main active project chooser uses the same `GlassSelect` language as
   Settings, including theme-aware hover states.
 - Menu bar UI is a compact HUD with one primary timer action and a small bottom
@@ -168,10 +196,20 @@ source of truth.
 
 ## Known Design Caveats
 
-- Advanced Theme Studio now uses a single live preview, custom `GlassSlider`,
-  grouped token sections, and ColorPicker-backed color cards. Future polish
-  should continue from that control language instead of returning to stock
-  sliders or manual hex entry as the primary color-editing path.
+- Advanced Theme Studio uses a single three-mode live preview, custom
+  `GlassSlider`, independently collapsible token sections, and
+  ColorPicker-backed color cards. `Стекло и движение` is the initial open
+  group; the other groups stay discoverable without forcing every editor
+  control into one long composited surface. Future polish should continue from
+  that control language instead of returning to stock sliders or manual hex
+  entry as the primary color-editing path.
+- Scroll motion should remain visually quiet: controls do not pulse, scale, or
+  rebuild moving shadows merely because a stationary pointer crosses them
+  during scrolling. Hover feedback resumes when the surface becomes idle.
+- Real-data Product Design polish, task-level Analytics, and the unified
+  motion/performance pass are complete. Remaining design work is the dedicated
+  VoiceOver/accessibility audit, not a replacement of the current information
+  architecture.
 - Automated high-refresh launch recording remains a QA-tooling concern on
   current macOS because the legacy CoreGraphics window capture API is
   unavailable. Keep the DEBUG launch-delay argument only for local proof; it

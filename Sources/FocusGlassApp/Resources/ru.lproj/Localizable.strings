@@ -1,5 +1,7 @@
 "app.version" = "Версия";
 "app.build" = "билд";
+"common.showMore" = "Показать ещё";
+"common.showLess" = "Свернуть";
 
 "focus.today" = "Фокус сегодня";
 "focus.subtitle" = "Спланируй сессию, защити внимание и смотри честное время фокуса.";

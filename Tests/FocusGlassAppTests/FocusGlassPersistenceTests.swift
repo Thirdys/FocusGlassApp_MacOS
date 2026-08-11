@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Combine
 import Testing
 @testable import FocusGlassApp
 import FocusGlassCore
@@ -170,6 +171,100 @@ struct FocusGlassPersistenceTests {
 
         #expect(model.sessions(for: project).isEmpty)
         #expect(model.unassignedSessions.count == 1)
+    }
+
+    @Test
+    @MainActor
+    func orphanProjectIDsNormalizeAcrossTasksSessionsAndHistory() throws {
+        let project = FocusProject(name: "Current", detail: "Active project", accentName: "aurora")
+        let orphanProjectID = UUID()
+        let ruleID = UUID()
+        let store = FocusGlassStore(fileURL: temporaryStateURL())
+        store.save(
+            FocusGlassPersistedState(
+                schemaVersion: 6,
+                selectedThemeID: ThemeProfile.noirCrimsonID,
+                themeProfiles: ThemeProfile.builtIn,
+                language: .en,
+                strictModeEnabled: false,
+                intention: "",
+                activeProjectID: project.id,
+                activeProject: project.name,
+                projects: [project],
+                tasks: [
+                    FocusTask(
+                        title: "Orphan task",
+                        projectID: orphanProjectID,
+                        projectName: "Deleted",
+                        estimate: 25 * 60,
+                        completed: 0,
+                        isDone: false
+                    )
+                ],
+                distractionRules: [],
+                distractionHistory: [
+                    DistractionEventRecord(
+                        ruleID: ruleID,
+                        targetKind: .app,
+                        targetLabel: "Example",
+                        matchValue: "com.example.deleted",
+                        action: .warn,
+                        projectID: orphanProjectID,
+                        projectName: "Deleted",
+                        mode: .pomodoro
+                    ),
+                    DistractionEventRecord(
+                        ruleID: UUID(),
+                        targetKind: .site,
+                        targetLabel: "Current site",
+                        matchValue: "example.com",
+                        action: .hide,
+                        projectID: nil,
+                        projectName: project.name,
+                        mode: .flow
+                    )
+                ],
+                recentSessions: [
+                    FocusSessionRecord(
+                        projectID: orphanProjectID,
+                        projectName: "Deleted",
+                        mode: .pomodoro,
+                        startedAt: Date(timeIntervalSince1970: 30),
+                        endedAt: Date(timeIntervalSince1970: 60),
+                        plannedSeconds: 25 * 60,
+                        honestFocusSeconds: 15 * 60,
+                        distractionCount: 1
+                    ),
+                    FocusSessionRecord(
+                        projectID: nil,
+                        projectName: "",
+                        mode: .flow,
+                        startedAt: Date(timeIntervalSince1970: 90),
+                        endedAt: Date(timeIntervalSince1970: 120),
+                        plannedSeconds: 25 * 60,
+                        honestFocusSeconds: 20 * 60,
+                        distractionCount: 0
+                    )
+                ]
+            )
+        )
+
+        let model = FocusGlassViewModel(store: store, requestPermissionsOnLaunch: false)
+        let task = try #require(model.tasks.first)
+        let session = try #require(model.recentSessions.first)
+        let event = try #require(model.distractionHistory.first)
+        let legacyEvent = try #require(model.distractionHistory.last)
+
+        #expect(task.projectID == nil)
+        #expect(task.projectName == "")
+        #expect(session.projectID == nil)
+        #expect(session.projectName == "")
+        #expect(event.projectID == nil)
+        #expect(event.projectName == "")
+        #expect(legacyEvent.projectID == project.id)
+        #expect(legacyEvent.projectName == project.name)
+        #expect(model.projectFocusSummaries.count == 1)
+        #expect(model.projectFocusSummaries.first?.projectID == nil)
     }
 
     @Test
@@ -429,6 +524,71 @@ struct FocusGlassPersistenceTests {
         }
 
         #expect(model.activeTasks.map(\.title) == ["Task 1", "Task 2", "Task 3", "Task 4", "Task 5"])
+    }
+
+    @Test
+    @MainActor
+    func timerTicksPublishOnlyTimerPresentationState() {
+        let model = FocusGlassViewModel(
+            store: FocusGlassStore(fileURL: temporaryStateURL()),
+            requestPermissionsOnLaunch: false
+        )
+        var modelUpdates = 0
+        var timerUpdates = 0
+        let modelObservation = model.objectWillChange.sink {
+            modelUpdates += 1
+        }
+        let timerObservation = model.timerPresentation.objectWillChange.sink {
+            timerUpdates += 1
+        }
+
+        model.startTimerForTesting()
+        model.advanceTimerForTesting(by: 1)
+
+        #expect(modelUpdates == 0)
+        #expect(timerUpdates == 2)
+        #expect(model.engineSnapshot.elapsed == 1)
+        withExtendedLifetime((modelObservation, timerObservation)) {}
+    }
+
+    @Test
+    @MainActor
+    func taskAndAnalyticsCachesStayInSyncWithPublishedCollections() {
+        let model = FocusGlassViewModel(
+            store: FocusGlassStore(fileURL: temporaryStateURL()),
+            requestPermissionsOnLaunch: false
+        )
+        let project = model.addProject()
+        let task = model.addQuickTask()
+
+        #expect(model.taskCount(for: project) == 1)
+        #expect(model.activeTasks.map(\.id) == [task.id])
+
+        model.toggleTask(task)
+        #expect(model.taskCount(for: project) == 1)
+        #expect(model.activeTasks.isEmpty)
+
+        model.recentSessions = [
+            FocusSessionRecord(
+                projectID: project.id,
+                projectName: project.name,
+                taskID: task.id,
+                taskTitle: task.title,
+                mode: .pomodoro,
+                startedAt: Date(timeIntervalSince1970: 10),
+                endedAt: Date(timeIntervalSince1970: 20),
+                plannedSeconds: 20,
+                honestFocusSeconds: 15,
+                distractionCount: 1
+            )
+        ]
+
+        #expect(model.dailySummary.sessionsCompleted == 1)
+        #expect(model.dailySummary.honestFocusSeconds == 15)
+        #expect(model.modeEffectivenessSummaries.first?.mode == .pomodoro)
+        #expect(model.projectFocusSummaries.first?.projectID == project.id)
+        #expect(model.taskFocusSummaries.first?.taskID == task.id)
+        #expect(model.focusHeatmapValues.count == 28)
     }
 
     @Test
@@ -1149,6 +1309,23 @@ struct FocusGlassPersistenceTests {
         }
 
         #expect(model.themeTransitionID == initialTransitionID + 1)
+    }
+
+    @Test
+    @MainActor
+    func interactiveThemeEditsDoNotAnimateTheWholeApplication() {
+        let model = FocusGlassViewModel(store: FocusGlassStore(fileURL: temporaryStateURL()), requestPermissionsOnLaunch: false)
+        let initialTransitionID = model.themeTransitionID
+
+        model.updateActiveThemeInteractively { profile in
+            profile.glassOpacity = 0.61
+        }
+        model.updateActiveThemeInteractively { profile in
+            profile.glassOpacity = 0.62
+        }
+
+        #expect(model.selectedThemeProfile.glassOpacity == 0.62)
+        #expect(model.themeTransitionID == initialTransitionID)
     }
 
     @Test

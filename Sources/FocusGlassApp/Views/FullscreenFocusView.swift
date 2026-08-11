@@ -3,7 +3,9 @@ import SwiftUI
 
 struct FullscreenFocusView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
     @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.focusGlassMotion) private var motion
     @State private var isHoveringControls = false
 
     var body: some View {
@@ -51,8 +53,10 @@ struct FullscreenFocusView: View {
                                 Capsule()
                                     .stroke(model.theme.strict.opacity(0.28), lineWidth: 1)
                             }
+                            .transition(motion.transition(.toast))
                         }
                     }
+                    .animation(motion.animation(.emphasis), value: model.focusGuard.lastDistractionMessage)
                     .padding(.bottom, min(34, proxy.size.height * 0.04))
                 }
                 .padding(.horizontal, min(44, max(22, proxy.size.width * 0.035)))
@@ -86,7 +90,7 @@ struct FullscreenFocusView: View {
                     Button {
                         model.toggleTimer()
                     } label: {
-                        Image(systemName: model.engineSnapshot.status == .running ? "pause.fill" : "play.fill")
+                        Image(systemName: timerPresentation.snapshot.status == .running ? "pause.fill" : "play.fill")
                             .frame(width: 44, height: 38)
                     }
                     .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .primary))
@@ -106,8 +110,8 @@ struct FullscreenFocusView: View {
                             .frame(width: 38, height: 38)
                     }
                     .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
-                    .disabled(!model.canSkipSegment)
-                    .opacity(model.canSkipSegment ? 1 : 0.42)
+                    .disabled(!timerPresentation.canSkipSegment)
+                    .opacity(timerPresentation.canSkipSegment ? 1 : 0.42)
                     .help(model.t("help.timerSkip"))
 
                     Button {
@@ -118,20 +122,20 @@ struct FullscreenFocusView: View {
                     }
                     .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .transition(motion.transition(.content))
             }
         }
         .frame(height: 76)
         .contentShape(Rectangle())
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.18)) {
+            withAnimation(motion.animation(.selection)) {
                 isHoveringControls = hovering
             }
         }
     }
 
     private var showsControls: Bool {
-        model.engineSnapshot.status != .running || isHoveringControls
+        timerPresentation.snapshot.status != .running || isHoveringControls
     }
 
     @ViewBuilder
@@ -164,11 +168,11 @@ struct FullscreenFocusView: View {
 
     private func timer(size: CGFloat) -> some View {
         CircularTimerView(
-            clockText: model.primaryClockText,
-            phase: model.phaseTitle(model.engineSnapshot.activeSegment.phase),
-            progress: model.engineSnapshot.progress,
+            clockText: timerPresentation.primaryClockText,
+            phase: model.phaseTitle(timerPresentation.snapshot.activeSegment.phase),
+            progress: timerPresentation.snapshot.progress,
             theme: model.theme,
-            statusText: model.statusTitle(model.engineSnapshot.status),
+            statusText: model.statusTitle(timerPresentation.snapshot.status),
             size: size,
             clockSize: size * 0.196
         )
@@ -188,33 +192,42 @@ struct FullscreenFocusView: View {
                     detail: model.t("fullscreen.empty.detail")
                 )
             } else {
-                ScrollView {
+                FocusGlassScrollView {
                     LazyVStack(spacing: 10) {
                         ForEach(model.activeTasks) { task in
                             Button {
-                                model.selectTaskForSession(task)
+                                withAnimation(motion.animation(.selection)) {
+                                    model.selectTaskForSession(task)
+                                }
                             } label: {
                                 HStack(spacing: 12) {
                                     Image(systemName: model.activeTaskID == task.id ? "target" : "circle")
                                         .foregroundStyle(model.activeTaskID == task.id ? model.theme.primary : model.theme.mutedText)
-                                    Text(task.title)
-                                        .font(.system(size: 15, weight: .bold))
-                                        .lineLimit(5)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                        .layoutPriority(1)
-                                    Spacer()
-                                    if task.timingMode == .timed {
-                                        Text(task.estimate.focusClock)
-                                            .font(.system(size: 12, weight: .bold, design: .rounded))
-                                            .foregroundStyle(model.theme.mutedText)
-                                    } else {
-                                        Text(model.t("tasks.checklist"))
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(model.theme.mutedText)
+
+                                    VStack(alignment: .leading, spacing: 5) {
+                                        Text(task.title)
+                                            .font(.system(size: 15, weight: .bold))
+                                            .lineLimit(5)
+                                            .fixedSize(horizontal: false, vertical: true)
+
+                                        if task.timingMode == .timed {
+                                            Text(task.estimate.focusClock)
+                                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                                .foregroundStyle(model.theme.mutedText)
+                                        } else {
+                                            Text(model.t("tasks.checklist"))
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundStyle(model.theme.mutedText)
+                                        }
                                     }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .layoutPriority(1)
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 13)
+                                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .background(model.theme.surface.opacity(model.activeTaskID == task.id ? 0.58 : 0.42), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -238,18 +251,19 @@ struct FullscreenFocusView: View {
     private var segmentRail: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                ForEach(Array(model.engineSnapshot.preset.segments.enumerated()), id: \.offset) { index, segment in
+                ForEach(Array(timerPresentation.snapshot.preset.segments.enumerated()), id: \.element.id) { index, segment in
                     VStack(spacing: 7) {
                         Capsule()
-                            .fill(index <= model.engineSnapshot.activeSegmentIndex ? model.theme.primary : .white.opacity(0.14))
+                            .fill(index <= timerPresentation.snapshot.activeSegmentIndex ? model.theme.primary : .white.opacity(0.14))
                             .frame(height: 8)
                         Text(model.phaseTitle(segment.phase))
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(index <= model.engineSnapshot.activeSegmentIndex ? model.theme.primary : model.theme.mutedText)
+                            .foregroundStyle(index <= timerPresentation.snapshot.activeSegmentIndex ? model.theme.primary : model.theme.mutedText)
                             .lineLimit(1)
                     }
                 }
             }
+            .animation(motion.animation(.selection), value: timerPresentation.snapshot.activeSegmentIndex)
             .frame(maxWidth: 720)
         }
     }

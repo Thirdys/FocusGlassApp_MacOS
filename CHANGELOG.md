@@ -4,14 +4,80 @@
 
 ## [Unreleased]
 
+Эти изменения находятся в текущей ветке разработки и не входят в историческую
+tester-сборку `0.0.4`.
+
 ### Добавлено
 
-- Блок `Фокус по задачам` в Analytics: сессии, planned и honest focus time,
-  отвлечения и последняя дата фокуса для каждой связанной задачи.
-- Timed-задачи показывают эффективность и прогресс, checklist-задачи не
-  получают ложную time-based эффективность.
-- Удалённые задачи остаются в аналитике как исторические записи с последними
-  сохранёнными названием и проектом.
+- Persistent Strict Mode history с целью, временем, фактическим действием,
+  сессией, проектом, задачей и режимом таймера.
+- Analytics первого прохода: planned vs actual, последние сессии,
+  эффективность режимов, сводки проектов и отвлечения по проектам/режимам.
+- Task-level analytics: сводки по `taskID`, planned/honest focus,
+  distractions, last focus, актуальный контекст существующих задач и
+  исторический fallback удалённых задач.
+- Общая `FocusGlassMarkGeometry` для AppIcon и launch animation.
+- Явные Light/Dark палитры пользовательских тем и проверка импортируемых
+  theme-файлов.
+- Общие интерактивные зоны `FocusGlassHitTarget` и disclosure surface, у
+  которых работает вся визуально выделенная область.
+- Единая `FocusGlassMotion` policy для micro feedback, selection, disclosure,
+  navigation, emphasis и progress с bounded Theme Studio scale и Reduce Motion.
+- Instruments signposts для route/settings changes, theme commit, Menu Bar
+  presentation и outcome presentation.
+
+### Изменено
+
+- Launch animation переработана в цельную последовательность tile, arc, timer
+  hand, focus confirmation и wordmark с адаптивным размером и Reduce Motion.
+- Theme Studio использует одно preview с режимами Main Window, Menu Bar и
+  Fullscreen; `glassOpacity`, `density` и `motion` влияют на реальный UI.
+- Menu Bar HUD переведён с `NSPopover` на lifecycle-managed `NSPanel`, чтобы
+  открываться поверх других приложений и fullscreen Spaces.
+- Fullscreen task flow адаптирован для узких окон и длинных RU/EN названий.
+- Cockpit открывает Settings сразу на Strict Mode, а счётчики enabled app/site
+  rules согласованы между поверхностями.
+- Compact navigation, длинные подписи, вторичный текст и keyboard focus
+  проверены и доработаны для Light, Dark и custom themes.
+- Секундный snapshot таймера вынесен в отдельное presentation state, а
+  task/analytics summaries кэшируются по изменению исходных коллекций: тик
+  больше не инвалидирует весь cockpit и несвязанные экраны.
+- Project grid использует полную selectable surface с внутренними отступами,
+  отдельной зоной редактирования и адаптивной шириной для длинных RU/EN
+  названий.
+- Все scrollable surfaces используют общий scroll-phase-aware wrapper:
+  ленивые стеки, hover/shadow suppression во время движения и совместимый с
+  macOS 14 fallback через `NSScrollView` live-scroll notifications.
+- Theme Studio открывает advanced-группы отдельно, не держит все ColorPicker и
+  slider surfaces одновременно и не запускает app-wide transition animation
+  на каждом шаге непрерывного редактирования.
+- Theme Studio throttles интерактивные slider commits до 30 Hz и делает один
+  финальный commit при завершении drag; route/list/status transitions используют
+  value-scoped motion без spring/bounce и секундной анимации timer digits.
+- На macOS 15 scroll tracking использует только системную scroll phase, а
+  AppKit live-scroll fallback остаётся только для macOS 14. Во время прокрутки
+  glass сохраняет статическую глубину без дорогого material compositing.
+
+### Исправлено
+
+- Все найденные кнопки, disclosure-заголовки, строки навигации, карточки и
+  компактные icon actions реагируют на нажатие по полной видимой области, а не
+  только по тексту или SF Symbol.
+- `quitAfterOptIn` не выполняет опасное действие без сохранённого подтверждения.
+- Dev-loop изолирует SwiftPM scratch-пути разных toolchain и не переиспользует
+  несовместимую `.build`.
+- Fullscreen checklist metadata больше не сжимается в вертикальную колонку
+  букв рядом с длинным названием задачи.
+
+### Проверено
+
+- Полный набор SwiftPM-тестов: 79/79.
+- Packaged-app QA главного окна, Settings, Theme Studio, Menu Bar, fullscreen,
+  Strict Mode, launch animation, performance/UI-card и scroll-performance
+  passes.
+- Product Design/Build macOS Apps motion audit и Instruments traces:
+  `/private/tmp/focusglass-motion-performance-20260811-154559`.
+- `codesign --verify --deep --strict build/FocusGlass.app`.
 
 ## [0.0.4] - 2026-06-27
 

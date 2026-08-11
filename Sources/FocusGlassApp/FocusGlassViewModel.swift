@@ -131,6 +131,30 @@ struct TaskAnalyticsPresentation: Identifiable, Equatable {
 }
 
 @MainActor
+final class FocusTimerPresentationState: ObservableObject {
+    @Published private(set) var snapshot: TimerEngineSnapshot
+
+    init(snapshot: TimerEngineSnapshot) {
+        self.snapshot = snapshot
+    }
+
+    var primaryClockText: String {
+        snapshot.preset.mode == .stopwatch
+            ? snapshot.elapsed.focusClock
+            : snapshot.remaining.focusClock
+    }
+
+    var canSkipSegment: Bool {
+        snapshot.preset.segments.count > 1
+    }
+
+    fileprivate func update(_ snapshot: TimerEngineSnapshot) {
+        guard self.snapshot != snapshot else { return }
+        self.snapshot = snapshot
+    }
+}
+
+@MainActor
 final class FocusGlassViewModel: ObservableObject {
     static let mainWindowIdentifier = NSUserInterfaceItemIdentifier("FocusGlass.main")
 
@@ -170,10 +194,27 @@ final class FocusGlassViewModel: ObservableObject {
     @Published var hasSeenPermissionsOnboarding = false { didSet { persist() } }
     @Published var intention = "" { didSet { persist() } }
     @Published var activeProject = "" { didSet { persist() } }
-    @Published var activeProjectID: UUID? = nil { didSet { syncActiveProjectName(); syncActiveTaskSelection(); persist() } }
+    @Published var activeProjectID: UUID? = nil {
+        didSet {
+            syncActiveProjectName()
+            rebuildTaskCaches()
+            syncActiveTaskSelection()
+            persist()
+        }
+    }
     @Published var activeTaskID: UUID? = nil { didSet { persist() } }
-    @Published var selectedSidebarItem = SidebarItem.focusToday
-    @Published var selectedSettingsTab = SettingsTab.general
+    @Published var selectedSidebarItem = SidebarItem.focusToday {
+        didSet {
+            guard oldValue != selectedSidebarItem else { return }
+            FocusGlassPerformance.routeChanged(selectedSidebarItem.rawValue)
+        }
+    }
+    @Published var selectedSettingsTab = SettingsTab.general {
+        didSet {
+            guard oldValue != selectedSettingsTab else { return }
+            FocusGlassPerformance.settingsTabChanged(selectedSettingsTab.rawValue)
+        }
+    }
     @Published var focusGuard = FocusGuardService()
     @Published var lastThemeMessage: String?
     @Published private(set) var storageWarnings: [String] = []
@@ -185,18 +226,30 @@ final class FocusGlassViewModel: ObservableObject {
     @Published private(set) var isPersistenceBlocked = false
     @Published private var systemAppearance: AppResolvedAppearance = .current
     @Published private(set) var isFocusModeActive = false
-    @Published private(set) var engineSnapshot: TimerEngineSnapshot
     @Published var projects: [FocusProject] = [] { didSet { persist() } }
-    @Published var tasks: [FocusTask] = [] { didSet { syncActiveTaskSelection(); persist() } }
+    @Published var tasks: [FocusTask] = [] {
+        didSet {
+            rebuildTaskCaches()
+            syncActiveTaskSelection()
+            persist()
+        }
+    }
     @Published var distractionRules: [DistractionRuleSpec] = [] { didSet { persist() } }
     @Published var distractionHistory: [DistractionEventRecord] = [] { didSet { persist() } }
     @Published var recentSessions: [FocusSessionRecord] = [] {
         didSet {
-            taskFocusSummaries = AnalyticsEngine.summarizeByTask(recentSessions)
+            rebuildAnalyticsCaches()
             persist()
         }
     }
-    @Published private(set) var pendingSessionOutcome: SessionOutcomePresentation?
+    @Published private(set) var pendingSessionOutcome: SessionOutcomePresentation? {
+        didSet {
+            guard (oldValue == nil) != (pendingSessionOutcome == nil) else { return }
+            FocusGlassPerformance.outcomeChanged(isPresented: pendingSessionOutcome != nil)
+        }
+    }
+
+    let timerPresentation: FocusTimerPresentationState
 
     private var timer: Timer?
     private let engine: FocusTimerEngine
@@ -214,13 +267,20 @@ final class FocusGlassViewModel: ObservableObject {
     private var runtimeIconTask: Task<Void, Never>?
     private var isApplyingThemeMutation = false
     private var lastRuntimeIconUpdateDuration: TimeInterval = 0
+    private(set) var dailySummary = AnalyticsEngine.summarize([])
+    private(set) var modeEffectivenessSummaries: [ModeEffectivenessSummary] = []
+    private(set) var projectFocusSummaries: [ProjectFocusSummary] = []
     private(set) var taskFocusSummaries: [TaskFocusSummary] = []
+    private(set) var activeTasks: [FocusTask] = []
+    private var taskCountByProjectID: [UUID: Int] = [:]
+    private var cachedFocusHeatmapValues = Array(repeating: 0.0, count: 28)
+    private var cachedFocusHeatmapDay = Calendar.current.startOfDay(for: .now)
 
     init(store: FocusGlassStore = FocusGlassStore(), requestPermissionsOnLaunch: Bool = true) {
         self.store = store
         let engine = FocusTimerEngine(preset: .pomodoro)
         self.engine = engine
-        self.engineSnapshot = engine.snapshot
+        self.timerPresentation = FocusTimerPresentationState(snapshot: engine.snapshot)
         focusGuardObservation = focusGuard.objectWillChange.sink { [weak self] _ in
             Task { @MainActor in
                 self?.objectWillChange.send()
@@ -262,8 +322,9 @@ final class FocusGlassViewModel: ObservableObject {
         focusGuard.setLanguage(language)
         engine.configure(selectedPreset)
         syncActiveProjectName()
+        rebuildTaskCaches()
         syncActiveTaskSelection()
-        taskFocusSummaries = AnalyticsEngine.summarizeByTask(recentSessions)
+        rebuildAnalyticsCaches()
         installAppearanceObserver()
         updateSystemAppearance()
         updateRuntimeIcons()
@@ -300,8 +361,11 @@ final class FocusGlassViewModel: ObservableObject {
         effectiveTheme(for: resolvedAppearance)
     }
 
-    var themeTransitionAnimation: Animation {
-        .easeInOut(duration: theme.animationDuration(0.42))
+    var themeTransitionAnimation: Animation? {
+        FocusGlassMotion(
+            theme: theme,
+            reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        ).animation(.emphasis)
     }
 
     var preferredColorScheme: ColorScheme? {
@@ -343,7 +407,11 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     var canSkipSegment: Bool {
-        engineSnapshot.preset.segments.count > 1
+        timerPresentation.canSkipSegment
+    }
+
+    var engineSnapshot: TimerEngineSnapshot {
+        timerPresentation.snapshot
     }
 
     var menuBarTitle: String {
@@ -360,21 +428,7 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     var primaryClockText: String {
-        engineSnapshot.preset.mode == .stopwatch
-            ? engineSnapshot.elapsed.focusClock
-            : engineSnapshot.remaining.focusClock
-    }
-
-    var dailySummary: DailyFocusSummary {
-        AnalyticsEngine.summarize(recentSessions)
-    }
-
-    var modeEffectivenessSummaries: [ModeEffectivenessSummary] {
-        AnalyticsEngine.summarizeByMode(recentSessions)
-    }
-
-    var projectFocusSummaries: [ProjectFocusSummary] {
-        AnalyticsEngine.summarizeByProject(recentSessions)
+        timerPresentation.primaryClockText
     }
 
     var activeProjectName: String {
@@ -383,10 +437,6 @@ final class FocusGlassViewModel: ObservableObject {
 
     var unassignedProjectTitle: String {
         t("projects.unassigned")
-    }
-
-    var activeTasks: [FocusTask] {
-        tasks.filter { !$0.isDone && $0.projectID == activeProjectID }
     }
 
     var selectedActiveTask: FocusTask? {
@@ -399,13 +449,22 @@ final class FocusGlassViewModel: ObservableObject {
         selectedActiveTask?.title ?? t("tasks.noActiveTask")
     }
 
+    var focusHeatmapValues: [Double] {
+        let today = Calendar.current.startOfDay(for: .now)
+        if today != cachedFocusHeatmapDay {
+            cachedFocusHeatmapDay = today
+            cachedFocusHeatmapValues = makeFocusHeatmapValues()
+        }
+        return cachedFocusHeatmapValues
+    }
+
     var needsPermissionAttention: Bool {
         [.notifications, .accessibility, .automation].contains { permission in
             focusGuard.status(for: permission).needsUserAction
         }
     }
 
-    var focusHeatmapValues: [Double] {
+    private func makeFocusHeatmapValues() -> [Double] {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
         let days = (0..<28).compactMap { offset in
@@ -505,6 +564,10 @@ final class FocusGlassViewModel: ObservableObject {
 
     func tasks(for project: FocusProject) -> [FocusTask] {
         tasks.filter { $0.projectID == project.id }
+    }
+
+    func taskCount(for project: FocusProject) -> Int {
+        taskCountByProjectID[project.id, default: 0]
     }
 
     func sessions(for project: FocusProject) -> [FocusSessionRecord] {
@@ -1009,6 +1072,17 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     func updateActiveTheme(_ mutate: (inout ThemeProfile) -> Void) {
+        updateActiveTheme(animatesTransition: true, mutate)
+    }
+
+    func updateActiveThemeInteractively(_ mutate: (inout ThemeProfile) -> Void) {
+        updateActiveTheme(animatesTransition: false, mutate)
+    }
+
+    private func updateActiveTheme(
+        animatesTransition: Bool,
+        _ mutate: (inout ThemeProfile) -> Void
+    ) {
         if selectedThemeProfile.isBuiltIn {
             var copy = selectedThemeProfile
             let previousPalette = copy.palette
@@ -1022,7 +1096,7 @@ final class FocusGlassViewModel: ObservableObject {
             }
             copy.ensureAppearanceVariants()
 
-            performThemeMutation(reason: "themeProfiles") {
+            performThemeMutation(reason: "themeProfiles", animatesTransition: animatesTransition) {
                 themeProfiles.append(copy)
                 selectedThemeID = copy.id
             }
@@ -1031,7 +1105,7 @@ final class FocusGlassViewModel: ObservableObject {
         }
 
         guard let index = themeProfiles.firstIndex(where: { $0.id == selectedThemeID }) else { return }
-        performThemeMutation(reason: "themeProfiles") {
+        performThemeMutation(reason: "themeProfiles", animatesTransition: animatesTransition) {
             let previousPalette = themeProfiles[index].palette
             mutate(&themeProfiles[index])
             if themeProfiles[index].palette != previousPalette {
@@ -1044,6 +1118,7 @@ final class FocusGlassViewModel: ObservableObject {
 
     func updateActiveThemePalette(
         for appearance: AppResolvedAppearance,
+        animatesTransition: Bool = true,
         _ mutate: (inout ThemePalette) -> Void
     ) {
         var profile = editableThemeProfile()
@@ -1054,7 +1129,7 @@ final class FocusGlassViewModel: ObservableObject {
             return
         }
         profile.setPalette(palette, for: appearance)
-        saveEditableThemeProfile(profile)
+        saveEditableThemeProfile(profile, animatesTransition: animatesTransition)
     }
 
     func renameActiveTheme(_ name: String) {
@@ -1339,7 +1414,24 @@ final class FocusGlassViewModel: ObservableObject {
     }
 
     private func syncSnapshot() {
-        engineSnapshot = engine.snapshot
+        timerPresentation.update(engine.snapshot)
+    }
+
+    private func rebuildTaskCaches() {
+        activeTasks = tasks.filter { !$0.isDone && $0.projectID == activeProjectID }
+        taskCountByProjectID = tasks.reduce(into: [:]) { counts, task in
+            guard let projectID = task.projectID else { return }
+            counts[projectID, default: 0] += 1
+        }
+    }
+
+    private func rebuildAnalyticsCaches() {
+        dailySummary = AnalyticsEngine.summarize(recentSessions)
+        modeEffectivenessSummaries = AnalyticsEngine.summarizeByMode(recentSessions)
+        projectFocusSummaries = AnalyticsEngine.summarizeByProject(recentSessions)
+        taskFocusSummaries = AnalyticsEngine.summarizeByTask(recentSessions)
+        cachedFocusHeatmapDay = Calendar.current.startOfDay(for: .now)
+        cachedFocusHeatmapValues = makeFocusHeatmapValues()
     }
 
     private func persist() {
@@ -1392,15 +1484,26 @@ final class FocusGlassViewModel: ObservableObject {
         sessionTaskID = nil
     }
 
-    private func performThemeMutation(reason: String, _ mutate: () -> Void) {
+    private func performThemeMutation(
+        reason: String,
+        animatesTransition: Bool = true,
+        _ mutate: () -> Void
+    ) {
         let wasApplyingThemeMutation = isApplyingThemeMutation
         isApplyingThemeMutation = true
-        withAnimation(themeTransitionAnimation) {
-            mutate()
-            if !wasApplyingThemeMutation {
-                themeTransitionID &+= 1
+
+        if animatesTransition {
+            withAnimation(themeTransitionAnimation) {
+                mutate()
+                if !wasApplyingThemeMutation {
+                    themeTransitionID &+= 1
+                }
             }
+            FocusGlassPerformance.themeCommitted(reason: reason)
+        } else {
+            mutate()
         }
+
         isApplyingThemeMutation = wasApplyingThemeMutation
 
         guard !wasApplyingThemeMutation else { return }
@@ -1583,8 +1686,11 @@ final class FocusGlassViewModel: ObservableObject {
         return profile
     }
 
-    private func saveEditableThemeProfile(_ profile: ThemeProfile) {
-        performThemeMutation(reason: "themeProfiles") {
+    private func saveEditableThemeProfile(
+        _ profile: ThemeProfile,
+        animatesTransition: Bool = true
+    ) {
+        performThemeMutation(reason: "themeProfiles", animatesTransition: animatesTransition) {
             if let index = themeProfiles.firstIndex(where: { $0.id == profile.id }) {
                 themeProfiles[index] = profile
             } else {
@@ -1619,11 +1725,9 @@ final class FocusGlassViewModel: ObservableObject {
 
     private func syncActiveTaskSelection() {
         guard !isHydrating else { return }
-        if let activeTaskID,
-           activeTasks.contains(where: { $0.id == activeTaskID }) {
-            return
-        }
-        activeTaskID = nil
+        guard let activeTaskID else { return }
+        guard !activeTasks.contains(where: { $0.id == activeTaskID }) else { return }
+        self.activeTaskID = nil
     }
 
     private func selectOutcomeTaskIfAvailable(_ outcome: SessionOutcomePresentation) {
@@ -1687,6 +1791,7 @@ final class FocusGlassViewModel: ObservableObject {
 
         var projects = persisted.projects.filter { !removedProjectNames.contains($0.name) }
         let projectsByName = Dictionary(uniqueKeysWithValues: projects.map { ($0.name, $0.id) })
+        let projectsByID = Dictionary(uniqueKeysWithValues: projects.map { ($0.id, $0) })
         let projectNames = Set(projects.map(\.name))
         let tasks = persisted.tasks.filter { task in
             !starterTaskTitles.contains(task.title) && !removedProjectNames.contains(task.projectName)
@@ -1696,9 +1801,10 @@ final class FocusGlassViewModel: ObservableObject {
                 migrated.projectID = projectsByName[migrated.projectName]
             }
             if let projectID = migrated.projectID,
-               let project = projects.first(where: { $0.id == projectID }) {
+               let project = projectsByID[projectID] {
                 migrated.projectName = project.name
             } else {
+                migrated.projectID = nil
                 migrated.projectName = ""
             }
             return migrated
@@ -1711,9 +1817,24 @@ final class FocusGlassViewModel: ObservableObject {
                 migrated.projectID = projectsByName[migrated.projectName]
             }
             if let projectID = migrated.projectID,
-               let project = projects.first(where: { $0.id == projectID }) {
+               let project = projectsByID[projectID] {
                 migrated.projectName = project.name
-            } else if !projectNames.contains(migrated.projectName) {
+            } else {
+                migrated.projectID = nil
+                migrated.projectName = ""
+            }
+            return migrated
+        }
+        let distractionHistory = persisted.distractionHistory.map { event in
+            var migrated = event
+            if migrated.projectID == nil {
+                migrated.projectID = projectsByName[migrated.projectName]
+            }
+            if let projectID = migrated.projectID,
+               let project = projectsByID[projectID] {
+                migrated.projectName = project.name
+            } else {
+                migrated.projectID = nil
                 migrated.projectName = ""
             }
             return migrated
@@ -1762,7 +1883,7 @@ final class FocusGlassViewModel: ObservableObject {
             projects: projects,
             tasks: tasks,
             distractionRules: distractionRules,
-            distractionHistory: persisted.distractionHistory,
+            distractionHistory: distractionHistory,
             recentSessions: sessions
         )
     }

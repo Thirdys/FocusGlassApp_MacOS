@@ -6,8 +6,10 @@ struct SettingsView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
 
     var body: some View {
-        ScrollView {
-            SettingsContentView(showsHeader: true)
+        FocusGlassScrollView {
+            LazyVStack {
+                SettingsContentView(showsHeader: true)
+            }
             .padding(26)
         }
         .background(model.theme.background)
@@ -17,6 +19,7 @@ struct SettingsView: View {
 
 struct SettingsContentView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     var showsHeader = true
 
     var body: some View {
@@ -40,18 +43,23 @@ struct SettingsContentView: View {
 
             SettingsTabSummary(tab: model.selectedSettingsTab)
 
-            switch model.selectedSettingsTab {
-            case .general:
-                GeneralSettingsSection()
-            case .timers:
-                PresetSettingsSection()
-            case .strictMode:
-                StrictModeSettingsSection()
-            case .permissions:
-                PermissionsAutomationSettingsSection()
-            case .appearance:
-                ThemeStudioView()
+            Group {
+                switch model.selectedSettingsTab {
+                case .general:
+                    GeneralSettingsSection()
+                case .timers:
+                    PresetSettingsSection()
+                case .strictMode:
+                    StrictModeSettingsSection()
+                case .permissions:
+                    PermissionsAutomationSettingsSection()
+                case .appearance:
+                    ThemeStudioView()
+                }
             }
+            .id(model.selectedSettingsTab)
+            .transition(motion.transition(.content))
+            .animation(motion.animation(.navigation), value: model.selectedSettingsTab)
         }
     }
 }
@@ -399,6 +407,7 @@ private struct PresetSettingsSection: View {
 
 private struct PresetEditor: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     let preset: TimerPreset
 
     var body: some View {
@@ -471,7 +480,9 @@ private struct PresetEditor: View {
 
                 ForEach(Array(preset.segments.enumerated()), id: \.element.id) { index, segment in
                     PresetSegmentEditor(presetID: preset.id, index: index, segment: segment, canDelete: preset.segments.count > 1)
+                        .transition(motion.transition(.listItem))
                 }
+                .animation(motion.animation(.disclosure), value: preset.segments.map(\.id))
             }
         }
     }
@@ -698,6 +709,7 @@ private struct StrictRulesEditor: View {
 
 private struct StrictRuleGroup: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     let title: String
     let emptyTitle: String
@@ -715,9 +727,11 @@ private struct StrictRuleGroup: View {
             } else {
                 ForEach(rules) { rule in
                     StrictRuleRow(rule: rule)
+                        .transition(motion.transition(.listItem))
                 }
             }
         }
+        .animation(motion.animation(.disclosure), value: rules.map(\.id))
     }
 }
 
@@ -878,6 +892,8 @@ private struct AddAppRuleControls: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 11)
                             .padding(.vertical, 9)
+                            .frame(minHeight: FocusGlassHitTarget.row)
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .background(.white.opacity(0.045), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(.plain)
@@ -1038,6 +1054,7 @@ private struct PermissionSetupRow: View {
 
 struct ThemeStudioView: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
     @State private var showsAdvanced = false
     @State private var previewSurface = ThemePreviewSurface.mainWindow
     @State private var editingAppearance = AppResolvedAppearance.dark
@@ -1048,7 +1065,7 @@ struct ThemeStudioView: View {
 
     var body: some View {
         LiquidGlassPanel(radius: 22, padding: 18) {
-            VStack(alignment: .leading, spacing: 18) {
+            LazyVStack(alignment: .leading, spacing: 18) {
                 header
                 swatchGrid
                 preview
@@ -1185,6 +1202,9 @@ struct ThemeStudioView: View {
                 theme: model.effectiveTheme(for: editingAppearance),
                 surface: previewSurface
             )
+            .id(previewSurface)
+            .transition(motion.transition(.emphasis))
+            .animation(motion.animation(.selection), value: previewSurface)
         }
     }
 
@@ -1200,8 +1220,10 @@ struct ThemeStudioView: View {
                     .padding(.vertical, 6)
                     .background(model.theme.highlight.opacity(model.theme.highlightAlpha * 0.18), in: Capsule())
                     .help(message)
+                    .transition(motion.transition(.listItem))
             }
         }
+        .animation(motion.animation(.selection), value: statusMessages)
     }
 
     private var statusMessages: [String] {
@@ -1219,19 +1241,19 @@ struct ThemeStudioView: View {
     }
 
     private var advancedEditor: some View {
-        DisclosureGroup(isExpanded: $showsAdvanced) {
-            editorSections
-            .padding(.top, 12)
-        } label: {
+        GlassDisclosureSection(isExpanded: $showsAdvanced) {
             Label(model.t("theme.advancedColors"), systemImage: "slider.horizontal.3")
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(model.theme.text)
+                .padding(.horizontal, 2)
+        } content: {
+            editorSections
+                .padding(.top, 12)
         }
-        .tint(model.theme.primary)
     }
 
     private var editorSections: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        LazyVStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 10) {
                 GlassSegmentedControl(
                     selection: $editingAppearance,
@@ -1262,7 +1284,8 @@ struct ThemeStudioView: View {
 
             ThemeEditorSection(
                 title: model.t("theme.group.glass"),
-                symbolName: "sparkles"
+                symbolName: "sparkles",
+                initiallyExpanded: true
             ) {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 12)], spacing: 12) {
                     ThemeSliderField(title: model.t("theme.glass"), value: doubleBinding(\.glassOpacity), range: 0.2...0.9)
@@ -1282,7 +1305,8 @@ struct ThemeStudioView: View {
 
             ThemeEditorSection(
                 title: model.t("theme.group.accent"),
-                symbolName: "paintpalette"
+                symbolName: "paintpalette",
+                initiallyExpanded: false
             ) {
                 colorGrid {
                     ThemeColorField(title: model.t("theme.primary"), value: stringBinding(\.primaryHex))
@@ -1296,7 +1320,8 @@ struct ThemeStudioView: View {
 
             ThemeEditorSection(
                 title: model.t("theme.group.foundation"),
-                symbolName: "rectangle.3.group"
+                symbolName: "rectangle.3.group",
+                initiallyExpanded: false
             ) {
                 colorGrid {
                     ThemeColorField(title: model.t("theme.backgroundTop"), value: stringBinding(\.backgroundTopHex))
@@ -1310,7 +1335,8 @@ struct ThemeStudioView: View {
 
             ThemeEditorSection(
                 title: model.t("theme.group.readability"),
-                symbolName: "textformat.size"
+                symbolName: "textformat.size",
+                initiallyExpanded: false
             ) {
                 colorGrid {
                     ThemeColorField(title: model.t("theme.text"), value: stringBinding(\.textHex))
@@ -1350,7 +1376,10 @@ struct ThemeStudioView: View {
         Binding(
             get: { model.selectedThemeProfile.palette(for: editingAppearance)[keyPath: keyPath] },
             set: { value in
-                model.updateActiveThemePalette(for: editingAppearance) { palette in
+                model.updateActiveThemePalette(
+                    for: editingAppearance,
+                    animatesTransition: false
+                ) { palette in
                     palette[keyPath: keyPath] = value
                 }
             }
@@ -1361,7 +1390,7 @@ struct ThemeStudioView: View {
         Binding(
             get: { model.selectedThemeProfile[keyPath: keyPath] },
             set: { value in
-                model.updateActiveTheme { profile in
+                model.updateActiveThemeInteractively { profile in
                     profile[keyPath: keyPath] = value
                 }
             }
@@ -1448,7 +1477,6 @@ private struct ThemeColorField: View {
             ),
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.72), lineWidth: 1)
@@ -1481,7 +1509,26 @@ private struct ThemeSliderField: View {
     var displayMode: DisplayMode = .decimal
 
     @State private var draftText = ""
+    @State private var sliderValue: Double
+    @State private var isSliderEditing = false
+    @State private var lastSliderCommitUptime = 0.0
+    @State private var pendingSliderCommit: Task<Void, Never>?
     @FocusState private var isFocused: Bool
+
+    init(
+        title: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>,
+        step: Double = 0.01,
+        displayMode: DisplayMode = .decimal
+    ) {
+        self.title = title
+        _value = value
+        self.range = range
+        self.step = step
+        self.displayMode = displayMode
+        _sliderValue = State(initialValue: value.wrappedValue)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -1504,10 +1551,6 @@ private struct ThemeSliderField: View {
                     .onSubmit {
                         commitDraft()
                     }
-                    .onChange(of: draftText) { _, _ in
-                        guard isFocused else { return }
-                        commitDraft()
-                    }
                     .onChange(of: isFocused) { _, focused in
                         if focused {
                             syncDraft()
@@ -1517,7 +1560,12 @@ private struct ThemeSliderField: View {
                         }
                     }
             }
-            GlassSlider(value: $value, range: range, step: step)
+            GlassSlider(
+                value: $sliderValue,
+                range: range,
+                step: step,
+                onEditingChanged: sliderEditingChanged
+            )
         }
         .padding(11)
         .background(
@@ -1532,17 +1580,29 @@ private struct ThemeSliderField: View {
             ),
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.70), lineWidth: 1)
         }
         .onAppear {
+            sliderValue = value
             syncDraft()
         }
         .onChange(of: value) { _, _ in
-            guard !isFocused else { return }
+            guard !isFocused, !isSliderEditing else { return }
+            sliderValue = value
             syncDraft()
+        }
+        .onChange(of: sliderValue) { _, _ in
+            guard isSliderEditing else { return }
+            syncDraft()
+            commitSliderValueWhenDue()
+        }
+        .onDisappear {
+            pendingSliderCommit?.cancel()
+            if isSliderEditing {
+                value = sliderValue
+            }
         }
         .help("\(title): \(formattedValue)")
     }
@@ -1550,9 +1610,9 @@ private struct ThemeSliderField: View {
     private var formattedValue: String {
         switch displayMode {
         case .decimal:
-            return String(format: "%.2f", value)
+            return String(format: "%.2f", sliderValue)
         case .integer:
-            return String(format: "%.0f", value)
+            return String(format: "%.0f", sliderValue)
         }
     }
 
@@ -1564,7 +1624,47 @@ private struct ThemeSliderField: View {
         let normalized = draftText.replacingOccurrences(of: ",", with: ".")
         guard let parsed = Double(normalized) else { return }
         let stepped = step > 0 ? (parsed / step).rounded() * step : parsed
-        value = min(range.upperBound, max(range.lowerBound, stepped))
+        let committedValue = min(range.upperBound, max(range.lowerBound, stepped))
+        sliderValue = committedValue
+        value = committedValue
+        lastSliderCommitUptime = ProcessInfo.processInfo.systemUptime
+    }
+
+    private func sliderEditingChanged(_ isEditing: Bool) {
+        isSliderEditing = isEditing
+        if isEditing {
+            pendingSliderCommit?.cancel()
+            lastSliderCommitUptime = 0
+            return
+        }
+
+        pendingSliderCommit?.cancel()
+        value = sliderValue
+        lastSliderCommitUptime = ProcessInfo.processInfo.systemUptime
+        syncDraft()
+    }
+
+    private func commitSliderValueWhenDue() {
+        let now = ProcessInfo.processInfo.systemUptime
+        let minimumInterval = 1.0 / 30.0
+        let elapsed = now - lastSliderCommitUptime
+
+        if elapsed >= minimumInterval {
+            pendingSliderCommit?.cancel()
+            value = sliderValue
+            lastSliderCommitUptime = now
+            return
+        }
+
+        pendingSliderCommit?.cancel()
+        let pendingValue = sliderValue
+        let delay = minimumInterval - elapsed
+        pendingSliderCommit = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            value = pendingValue
+            lastSliderCommitUptime = ProcessInfo.processInfo.systemUptime
+        }
     }
 }
 
@@ -1690,35 +1790,60 @@ private struct ThemePreviewCard: View {
 
 private struct ThemeEditorSection<Content: View>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
+    @State private var isExpanded: Bool
 
     let title: String
     let symbolName: String
     let content: Content
 
-    init(title: String, symbolName: String, @ViewBuilder content: () -> Content) {
+    init(
+        title: String,
+        symbolName: String,
+        initiallyExpanded: Bool,
+        @ViewBuilder content: () -> Content
+    ) {
         self.title = title
         self.symbolName = symbolName
+        _isExpanded = State(initialValue: initiallyExpanded)
         self.content = content()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: symbolName)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(model.theme.primary)
-                    .frame(width: 28, height: 28)
-                    .background(model.theme.primary.opacity(0.13), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            Button {
+                withAnimation(motion.animation(.disclosure)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 10) {
+                    Image(systemName: symbolName)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(model.theme.primary)
+                        .frame(width: 28, height: 28)
+                        .background(model.theme.primary.opacity(0.13), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-                VStack(alignment: .leading, spacing: 3) {
                     Text(title)
                         .font(.system(size: 14, weight: .bold))
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(model.theme.mutedText)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .accessibilityHidden(true)
                 }
-
-                Spacer(minLength: 0)
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .glassHover(theme: model.theme, radius: 11, isActive: isExpanded)
 
-            content
+            if isExpanded {
+                content
+                    .transition(motion.transition(.disclosure))
+            }
         }
         .padding(14)
         .background(model.theme.highlight.opacity(model.theme.highlightAlpha * 0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))

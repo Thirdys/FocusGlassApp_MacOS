@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import FocusGlassCore
 
@@ -9,6 +10,7 @@ enum LiquidGlassDepth {
 
 struct LiquidGlassPanel<Content: View>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassIsScrolling) private var isScrolling
 
     var radius: CGFloat?
     var padding: CGFloat
@@ -43,13 +45,18 @@ struct LiquidGlassPanel<Content: View>: View {
                     readabilityScrimOpacity: readabilityScrimOpacity,
                     glintMultiplier: glintMultiplier,
                     strokeMultiplier: strokeMultiplier,
-                    material: material
+                    material: isScrolling ? nil : material
                 )
             }
-            .shadow(color: Color.black.opacity(model.theme.shadowDepth), radius: shadowRadius, x: 0, y: shadowY)
             .shadow(
-                color: model.theme.glow.opacity(model.theme.specularOpacity * glowShadowOpacity),
-                radius: glowShadowRadius,
+                color: Color.black.opacity(model.theme.shadowDepth * scrollShadowMultiplier),
+                radius: shadowRadius * scrollShadowMultiplier,
+                x: 0,
+                y: shadowY * scrollShadowMultiplier
+            )
+            .shadow(
+                color: model.theme.glow.opacity(model.theme.specularOpacity * glowShadowOpacity * scrollShadowMultiplier),
+                radius: glowShadowRadius * scrollShadowMultiplier,
                 x: -4,
                 y: 0
             )
@@ -142,6 +149,10 @@ struct LiquidGlassPanel<Content: View>: View {
         case .floating: 24 * model.theme.blurIntensity
         }
     }
+
+    private var scrollShadowMultiplier: Double {
+        isScrolling ? 0.18 : 1
+    }
 }
 
 private struct LiquidGlassPanelBackground: View {
@@ -154,7 +165,7 @@ private struct LiquidGlassPanelBackground: View {
     let readabilityScrimOpacity: Double
     let glintMultiplier: Double
     let strokeMultiplier: Double
-    let material: Material
+    let material: Material?
 
     var body: some View {
         ZStack {
@@ -187,7 +198,11 @@ private struct LiquidGlassPanelBackground: View {
                     endPoint: .bottomTrailing
                 )
             )
-            .background(material, in: panelShape)
+            .background {
+                if let material {
+                    panelShape.fill(material)
+                }
+            }
     }
 
     private var readabilityLayer: some View {
@@ -292,22 +307,32 @@ struct LiquidGlassButtonStyle: ButtonStyle {
 
         @State private var isHovering = false
         @Environment(\.isFocused) private var isFocused
+        @Environment(\.focusGlassIsScrolling) private var isScrolling
+        @Environment(\.focusGlassMotion) private var motion
 
         var body: some View {
             let pressed = configuration.isPressed
+            let hovered = isHovering && !isScrolling
 
             configuration.label
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(foreground)
             .padding(.horizontal, theme.spacing(horizontalPadding))
             .padding(.vertical, theme.spacing(verticalPadding))
-            .background(background(isPressed: pressed, isHovering: isHovering), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .frame(minHeight: FocusGlassHitTarget.compact)
+            .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background(background(isPressed: pressed, isHovering: hovered), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .background {
+                if !isScrolling {
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .fill(.thinMaterial)
+                }
+            }
             .overlay(alignment: .topLeading) {
                 LinearGradient(
                     colors: [
-                        theme.highlight.opacity(theme.highlightAlpha * (pressed ? 0.44 : (isHovering ? 1.18 : 0.92))),
-                        theme.glow.opacity(theme.highlightAlpha * (pressed ? 0.04 : (isHovering ? 0.24 : 0.14))),
+                        theme.highlight.opacity(theme.highlightAlpha * (pressed ? 0.44 : (hovered ? 1.18 : 0.92))),
+                        theme.glow.opacity(theme.highlightAlpha * (pressed ? 0.04 : (hovered ? 0.24 : 0.14))),
                         .clear
                     ],
                     startPoint: .topLeading,
@@ -319,7 +344,7 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             }
             .overlay(alignment: .top) {
                 Capsule()
-                    .fill(theme.highlight.opacity(theme.specularOpacity * (pressed ? 0.20 : (isHovering ? 0.52 : 0.38))))
+                    .fill(theme.highlight.opacity(theme.specularOpacity * (pressed ? 0.20 : (hovered ? 0.52 : 0.38))))
                     .frame(height: 1)
                     .padding(.horizontal, radius * 0.62)
                     .padding(.top, 1)
@@ -328,25 +353,31 @@ struct LiquidGlassButtonStyle: ButtonStyle {
             .overlay {
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .stroke(
-                        isFocused ? theme.primary.opacity(0.92) : stroke(isPressed: pressed, isHovering: isHovering),
+                        isFocused ? theme.primary.opacity(0.92) : stroke(isPressed: pressed, isHovering: hovered),
                         lineWidth: isFocused ? 2 : 1
                     )
             }
             .shadow(
-                color: isFocused ? theme.primary.opacity(0.30) : shadow(isPressed: pressed, isHovering: isHovering),
-                radius: isFocused ? 14 : (pressed ? 5 : (variant == .primary ? (isHovering ? 22 : 18) : (isHovering ? 13 : 10))),
+                color: isFocused ? theme.primary.opacity(0.30) : shadow(isPressed: pressed, isHovering: hovered),
+                radius: isFocused ? 14 : (pressed ? 5 : (variant == .primary ? (hovered ? 22 : 18) : (hovered ? 13 : 10))),
                 x: 0,
-                y: pressed ? 3 : (isHovering ? 9 : 8)
+                y: pressed ? 3 : (hovered ? 9 : 8)
             )
-            .scaleEffect(pressed ? 0.975 : (isHovering ? 1.018 : 1))
-            .brightness(pressed ? -0.025 : (isHovering ? 0.018 : 0))
+            .scaleEffect(pressed ? 0.985 : (hovered ? 1.008 : 1))
+            .brightness(pressed ? -0.025 : (hovered ? 0.018 : 0))
             .onHover { hovering in
-                withAnimation(.easeInOut(duration: theme.animationDuration(0.16))) {
+                guard !isScrolling else { return }
+                withAnimation(motion.animation(.micro)) {
                     isHovering = hovering
                 }
             }
-            .animation(.spring(response: theme.animationDuration(0.22), dampingFraction: 0.84), value: pressed)
-            .animation(.easeInOut(duration: theme.animationDuration(0.16)), value: isHovering)
+            .onChange(of: isScrolling) { _, scrolling in
+                if scrolling {
+                    isHovering = false
+                }
+            }
+            .animation(motion.animation(.selection), value: pressed)
+            .animation(motion.animation(.micro), value: isHovering)
         }
 
         private var foreground: Color {
@@ -443,6 +474,11 @@ struct LiquidGlassButtonStyle: ButtonStyle {
     }
 }
 
+enum FocusGlassHitTarget {
+    static let compact: CGFloat = 40
+    static let row: CGFloat = 44
+}
+
 struct GlassHoverHighlight: ViewModifier {
     let theme: ThemeProfile
     var radius: CGFloat = 11
@@ -450,6 +486,8 @@ struct GlassHoverHighlight: ViewModifier {
 
     @State private var isHovering = false
     @Environment(\.isFocused) private var isFocused
+    @Environment(\.focusGlassIsScrolling) private var isScrolling
+    @Environment(\.focusGlassMotion) private var motion
 
     func body(content: Content) -> some View {
         content
@@ -472,10 +510,18 @@ struct GlassHoverHighlight: ViewModifier {
             .shadow(color: shadow, radius: isFocused ? 12 : (isHovering ? 10 : 0), x: 0, y: isFocused || isHovering ? 5 : 0)
             .brightness(isHovering ? 0.024 : 0)
             .onHover { hovering in
-                withAnimation(.easeInOut(duration: theme.animationDuration(0.15))) {
+                guard !isScrolling else { return }
+                withAnimation(motion.animation(.micro)) {
                     isHovering = hovering
                 }
             }
+            .onChange(of: isScrolling) { _, scrolling in
+                if scrolling {
+                    isHovering = false
+                }
+            }
+            .animation(motion.animation(.micro), value: isHovering)
+            .animation(motion.animation(.selection), value: isActive)
     }
 
     private var background: LinearGradient {
@@ -538,6 +584,7 @@ struct GlassCheckboxToggleStyle: ToggleStyle {
                 configuration.label
             }
             .foregroundStyle(theme.text)
+            .frame(minHeight: FocusGlassHitTarget.compact)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -587,8 +634,60 @@ extension View {
     }
 }
 
-struct GlassSegmentedControl<Value: Equatable>: View {
+struct GlassDisclosureSection<Label: View, Content: View>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
+
+    @Binding var isExpanded: Bool
+    private let label: Label
+    private let content: Content
+
+    init(
+        isExpanded: Binding<Bool>,
+        @ViewBuilder label: () -> Label,
+        @ViewBuilder content: () -> Content
+    ) {
+        _isExpanded = isExpanded
+        self.label = label()
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(motion.animation(.disclosure)) {
+                    isExpanded.toggle()
+                }
+            } label: {
+                HStack(alignment: .center, spacing: 10) {
+                    label
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .foregroundStyle(model.theme.mutedText)
+                        .accessibilityHidden(true)
+                }
+                .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .glassHover(theme: model.theme, radius: 10, isActive: isExpanded)
+
+            if isExpanded {
+                content
+                    .transition(motion.transition(.disclosure))
+            }
+        }
+        .animation(motion.animation(.disclosure), value: isExpanded)
+    }
+}
+
+struct GlassSegmentedControl<Value: Hashable>: View {
+    @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     @Binding var selection: Value
     let options: [Value]
@@ -597,10 +696,10 @@ struct GlassSegmentedControl<Value: Equatable>: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+            ForEach(options, id: \.self) { option in
                 let isSelected = option == selection
                 Button {
-                    withAnimation(.easeInOut(duration: model.theme.animationDuration(0.16))) {
+                    withAnimation(motion.animation(.selection)) {
                         selection = option
                     }
                 } label: {
@@ -618,6 +717,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, model.theme.spacing(10))
                     .padding(.vertical, model.theme.spacing(9))
+                    .frame(minHeight: FocusGlassHitTarget.compact)
                     .foregroundStyle(isSelected ? model.theme.text : model.theme.mutedText)
                     .background(
                         isSelected ? model.theme.primary.opacity(0.20) : Color.clear,
@@ -630,6 +730,7 @@ struct GlassSegmentedControl<Value: Equatable>: View {
                 .glassHover(theme: model.theme, radius: 11, isActive: isSelected)
                 .help(title(option))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .animation(motion.animation(.selection), value: isSelected)
             }
         }
         .padding(model.theme.spacing(5))
@@ -671,8 +772,10 @@ struct GlassSegmentedControl<Value: Equatable>: View {
     }
 }
 
-struct GlassSelect<Value: Equatable>: View {
+struct GlassSelect<Value: Hashable>: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassIsScrolling) private var isScrolling
+    @Environment(\.focusGlassMotion) private var motion
 
     @Binding var selection: Value
     let options: [Value]
@@ -685,8 +788,12 @@ struct GlassSelect<Value: Equatable>: View {
     @State private var isHovering = false
 
     var body: some View {
+        let hovered = isHovering && !isScrolling
+
         Button {
-            isPresented.toggle()
+            withAnimation(motion.animation(.selection)) {
+                isPresented.toggle()
+            }
         } label: {
             HStack(spacing: 9) {
                 if let symbolName = symbol(selection) {
@@ -709,23 +816,29 @@ struct GlassSelect<Value: Equatable>: View {
             }
             .padding(.horizontal, model.theme.spacing(12))
             .padding(.vertical, model.theme.spacing(9))
-            .frame(minWidth: minWidth, alignment: .leading)
+            .frame(minWidth: minWidth, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .background(
                 LinearGradient(
                     colors: [
-                        model.theme.highlight.opacity(model.theme.highlightAlpha * (isHovering ? 0.50 : 0.34)),
-                        model.theme.elevatedSurface.opacity(model.theme.surfaceAlpha * (isHovering ? 1.24 : 1.12)),
-                        model.theme.surface.opacity(model.theme.surfaceAlpha * (isHovering ? 0.86 : 0.74))
+                        model.theme.highlight.opacity(model.theme.highlightAlpha * (hovered ? 0.50 : 0.34)),
+                        model.theme.elevatedSurface.opacity(model.theme.surfaceAlpha * (hovered ? 1.24 : 1.12)),
+                        model.theme.surface.opacity(model.theme.surfaceAlpha * (hovered ? 0.86 : 0.74))
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
                 in: RoundedRectangle(cornerRadius: 12, style: .continuous)
             )
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background {
+                if !isScrolling {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(.thinMaterial)
+                }
+            }
             .overlay(alignment: .top) {
                 Capsule()
-                    .fill(model.theme.highlight.opacity(model.theme.specularOpacity * (isHovering ? 0.42 : 0.28)))
+                    .fill(model.theme.highlight.opacity(model.theme.specularOpacity * (hovered ? 0.42 : 0.28)))
                     .frame(height: 1)
                     .padding(.horizontal, 9)
                     .padding(.top, 1)
@@ -735,8 +848,8 @@ struct GlassSelect<Value: Equatable>: View {
                     .stroke(
                         LinearGradient(
                             colors: [
-                                model.theme.highlight.opacity(model.theme.borderOpacity * (isHovering ? 1.52 : 1.22)),
-                                model.theme.glow.opacity(model.theme.borderOpacity * (isHovering ? 0.46 : 0.28)),
+                                model.theme.highlight.opacity(model.theme.borderOpacity * (hovered ? 1.52 : 1.22)),
+                                model.theme.glow.opacity(model.theme.borderOpacity * (hovered ? 0.46 : 0.28)),
                                 Color.black.opacity(model.theme.shadowDepth * 0.20)
                             ],
                             startPoint: .topLeading,
@@ -749,17 +862,25 @@ struct GlassSelect<Value: Equatable>: View {
         .buttonStyle(.plain)
         .glassHover(theme: model.theme, radius: 12)
         .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.16)) {
+            guard !isScrolling else { return }
+            withAnimation(motion.animation(.micro)) {
                 isHovering = hovering
+            }
+        }
+        .onChange(of: isScrolling) { _, scrolling in
+            if scrolling {
+                isHovering = false
             }
         }
         .help(title(selection))
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             VStack(alignment: .leading, spacing: 6) {
-                ForEach(Array(options.enumerated()), id: \.offset) { _, option in
+                ForEach(options, id: \.self) { option in
                     Button {
-                        selection = option
-                        isPresented = false
+                        withAnimation(motion.animation(.selection)) {
+                            selection = option
+                            isPresented = false
+                        }
                     } label: {
                         HStack(spacing: 10) {
                             if let symbolName = symbol(option) {
@@ -781,6 +902,8 @@ struct GlassSelect<Value: Equatable>: View {
                         }
                         .padding(.horizontal, 11)
                         .padding(.vertical, 9)
+                        .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.compact, alignment: .leading)
+                        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .foregroundStyle(option == selection ? model.theme.text : model.theme.mutedText)
                         .background(
                             option == selection ? model.theme.primary.opacity(0.16) : Color.clear,
@@ -869,10 +992,12 @@ struct GlassStepper: View {
 
 struct GlassSlider: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @State private var isDragging = false
 
     @Binding var value: Double
     let range: ClosedRange<Double>
     var step: Double = 0.01
+    var onEditingChanged: (Bool) -> Void = { _ in }
 
     var body: some View {
         GeometryReader { proxy in
@@ -892,7 +1017,6 @@ struct GlassSlider: View {
                             endPoint: .trailing
                         )
                     )
-                    .background(.thinMaterial, in: Capsule())
                     .overlay {
                         Capsule()
                             .stroke(model.theme.highlight.opacity(model.theme.borderOpacity * 0.88), lineWidth: 1)
@@ -939,7 +1063,16 @@ struct GlassSlider: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { drag in
+                        if !isDragging {
+                            isDragging = true
+                            onEditingChanged(true)
+                        }
                         updateValue(locationX: Double(drag.location.x), width: Double(width))
+                    }
+                    .onEnded { drag in
+                        updateValue(locationX: Double(drag.location.x), width: Double(width))
+                        isDragging = false
+                        onEditingChanged(false)
                     }
             )
         }
@@ -1178,6 +1311,7 @@ struct MetricTile: View {
 
 struct ModeChip: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @Environment(\.focusGlassMotion) private var motion
 
     let title: String
     let symbolName: String
@@ -1199,6 +1333,8 @@ struct ModeChip: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 15)
             .padding(.vertical, 10)
+            .frame(minHeight: FocusGlassHitTarget.row)
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .foregroundStyle(isSelected ? model.theme.text : model.theme.text.opacity(0.74))
             .background(
                 LinearGradient(
@@ -1232,6 +1368,7 @@ struct ModeChip: View {
         .buttonStyle(.plain)
         .glassHover(theme: model.theme, radius: 12, isActive: isSelected)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .animation(motion.animation(.selection), value: isSelected)
     }
 
     private var chipFillColors: [Color] {
@@ -1268,6 +1405,8 @@ struct ModeChip: View {
 }
 
 struct CircularTimerView: View {
+    @Environment(\.focusGlassMotion) private var motion
+
     let clockText: String
     let phase: String
     let progress: Double
@@ -1302,12 +1441,15 @@ struct CircularTimerView: View {
                 )
                 .rotationEffect(.degrees(-90))
                 .shadow(color: theme.glow.opacity(0.36), radius: 16, x: 0, y: 0)
+                .animation(motion.animation(.progress), value: progress)
 
             VStack(spacing: 12) {
                 Text(phase)
                     .font(.system(size: 13, weight: .bold))
                     .textCase(.uppercase)
                     .foregroundStyle(theme.primary)
+                    .contentTransition(.opacity)
+                    .animation(motion.animation(.selection), value: phase)
                 Text(clockText)
                     .font(.system(size: clockSize, weight: .semibold, design: .rounded))
                     .monospacedDigit()
@@ -1316,6 +1458,8 @@ struct CircularTimerView: View {
                 Text(statusText)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.secondary)
+                    .contentTransition(.opacity)
+                    .animation(motion.animation(.selection), value: statusText)
             }
             .padding(34)
         }
@@ -1344,22 +1488,30 @@ struct HeatmapMiniView: View {
     var body: some View {
         let cells = normalizedCells
         LazyVGrid(columns: Array(repeating: GridItem(.fixed(12), spacing: 5), count: 14), spacing: 5) {
-            ForEach(Array(cells.enumerated()), id: \.offset) { _, value in
+            ForEach(cells) { cell in
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(value == 0 ? low.opacity(0.34) : low.mix(with: high, by: value))
+                    .fill(cell.value == 0 ? low.opacity(0.34) : low.mix(with: high, by: cell.value))
                     .frame(width: 12, height: 12)
             }
         }
     }
 
-    private var normalizedCells: [Double] {
+    private var normalizedCells: [HeatmapCell] {
         let prefix = Array(values.prefix(28))
-        if prefix.count == 28 { return prefix }
-        return prefix + Array(repeating: 0, count: 28 - prefix.count)
+        let padded = prefix.count == 28
+            ? prefix
+            : prefix + Array(repeating: 0, count: 28 - prefix.count)
+        return padded.enumerated().map { HeatmapCell(id: $0.offset, value: $0.element) }
+    }
+
+    private struct HeatmapCell: Identifiable {
+        let id: Int
+        let value: Double
     }
 }
 
 struct ThemeSwatch: View {
+    @Environment(\.focusGlassMotion) private var motion
     let profile: ThemeProfile
     let isSelected: Bool
     let action: () -> Void
@@ -1392,6 +1544,8 @@ struct ThemeSwatch: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 9)
+            .frame(maxWidth: .infinity, minHeight: FocusGlassHitTarget.row, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .background(
                 isSelected ? profile.primary.opacity(0.18) : .white.opacity(0.045),
                 in: RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -1402,7 +1556,9 @@ struct ThemeSwatch: View {
             }
         }
         .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
         .glassHover(theme: profile, radius: 10, isActive: isSelected)
+        .animation(motion.animation(.selection), value: isSelected)
     }
 }
 

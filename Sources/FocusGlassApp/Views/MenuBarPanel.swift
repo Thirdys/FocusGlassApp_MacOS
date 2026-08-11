@@ -4,7 +4,9 @@ import FocusGlassCore
 
 struct MenuBarPanel: View {
     @EnvironmentObject private var model: FocusGlassViewModel
+    @EnvironmentObject private var timerPresentation: FocusTimerPresentationState
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.focusGlassMotion) private var motion
 
     var openMainWindow: (() -> Void)?
     var openFocusWindow: (() -> Void)?
@@ -31,19 +33,21 @@ struct MenuBarPanel: View {
             VStack(alignment: .leading, spacing: 14) {
                 header
 
-                ProgressView(value: model.engineSnapshot.progress)
+                ProgressView(value: timerPresentation.snapshot.progress)
                     .tint(model.theme.primary)
                     .scaleEffect(x: 1, y: 0.62, anchor: .center)
 
                 Button {
                     model.toggleTimer()
                 } label: {
-                    Label(primaryTitle, systemImage: model.engineSnapshot.status == .running ? "pause.fill" : "play.fill")
+                    Label(primaryTitle, systemImage: timerPresentation.snapshot.status == .running ? "pause.fill" : "play.fill")
                         .font(.system(size: 15, weight: .bold))
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .primary))
                 .help(primaryTitle)
+                .contentTransition(.opacity)
+                .animation(motion.animation(.selection), value: timerPresentation.snapshot.status)
 
                 strictStatus
 
@@ -85,6 +89,7 @@ struct MenuBarPanel: View {
         }
         .shadow(color: .black.opacity(model.theme.shadowDepth), radius: 30, x: 0, y: 18)
         .shadow(color: model.theme.glow.opacity(model.theme.specularOpacity * 0.08), radius: 22, x: -4, y: 0)
+        .animation(motion.animation(.selection), value: model.strictModeEnabled)
     }
 
     private var header: some View {
@@ -102,14 +107,14 @@ struct MenuBarPanel: View {
                 Text(model.presetTitle(model.selectedPreset))
                     .font(.system(size: 14, weight: .bold))
                     .lineLimit(1)
-                Text(model.phaseTitle(model.engineSnapshot.activeSegment.phase))
+                Text(model.phaseTitle(timerPresentation.snapshot.activeSegment.phase))
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(model.theme.mutedText)
             }
 
             Spacer()
 
-            Text(model.primaryClockText)
+            Text(timerPresentation.primaryClockText)
                 .font(.system(size: 34, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .minimumScaleFactor(0.72)
@@ -184,8 +189,8 @@ struct MenuBarPanel: View {
                     .frame(width: 28, height: 28)
             }
             .buttonStyle(LiquidGlassButtonStyle(theme: model.theme, variant: .icon))
-            .disabled(!model.canSkipSegment)
-            .opacity(model.canSkipSegment ? 1 : 0.42)
+            .disabled(!timerPresentation.canSkipSegment)
+            .opacity(timerPresentation.canSkipSegment ? 1 : 0.42)
             .help(model.t("help.timerSkip"))
 
             Button {
@@ -206,7 +211,7 @@ struct MenuBarPanel: View {
     }
 
     private var primaryTitle: String {
-        switch model.engineSnapshot.status {
+        switch timerPresentation.snapshot.status {
         case .running: model.t("timer.pause")
         case .paused: model.t("timer.resume")
         case .idle, .completed: model.t("timer.start")

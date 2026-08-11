@@ -12,19 +12,25 @@
 
 - `FocusGlassApp.swift` owns the scene structure: main `WindowGroup`,
   fullscreen focus `WindowGroup`, Settings, and the AppKit `NSStatusItem` that
-  hosts the SwiftUI menu bar panel in an `NSPopover`.
+  hosts the SwiftUI menu bar HUD in a lifecycle-managed
+  `FocusGlassStatusPanel` (`NSPanel`).
 - `FocusGlassViewModel` is the app state coordinator. It owns timer selection,
   projects, tasks, recent sessions, strict rules, permissions service, storage
   status, theme selection, runtime icons, and window reuse.
+- `FocusTimerPresentationState` owns the frequently changing
+  `TimerEngineSnapshot`. Timer-only views observe it directly so the one-second
+  tick does not invalidate the full cockpit, sidebar, project grid, and
+  analytics hierarchy.
 - `FocusTimerEngine` is the pure timer state machine. UI code should interact
   through view-model snapshots, not by duplicating timer math.
 - `FocusGlassStore` owns split JSON persistence and invalid-file protection.
 - `FocusGuardService` owns macOS permission checks, notifications, Apple Events
   probes, browser URL lookup, and strict-mode actions.
 - `FocusGlassDiagnosticsLogger` writes short-lived structured diagnostics.
-- `FocusGlassRuntimeIcon` and `Scripts/generate-app-icon.swift` share one icon
-  geometry: a readable glass timer face, one focus-progress ring, hands, focus
-  point, and highlight.
+- `FocusGlassMarkGeometry`, `FocusGlassRuntimeIcon`, and
+  `Scripts/generate-app-icon.swift` share one normalized mark geometry: a
+  readable glass timer face, one focus-progress ring, hands, focus point, and
+  highlight.
 
 ## Persistence
 
@@ -55,7 +61,7 @@ SwiftData migration target:
 - `FocusEvent`
 - `DailyInsight`
 
-### JSON schema v5
+### JSON schema v6
 
 User data and app preferences are deliberately split so a settings decode issue
 does not erase projects/tasks:
@@ -100,7 +106,7 @@ The state is local-only and currently includes:
   target, time, rule/action, and optional session/project/task context plus
   timer mode.
 
-### Legacy migration and v5 split
+### Legacy migration and v6 split
 
 On load, `FocusGlassViewModel.sanitizedStarterState` migrates persisted state
 before the app starts writing current split files:
@@ -121,7 +127,7 @@ before the app starts writing current split files:
   `notes` when that project has empty notes, then the persisted intention is
   cleared for the current UI.
 - `sanitizedStarterState` returns a migrated state marker for legacy cleanup,
-  then new saves write split `schemaVersion: 5` files. Missing distraction
+  then new saves write split `schemaVersion: 6` files. Missing distraction
   history and quit consent fields decode to safe defaults. Legacy
   `state.json` is kept in place and not deleted.
 - If `workspace.json` cannot decode, FocusGlass copies it to
@@ -148,6 +154,15 @@ Tasks support two timing modes:
 Starting a timer captures the currently selected `activeTaskID` into an internal
 session task ID. Later task selection changes do not redirect the current
 session's honest focus time.
+
+### UI-derived caches
+
+The view model rebuilds project task counts, active-project tasks, daily
+analytics, mode/project summaries, and heatmap values only when their source
+collections change. Heatmap values also refresh when the calendar day changes.
+Do not move these filters/reductions back into frequently invalidated SwiftUI
+`body` paths. A timer tick must publish through
+`FocusTimerPresentationState`, not the broad `FocusGlassViewModel`.
 
 ### Timer presets
 
@@ -188,8 +203,11 @@ and batch multi-step theme mutations:
 - The packaged `.icns` remains the readable fallback for a closed app. Runtime
   theme colors are restored for the running Dock icon immediately after launch;
   a fully terminated process cannot react to later user-theme edits by itself.
-- The main window adds a short theme-aware launch overlay before exposing the
-  normal shell. It respects macOS Reduce Motion by using a shorter fade path.
+- The main window adds one process-scoped launch overlay before exposing the
+  normal shell. It draws the same shared mark geometry in ordered tile, arc,
+  timer-hand, focus-dot, and wordmark phases, then crossfades into the ready
+  cockpit. Theme `motion` scales bounded timing; Reduce Motion shows the
+  complete mark with a short fade and no draw/rotation/pulse.
 - `L10n` uses a safe resource-bundle lookup instead of directly touching
   SwiftPM's generated `Bundle.module`, because local `.app` packaging keeps
   resources in `Contents/Resources` while the generated accessor for a SwiftPM
@@ -199,7 +217,17 @@ and batch multi-step theme mutations:
   side-effect schedule instead of several.
 - Theme Studio uses one compact live preview plus grouped controls. Color
   tokens are edited through ColorPicker-backed cards with read-only hex labels;
-  numeric glass/motion tokens use the custom `GlassSlider`.
+  numeric glass/motion/density tokens use the custom `GlassSlider`. Every theme
+  stores explicit Light and Dark palettes, and the runtime does not substitute
+  hard-coded colors for a selected variant.
+- Advanced token groups are independent disclosures so off-screen ColorPicker
+  and slider surfaces are not all rendered at once. Repeated editor cards use
+  static theme fills inside the parent glass panel rather than stacking a
+  separate material layer per control.
+- Continuous Theme Studio edits call the interactive mutation path. It still
+  schedules debounced runtime-icon/persistence work, but does not advance the
+  app-wide `themeTransitionID` on every drag step. Discrete theme selection,
+  reset, import, and appearance changes keep their animated transition.
 - Built-in themes can be reset to defaults. Custom themes have a separate
   delete action and are never removed through reset.
 - `lastThemePerformanceMessage` records UI scheduling, runtime icon, save, and
@@ -207,10 +235,15 @@ and batch multi-step theme mutations:
 - Diagnostics logs `theme.switch_completed` after the final debounced side
   effects finish.
 
+All app `ScrollView` surfaces go through `FocusGlassScrollView`. It propagates
+live-scroll state through the environment, uses SwiftUI scroll phase on macOS
+15+, and a narrow `NSScrollView` notification bridge on macOS 14. Shared glass
+buttons/rows suppress hover animation and expensive moving shadows/material
+layers only while scrolling; nested scroll surfaces inherit the parent state.
+
 Do not reintroduce synchronous custom icon persistence into every Theme Studio
-field/slider update, and do not bypass the animated theme mutation helpers for
-user-facing theme/appearance changes; both make light/dark or theme switching
-feel abrupt or stuck.
+field/slider update. Keep discrete theme/appearance changes animated and keep
+continuous editor drags on the interactive mutation path.
 
 ## Strict Focus
 

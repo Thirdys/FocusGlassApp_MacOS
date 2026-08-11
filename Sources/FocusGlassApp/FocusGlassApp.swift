@@ -1,4 +1,5 @@
 import AppKit
+import QuartzCore
 import SwiftUI
 
 @main
@@ -10,10 +11,18 @@ struct FocusGlassApp: App {
         WindowGroup("FocusGlass", id: "main") {
             ContentView()
                 .environmentObject(model)
+                .environmentObject(model.timerPresentation)
                 .preferredColorScheme(model.preferredColorScheme)
+                .focusGlassMotionScope(theme: model.theme)
                 .focusGlassThemeTransition(model)
                 .background(MainWindowAccessor())
-                .background(StatusItemInstaller(model: model, controller: appDelegate.statusItemController))
+                .background(
+                    StatusItemInstaller(
+                        model: model,
+                        timerPresentation: model.timerPresentation,
+                        controller: appDelegate.statusItemController
+                    )
+                )
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
                     model.flushPendingThemeSideEffectsBeforeExit()
                 }
@@ -25,7 +34,9 @@ struct FocusGlassApp: App {
         WindowGroup("Focus", id: "focus-mode") {
             FullscreenFocusView()
                 .environmentObject(model)
+                .environmentObject(model.timerPresentation)
                 .preferredColorScheme(model.preferredColorScheme)
+                .focusGlassMotionScope(theme: model.theme)
                 .focusGlassThemeTransition(model)
                 .frame(minWidth: 960, minHeight: 640)
         }
@@ -34,7 +45,9 @@ struct FocusGlassApp: App {
         Settings {
             SettingsView()
                 .environmentObject(model)
+                .environmentObject(model.timerPresentation)
                 .preferredColorScheme(model.preferredColorScheme)
+                .focusGlassMotionScope(theme: model.theme)
                 .focusGlassThemeTransition(model)
                 .frame(width: 680, height: 560)
         }
@@ -52,32 +65,86 @@ private final class FocusGlassApplicationDelegate: NSObject, NSApplicationDelega
 
 private extension View {
     func focusGlassThemeTransition(_ model: FocusGlassViewModel) -> some View {
-        animation(model.themeTransitionAnimation, value: model.themeTransitionID)
+        modifier(FocusGlassThemeTransitionModifier(model: model))
+    }
+}
+
+private struct FocusGlassThemeTransitionModifier: ViewModifier {
+    @ObservedObject var model: FocusGlassViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content.animation(
+            FocusGlassMotion(theme: model.theme, reduceMotion: reduceMotion).animation(.emphasis),
+            value: model.themeTransitionID
+        )
     }
 }
 
 private struct MainWindowAccessor: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
     func makeNSView(context: Context) -> NSView {
         let view = NSView(frame: .zero)
         DispatchQueue.main.async {
-            configure(view.window)
+            configure(view.window, coordinator: context.coordinator)
         }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async {
-            configure(nsView.window)
+            configure(nsView.window, coordinator: context.coordinator)
         }
     }
 
-    private func configure(_ window: NSWindow?) {
-        window?.identifier = FocusGlassViewModel.mainWindowIdentifier
+    private func configure(_ window: NSWindow?, coordinator: Coordinator) {
+        guard let window else { return }
+        window.identifier = FocusGlassViewModel.mainWindowIdentifier
+
+#if DEBUG
+        if !coordinator.didApplyCaptureSize,
+           let contentSize = FocusGlassWindowCapture.contentSize {
+            coordinator.didApplyCaptureSize = true
+            window.setContentSize(contentSize)
+            window.center()
+        }
+#endif
     }
+
+    final class Coordinator {
+        var didApplyCaptureSize = false
+    }
+}
+
+private enum FocusGlassWindowCapture {
+    static let contentSize: NSSize? = {
+#if DEBUG
+        let prefix = "focusglass-window-size="
+        guard let argument = CommandLine.arguments.first(where: { $0.hasPrefix(prefix) }) else {
+            return nil
+        }
+        let parts = argument.dropFirst(prefix.count).split(separator: "x", maxSplits: 1)
+        guard parts.count == 2,
+              let width = Double(parts[0]),
+              let height = Double(parts[1]) else {
+            return nil
+        }
+        return NSSize(
+            width: min(1_800, max(820, width)),
+            height: min(1_200, max(620, height))
+        )
+#else
+        return nil
+#endif
+    }()
 }
 
 private struct StatusItemInstaller: View {
     @ObservedObject var model: FocusGlassViewModel
+    @ObservedObject var timerPresentation: FocusTimerPresentationState
     @Environment(\.openWindow) private var openWindow
 
     let controller: FocusGlassStatusItemController
@@ -99,6 +166,9 @@ private struct StatusItemInstaller: View {
                     }
                 )
             }
+            .onReceive(timerPresentation.$snapshot) { _ in
+                controller.updateTimerTitle(model.menuBarTitle)
+            }
     }
 }
 
@@ -111,6 +181,8 @@ private final class FocusGlassStatusItemController: NSObject {
     private var openFocusWindow: (() -> Void)?
     private var outsideClickMonitor: Any?
     private var localClickMonitor: Any?
+    private var isPanelPresented = false
+    private var panelTransitionGeneration = 0
 #if DEBUG
     private var didOpenDebugPanel = false
 #endif
@@ -169,7 +241,7 @@ private final class FocusGlassStatusItemController: NSObject {
     }
 
     @objc private func togglePanel(_ sender: NSStatusBarButton) {
-        if panel.isVisible {
+        if isPanelPresented {
             hidePanel()
             return
         }
@@ -178,10 +250,27 @@ private final class FocusGlassStatusItemController: NSObject {
     }
 
     private func showPanel(relativeTo sender: NSStatusBarButton) {
+        isPanelPresented = true
+        panelTransitionGeneration &+= 1
         updateRootView()
         positionPanel(relativeTo: sender)
+        let restingOrigin = panel.frame.origin
+        panel.alphaValue = reducesMotion ? 1 : 0
+        if !reducesMotion {
+            panel.setFrameOrigin(NSPoint(x: restingOrigin.x, y: restingOrigin.y + 6))
+        }
         panel.orderFrontRegardless()
         panel.makeKey()
+        FocusGlassPerformance.menuPanelChanged(isVisible: true)
+
+        if !reducesMotion {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.18 * motionDurationScale
+                context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                panel.animator().alphaValue = 1
+                panel.animator().setFrameOrigin(restingOrigin)
+            }
+        }
         installOutsideClickMonitor()
     }
 
@@ -198,7 +287,9 @@ private final class FocusGlassStatusItemController: NSObject {
             }
         )
         .environmentObject(model)
+        .environmentObject(model.timerPresentation)
         .preferredColorScheme(model.preferredColorScheme)
+        .focusGlassMotionScope(theme: model.theme)
         .focusGlassThemeTransition(model)
         .frame(width: 360)
         .fixedSize(horizontal: false, vertical: true)
@@ -257,8 +348,45 @@ private final class FocusGlassStatusItemController: NSObject {
     }
 
     private func hidePanel() {
-        panel.orderOut(nil)
+        guard isPanelPresented else { return }
+        isPanelPresented = false
+        panelTransitionGeneration &+= 1
+        let transitionGeneration = panelTransitionGeneration
         removeOutsideClickMonitor()
+        FocusGlassPerformance.menuPanelChanged(isVisible: false)
+
+        guard !reducesMotion else {
+            panel.orderOut(nil)
+            panel.alphaValue = 1
+            return
+        }
+
+        let restingOrigin = panel.frame.origin
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.12 * motionDurationScale
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().alphaValue = 0
+            panel.animator().setFrameOrigin(NSPoint(x: restingOrigin.x, y: restingOrigin.y + 4))
+        } completionHandler: { [weak self] in
+            guard let self,
+                  self.panelTransitionGeneration == transitionGeneration,
+                  !self.isPanelPresented else { return }
+            self.panel.orderOut(nil)
+            self.panel.alphaValue = 1
+            self.panel.setFrameOrigin(restingOrigin)
+        }
+    }
+
+    private var reducesMotion: Bool {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    }
+
+    private var motionDurationScale: Double {
+        model?.theme.motionDurationScale ?? 1
+    }
+
+    func updateTimerTitle(_ title: String) {
+        statusItem?.button?.toolTip = title
     }
 
     private func removeOutsideClickMonitor() {
